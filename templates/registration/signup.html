@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta name="theme-color" content="#FCEED5">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐾</text></svg>">
+    <title>สร้างบัญชี | Pet Finder</title>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=IBM+Plex+Sans+Thai+Looped:wght@400;700&family=Poppins:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { -webkit-text-size-adjust: 100%; }
+        body { background: linear-gradient(134deg, #FCEED5 6%, #FCEED5 75%, #FFE7BA 100%); min-height: 100vh; display: flex; flex-direction: column; font-family: 'Poppins', 'IBM Plex Sans Thai Looped', sans-serif; position: relative; overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+        .bg-shape-1 { position: absolute; width: 635px; height: 635px; left: 700px; top: 270px; transform: rotate(9deg); background: #003459; border-radius: 99px; z-index: -1; opacity: .9;}
+        .bg-shape-2 { position: absolute; width: 635px; height: 635px; left: 860px; top: 180px; transform: rotate(25deg); background: #F7DBA7; border-radius: 99px; z-index: -1; }
+        header { padding: 22px 48px; display: flex; align-items: center; gap: 32px; }
+        .logo { color: #021F74; font-size: 40px; font-family: 'Caveat', cursive; text-decoration: none; text-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25); }
+        .nav-link { color: #021F74; font-size: 18px; font-weight: 700; text-decoration: none; }
+        .nav-link:hover { opacity: .7; }
+        .auth-container { flex: 1; display: flex; justify-content: center; align-items: center; padding: 20px; }
+        .auth-card { background: white; width: 100%; max-width: 520px; border-radius: 20px; padding: 42px 54px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin: 16px 0;}
+        /* ปรับขนาดฟอนต์ให้เล็กลงนิดนึงเพราะคำยาวขึ้น */
+        .auth-title { color: #021F74; font-size: 38px; font-weight: 700; margin-bottom: 10px; line-height: 1.2; }
+        .title-underline { width: 176px; height: 7px; background: linear-gradient(90deg, #756EF5 36%, #D75CA7 67%, #F9C82F 94%); margin-bottom: 30px; }
+        .form-group { margin-bottom: 20px; }
+        .form-input { width: 100%; height: 60px; border-radius: 20px; border: 2px solid #BEBEBE; padding: 0 25px; font-size: 18px; outline: none; }
+        .form-input:focus { border-color: #4E73F6; }
+        .terms-wrap { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 25px; font-size: 14px; }
+        .terms-wrap input { width: 18px; height: 18px; margin-top: 3px; cursor: pointer; }
+        .terms-wrap a { color: #72B3FF; text-decoration: none; }
+        .btn-submit { width: 100%; height: 60px; background: #4E73F6; color: white; font-size: 20px; font-weight: 700; border: none; border-radius: 20px; cursor: pointer; box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25); }
+        .btn-submit:disabled { background: #ccc; }
+        #msgBox { font-size: 15px; margin-bottom: 15px; display: none; text-align: center; }
+        .error-text { color: #ff4d4d; }
+        .success-text { color: #28a745; }
+        .toggle-auth { margin-top: 25px; text-align: center; font-size: 15px; }
+        .toggle-auth a { color: #72B3FF; text-decoration: none; font-weight: 500; }
+
+        @media (max-width: 720px) {
+            .bg-shape-1, .bg-shape-2 { display: none; }
+            header { padding: 16px 20px; gap: 16px; flex-wrap: wrap;}
+            .logo { font-size: 32px; }
+            .nav-link { font-size: 16px; }
+            .auth-card { padding: 30px 22px; border-radius: 18px; max-width: 100%;}
+            .auth-title { font-size: 28px; }
+            .form-input { height: 52px; font-size: 16px; padding: 0 18px; border-radius: 16px;}
+            .btn-submit { height: 54px; font-size: 17px; border-radius: 16px;}
+            .terms-wrap { font-size: 13px; }
+        }
+        @media (max-width: 400px) {
+            header { padding: 14px 14px; }
+            .logo { font-size: 28px; }
+            .auth-title { font-size: 24px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-shape-1"></div>
+    <div class="bg-shape-2"></div>
+    <header>
+        <a href="{% url 'home' %}" class="logo">Pet Finder</a>
+        <a href="{% url 'home' %}" class="nav-link">← หน้าแรก</a>
+    </header>
+    <div class="auth-container">
+        <div class="auth-card">
+            <h1 class="auth-title">สร้างบัญชี<br>เพื่อลงประกาศ</h1>
+            <div class="title-underline"></div>
+            
+            <div id="msgBox"></div>
+
+            <form id="signupForm">
+                <div class="form-group">
+                    <input type="email" id="email" class="form-input" placeholder="ใส่อีเมลของคุณ" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="password" class="form-input" placeholder="ตั้งรหัสผ่าน (อย่างน้อย 6 ตัว)" required minlength="6">
+                </div>
+                <div class="form-group">
+                    <input type="password" id="confirmPassword" class="form-input" placeholder="ยืนยันรหัสผ่านอีกครั้ง" required minlength="6">
+                </div>
+
+                <div class="terms-wrap">
+                    <input type="checkbox" id="terms" required>
+                    <label for="terms">
+                        ฉันยอมรับ <a href="#">ข้อตกลงการใช้งาน</a> และ <a href="#">นโยบายความเป็นส่วนตัว</a>
+                    </label>
+                </div>
+
+                <button type="submit" id="signupBtn" class="btn-submit">เริ่มต้นใช้งาน</button>
+            </form>
+
+            <div class="toggle-auth">
+                มีบัญชีอยู่แล้วใช่ไหม? <a href="{% url 'login' %}">เข้าสู่ระบบเลย</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var SUPABASE_URL = '{{ SUPABASE_URL }}';
+        var SUPABASE_KEY = '{{ SUPABASE_ANON_KEY }}';
+        
+        if (typeof window.mySupabaseClient === 'undefined') {
+            window.mySupabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        }
+        var supabase = window.mySupabaseClient;
+
+        const signupForm = document.getElementById('signupForm');
+        const signupBtn = document.getElementById('signupBtn');
+        const msgBox = document.getElementById('msgBox');
+
+        signupForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            msgBox.style.display = 'none';
+            msgBox.className = '';
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            if (password !== confirmPassword) {
+                showMessage("รหัสผ่านไม่ตรงกัน กรุณาตรวจสอบอีกครั้ง", "error-text");
+                return;
+            }
+
+            signupBtn.innerText = 'กำลังสร้างบัญชี...';
+            signupBtn.disabled = true;
+
+            const { data, error } = await supabase.auth.signUp({
+                email: email,
+                password: password,
+            });
+
+            if (error) {
+                showMessage(error.message, "error-text");
+                signupBtn.innerText = 'เริ่มต้นใช้งาน';
+                signupBtn.disabled = false;
+            } else {
+                showMessage("สร้างบัญชีสำเร็จ! กำลังพากลับไปหน้าเข้าสู่ระบบ...", "success-text");
+                signupForm.reset();
+                setTimeout(() => {
+                    window.location.href = "{% url 'login' %}";
+                }, 2000);
+            }
+        });
+
+        function showMessage(text, className) {
+            msgBox.innerText = text;
+            msgBox.className = className;
+            msgBox.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

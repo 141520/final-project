@@ -1,0 +1,225 @@
+{% extends 'base.html' %}
+{% block title %}ประกาศของฉัน | Pet Finder{% endblock %}
+
+{% block extra_css %}
+<style>
+:root {
+  --navy:#003459; --navy-dark:#002A48;
+  --cream:#FCEED5; --cream2:#FFE7BA;
+  --green:#1a7a4a; --green-light:#e8f5ee;
+  --red:#CD0205; --text-muted:#667479; --white:#FDFDFD;
+}
+
+.page-wrap { max-width: 860px; margin: 32px auto 80px; padding: 0 20px; }
+
+/* Header */
+.page-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
+}
+.page-title {
+  font-family: 'IBM Plex Sans Thai Looped', sans-serif;
+  font-size: 26px; font-weight: 700; color: var(--navy);
+}
+.btn-back {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 18px; border-radius: 20px;
+  background: white; border: 1.5px solid var(--navy);
+  color: var(--navy); font-weight: 700; font-size: 14px;
+  text-decoration: none; transition: all .2s;
+}
+.btn-back:hover { background: var(--navy); color: white; }
+
+/* Filter tabs */
+.filter-tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+.tab-chip {
+  padding: 7px 18px; border-radius: 20px; font-size: 14px; font-weight: 700;
+  text-decoration: none; border: 1.5px solid var(--navy); color: var(--navy);
+  background: white; transition: all .2s;
+  font-family: 'IBM Plex Sans Thai Looped', sans-serif;
+}
+.tab-chip:hover, .tab-chip.active { background: var(--navy); color: white; }
+
+/* Empty */
+.empty-box {
+  background: white; border-radius: 16px; padding: 56px 24px;
+  text-align: center; box-shadow: 0 4px 18px rgba(0,0,0,.05);
+}
+.empty-box .ico { font-size: 48px; margin-bottom: 12px; }
+.empty-box p { color: var(--text-muted); font-family: 'Crimson Text', serif; font-size: 18px; margin-bottom: 20px; }
+.btn-create {
+  display: inline-block; padding: 11px 28px; border-radius: 30px;
+  background: var(--navy); color: white; text-decoration: none;
+  font-weight: 700; font-family: 'IBM Plex Sans Thai Looped', sans-serif; font-size: 15px;
+  transition: all .2s;
+}
+.btn-create:hover { background: var(--navy-dark); transform: translateY(-2px); }
+
+/* Cards */
+.post-card {
+  background: white; border-radius: 14px; padding: 18px 20px;
+  margin-bottom: 14px; display: flex; align-items: center; gap: 18px;
+  box-shadow: 0 4px 14px rgba(0,0,0,.05);
+  transition: box-shadow .2s, transform .2s;
+}
+.post-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,.09); transform: translateY(-2px); }
+.card-img {
+  width: 100px; height: 100px; border-radius: 10px;
+  background: var(--cream); flex-shrink: 0;
+  overflow: hidden; display: flex; align-items: center; justify-content: center;
+  font-size: 36px;
+}
+.card-img img { width: 100%; height: 100%; object-fit: cover; }
+.card-info { flex: 1; }
+.card-badge {
+  display: inline-block; padding: 2px 10px; border-radius: 20px;
+  font-size: 11px; font-weight: 700; margin-bottom: 5px;
+}
+.badge-lost { background: #ffeaea; color: var(--red); }
+.badge-found { background: var(--green-light); color: var(--green); }
+.card-name {
+  font-size: 18px; font-weight: 700; color: var(--navy);
+  font-family: 'IBM Plex Sans Thai Looped', sans-serif; margin-bottom: 4px;
+}
+.card-meta { font-size: 13px; color: var(--text-muted); }
+.status-active { color: #d97706; font-weight: 700; }
+.status-resolved { color: var(--green); font-weight: 700; }
+.card-actions { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+.btn-sm {
+  padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 700;
+  text-decoration: none; border: none; cursor: pointer;
+  font-family: 'IBM Plex Sans Thai Looped', sans-serif;
+  display: inline-flex; align-items: center; gap: 5px; transition: all .2s;
+  white-space: nowrap;
+}
+.btn-view { background: var(--cream); color: var(--navy); border: 1px solid #e0d5c0; }
+.btn-view:hover { background: var(--navy); color: white; }
+.btn-edit { background: #e8f0fe; color: #1a56db; border: 1px solid #c4d4f9; }
+.btn-edit:hover { background: #1a56db; color: white; }
+.btn-del { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+.btn-del:hover { background: #dc2626; color: white; }
+.card-time { font-size: 11px; color: #bbb; margin-top: 4px; }
+
+/* Quick stats */
+.stats-row {
+  display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;
+}
+.stat-pill {
+  background: white; border-radius: 20px; padding: 8px 18px;
+  font-size: 14px; font-weight: 700; color: var(--navy);
+  box-shadow: 0 2px 8px rgba(0,0,0,.05);
+  font-family: 'IBM Plex Sans Thai Looped', sans-serif;
+}
+.stat-pill span { color: var(--green); }
+.stat-pill.red span { color: var(--red); }
+
+@media (max-width: 720px) {
+  .page-wrap { margin: 18px auto 60px; padding: 0 14px; }
+  .page-title { font-size: 22px; }
+  .stats-row { gap: 6px; }
+  .stat-pill { font-size: 13px; padding: 7px 14px; }
+}
+@media (max-width: 600px) {
+  .post-card {
+    flex-direction: row; align-items: flex-start;
+    padding: 14px; gap: 12px; flex-wrap: wrap;
+  }
+  .card-img { width: 72px; height: 72px; font-size: 28px; }
+  .card-info { flex: 1 1 calc(100% - 84px); min-width: 0; }
+  .card-name { font-size: 16px; }
+  .card-meta { font-size: 12px; }
+  .card-actions {
+    flex-direction: row; flex-wrap: wrap; width: 100%;
+    gap: 6px; margin-top: 6px;
+  }
+  .btn-sm { padding: 7px 12px; font-size: 12px; flex: 1 1 auto; justify-content: center; }
+  .filter-tabs { gap: 6px; }
+  .tab-chip { font-size: 13px; padding: 6px 14px; }
+  .empty-box { padding: 36px 16px; }
+  .empty-box .ico { font-size: 40px; }
+  .empty-box p { font-size: 16px; }
+}
+@media (max-width: 380px) {
+  .post-card { flex-direction: column; }
+  .card-info { flex: 1 1 100%; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-wrap">
+
+  <div class="page-header">
+    <h1 class="page-title">📋 ประกาศของฉัน</h1>
+    <a href="{% url 'profile' %}" class="btn-back">← กลับโปรไฟล์</a>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-pill">ทั้งหมด <span>{{ total }}</span> ประกาศ</div>
+    <div class="stat-pill red">สัตว์หาย <span>{{ posts|length }}</span></div>
+    <div class="stat-pill">
+      <a href="{% url 'report_lost' %}" style="color:var(--navy);text-decoration:none;">+ แจ้งสัตว์หาย</a>
+    </div>
+    <div class="stat-pill">
+      <a href="{% url 'report_found' %}" style="color:var(--green);text-decoration:none;">+ แจ้งสัตว์ที่พบ</a>
+    </div>
+  </div>
+
+  <div class="filter-tabs">
+    <a href="{% url 'my_posts' %}" class="tab-chip {% if not filter_type %}active{% endif %}">ทั้งหมด</a>
+    <a href="{% url 'my_posts' %}?type=lost" class="tab-chip {% if filter_type == 'lost' %}active{% endif %}">🔍 สัตว์หาย</a>
+    <a href="{% url 'my_posts' %}?type=found" class="tab-chip {% if filter_type == 'found' %}active{% endif %}">🐾 สัตว์ที่พบ</a>
+  </div>
+
+  {% if posts %}
+    {% for post in posts %}
+    <div class="post-card">
+      <div class="card-img">
+        {% if post.image %}
+          <img src="{{ post.supabase_image_url }}" alt="{{ post.name }}"
+               onerror="this.parentElement.innerHTML='🐾'">
+        {% else %}
+          🐾
+        {% endif %}
+      </div>
+      <div class="card-info">
+        <div class="card-badge {% if post.post_type == 'lost' %}badge-lost{% else %}badge-found{% endif %}">
+          {% if post.post_type == 'lost' %}🔍 สัตว์เลี้ยงหาย{% else %}📢 พบสัตว์เลี้ยง{% endif %}
+        </div>
+        <div class="card-name">{{ post.name|default:"ไม่ระบุชื่อ" }}</div>
+        <div class="card-meta">
+          {{ post.pet_type|default:"สัตว์เลี้ยง" }}
+          {% if post.location_name %} · 📍{{ post.location_name }}{% endif %}
+        </div>
+        <div class="card-meta">
+          สถานะ:
+          {% if post.status == 'resolved' %}
+            <span class="status-resolved">✅ ปิดประกาศแล้ว</span>
+          {% else %}
+            <span class="status-active">⏳ กำลังตามหา</span>
+          {% endif %}
+        </div>
+        <div class="card-time">{{ post.created_at|timesince }} ที่แล้ว</div>
+      </div>
+      <div class="card-actions">
+        <a href="{% url 'pet_detail' post.id %}" class="btn-sm btn-view">👁 ดู</a>
+        <a href="{% url 'edit_post' post.id %}" class="btn-sm btn-edit">✏️ แก้ไข</a>
+        <form method="post" action="{% url 'delete_post' post.id %}" style="margin:0;" onsubmit="return confirm('ลบประกาศนี้?')">
+          {% csrf_token %}
+          <button type="submit" class="btn-sm btn-del">🗑 ลบ</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div class="empty-box">
+      <div class="ico">🐾</div>
+      <p>ยังไม่มีประกาศ{% if filter_type == 'lost' %}สัตว์หาย{% elif filter_type == 'found' %}สัตว์ที่พบ{% endif %}</p>
+      <a href="{% if filter_type == 'found' %}{% url 'report_found' %}{% else %}{% url 'report_lost' %}{% endif %}" class="btn-create">
+        + สร้างประกาศแรก
+      </a>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

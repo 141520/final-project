@@ -1,0 +1,234 @@
+{% extends 'base.html' %}
+{% block title %}แผนที่สัตว์เลี้ยง | Pet Finder{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+:root{
+  --navy:#003459;--navy-dark:#002A48;
+  --cream:#FCEED5;--green:#1a7a4a;
+  --red:#CD0205;--orange:#f59e0b;
+}
+
+html, body { height:100%; }
+.map-page { display:flex; flex-direction:column; height:calc(100vh - 72px); min-height:600px; }
+.map-wrap { position:relative; flex:1; min-height:500px; }
+#map { position:absolute; inset:0; width:100%; height:100%; z-index:1; }
+
+/* top bar */
+.map-topbar {
+  background:white; padding:10px 20px;
+  display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  box-shadow:0 2px 8px rgba(0,0,0,.07); z-index:500; position:relative;
+}
+.map-topbar h2 {
+  font-family:'IBM Plex Sans Thai Looped',sans-serif;
+  font-size:18px; font-weight:700; color:var(--navy); margin-right:auto;
+}
+.stat-pill {
+  padding:6px 14px; border-radius:20px; font-size:13px; font-weight:700;
+  font-family:'IBM Plex Sans Thai Looped',sans-serif;
+}
+.pill-all  { background:#EEF2FF; color:var(--navy); }
+.pill-lost { background:#ffeaea; color:var(--red); }
+.pill-found{ background:#e8f5ee; color:var(--green); }
+
+.filter-row { display:flex; gap:8px; }
+.map-filter {
+  padding:7px 16px; border-radius:20px; font-size:13px; font-weight:700;
+  border:1.5px solid #ddd; background:white; cursor:pointer;
+  font-family:'IBM Plex Sans Thai Looped',sans-serif; transition:all .2s;
+}
+.map-filter.active-all   { background:var(--navy);  color:white; border-color:var(--navy); }
+.map-filter.active-lost  { background:var(--red);   color:white; border-color:var(--red); }
+.map-filter.active-found { background:var(--green); color:white; border-color:var(--green); }
+
+/* popup */
+.popup-card { width:220px; font-family:'IBM Plex Sans Thai Looped',sans-serif; }
+.popup-img {
+  width:100%; height:130px; object-fit:cover; border-radius:8px;
+  margin-bottom:8px; background:#f5f5f5;
+}
+.popup-badge {
+  display:inline-block; padding:2px 10px; border-radius:20px;
+  font-size:10px; font-weight:700; margin-bottom:4px;
+}
+.pb-lost  { background:#ffeaea; color:var(--red); }
+.pb-found { background:#e8f5ee; color:var(--green); }
+.popup-name { font-size:16px; font-weight:700; color:var(--navy); margin-bottom:4px; }
+.popup-loc  { font-size:12px; color:#667479; margin-bottom:6px; }
+.popup-reward {
+  display:inline-flex; align-items:center; gap:4px;
+  background:var(--orange); color:white;
+  padding:4px 10px; border-radius:20px; font-size:12px; font-weight:700;
+  margin-bottom:8px;
+}
+.popup-btn {
+  display:block; text-align:center; padding:8px;
+  background:var(--navy); color:white; border-radius:8px;
+  text-decoration:none; font-weight:700; font-size:13px;
+  transition:background .2s;
+}
+.popup-btn:hover { background:var(--navy-dark); }
+
+/* leaflet marker override */
+.marker-lost  { background:var(--red);   }
+.marker-found { background:var(--green); }
+
+/* locate btn */
+.locate-btn {
+  position:absolute; bottom:30px; right:14px; z-index:1000;
+  background:white; border:2px solid #ddd; border-radius:50%;
+  width:40px; height:40px; display:flex; align-items:center; justify-content:center;
+  cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,.15); font-size:18px;
+}
+
+@media (max-width: 720px) {
+  .map-page { height: calc(100vh - 60px); min-height: 480px; }
+  .map-topbar { padding: 8px 12px; gap: 6px; }
+  .map-topbar h2 { font-size: 15px; width: 100%; margin-right: 0; margin-bottom: 4px; }
+  .stat-pill { padding: 4px 10px; font-size: 11px; }
+  .filter-row { width: 100%; gap: 6px; }
+  .map-filter {
+    padding: 6px 10px; font-size: 12px; flex: 1;
+  }
+  .locate-btn { bottom: 20px; right: 10px; width: 44px; height: 44px; }
+  .popup-card { width: 200px; }
+  .popup-img { height: 110px; }
+}
+@media (max-width: 380px) {
+  .stat-pill { font-size: 10px; padding: 4px 8px; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="map-page">
+
+  <div class="map-topbar">
+    <h2>🗺️ แผนที่สัตว์เลี้ยง</h2>
+    <span class="stat-pill pill-all">ทั้งหมด {{ total_map }} หมุด</span>
+    <span class="stat-pill pill-lost">หาย {{ total_lost }}</span>
+    <span class="stat-pill pill-found">พบ {{ total_found }}</span>
+    <div class="filter-row">
+      <button class="map-filter active-all" id="f-all"   onclick="setFilter('all')">ทั้งหมด</button>
+      <button class="map-filter"            id="f-lost"  onclick="setFilter('lost')">🔍 สัตว์หาย</button>
+      <button class="map-filter"            id="f-found" onclick="setFilter('found')">🐾 สัตว์พบ</button>
+    </div>
+  </div>
+
+  <div class="map-wrap">
+    <div id="map"></div>
+    <button class="locate-btn" onclick="locateMe()" title="หาตำแหน่งฉัน">📍</button>
+  </div>
+
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const POSTS = {{ posts_json|safe }};
+
+// ── Init map ──
+const map = L.map('map', { zoomControl: true }).setView([13.75, 100.5], 6);
+
+// ใช้ CartoDB Voyager (ฟรี + ไม่ block referer แบบ osm.org)
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+  attribution: '© OpenStreetMap contributors © CARTO',
+  subdomains: 'abcd',
+  maxZoom: 19,
+}).addTo(map);
+
+// ── Custom icons ──
+function makeIcon(color) {
+  return L.divIcon({
+    className: '',
+    html: `<div style="
+      width:28px;height:28px;border-radius:50% 50% 50% 0;
+      background:${color};border:2px solid white;
+      transform:rotate(-45deg);
+      box-shadow:0 2px 6px rgba(0,0,0,.35);
+    "></div>`,
+    iconSize: [28, 28],
+    iconAnchor: [14, 28],
+    popupAnchor: [0, -30],
+  });
+}
+
+const iconLost  = makeIcon('#CD0205');
+const iconFound = makeIcon('#1a7a4a');
+const iconResolved = makeIcon('#999');
+
+// ── Markers ──
+let markers = [];
+let currentFilter = 'all';
+
+function buildPopup(p) {
+  const img = p.image_url
+    ? `<img src="${p.image_url}" class="popup-img" onerror="this.style.display='none'">`
+    : `<div style="height:80px;background:#f5f5f5;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:32px;margin-bottom:8px;">🐾</div>`;
+  const badgeClass = p.post_type === 'lost' ? 'pb-lost' : 'pb-found';
+  const badgeText  = p.post_type === 'lost' ? '🔍 สัตว์หาย' : '🐾 สัตว์พบ';
+  const resolved   = p.status === 'resolved' ? '<span style="background:#888;color:#fff;border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700;">✅ ปิดประกาศแล้ว</span>' : '';
+  const reward     = p.reward ? `<div class="popup-reward">🎁 รางวัล ฿${Number(p.reward).toLocaleString()}</div>` : '';
+  const loc        = p.location_name ? `<div class="popup-loc">📍 ${p.location_name}</div>` : '';
+
+  return `<div class="popup-card">
+    ${img}
+    <span class="popup-badge ${badgeClass}">${badgeText}</span> ${resolved}
+    <div class="popup-name">${p.name}</div>
+    ${loc}
+    ${reward}
+    <a href="${p.detail_url}" class="popup-btn">ดูรายละเอียด →</a>
+  </div>`;
+}
+
+function renderMarkers(filter) {
+  markers.forEach(m => map.removeLayer(m));
+  markers = [];
+
+  POSTS.forEach(p => {
+    if (filter !== 'all' && p.post_type !== filter) return;
+    const icon = p.status === 'resolved' ? iconResolved : (p.post_type === 'lost' ? iconLost : iconFound);
+    const m = L.marker([p.lat, p.lng], { icon })
+      .bindPopup(buildPopup(p), { maxWidth: 240, className: 'pet-popup' });
+    m.addTo(map);
+    markers.push(m);
+  });
+}
+
+function setFilter(f) {
+  currentFilter = f;
+  document.querySelectorAll('.map-filter').forEach(btn => {
+    btn.className = 'map-filter';
+  });
+  const cls = f === 'all' ? 'active-all' : f === 'lost' ? 'active-lost' : 'active-found';
+  document.getElementById('f-' + f).classList.add(cls);
+  renderMarkers(f);
+}
+
+function locateMe() {
+  if (!navigator.geolocation) return alert('เบราว์เซอร์ไม่รองรับ GPS');
+  navigator.geolocation.getCurrentPosition(pos => {
+    const { latitude: lat, longitude: lng } = pos.coords;
+    map.setView([lat, lng], 14);
+    L.circle([lat, lng], { radius: 500, color: '#003459', fillOpacity: .15 }).addTo(map);
+    L.marker([lat, lng], {
+      icon: makeIcon('#003459')
+    }).bindPopup('📍 ตำแหน่งของคุณ').addTo(map).openPopup();
+  }, () => alert('ไม่สามารถดึงตำแหน่งได้'));
+}
+
+// ── Start ──
+renderMarkers('all');
+
+// ── Fit bounds if has posts ──
+if (markers.length > 0) {
+  const group = L.featureGroup(markers);
+  map.fitBounds(group.getBounds().pad(0.2));
+}
+
+// ── Force resize หลัง layout settle (กันแผนที่โผล่ครึ่งหรือไม่ขึ้น) ──
+window.addEventListener('load', () => setTimeout(() => map.invalidateSize(), 100));
+setTimeout(() => map.invalidateSize(), 300);
+</script>
+{% endblock %}

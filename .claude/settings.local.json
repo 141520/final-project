@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:www.figma.com)",
+      "Bash(grep -E \"\\\\.\\(txt|md|env|yml\\)$\")",
+      "WebFetch(domain:embed.figma.com)",
+      "Read(//c/Users/Ts/Downloads/**)",
+      "Bash(unzip -l \"C:/Users/Ts/Downloads/Pet Finder.zip\")",
+      "Bash(mkdir -p \"C:/Users/Ts/Downloads/petfinder_figma\")",
+      "Bash(unzip -o \"C:/Users/Ts/Downloads/Pet Finder.zip\" -d \"C:/Users/Ts/Downloads/petfinder_figma\")",
+      "Bash(awk '{print $5, $9}')",
+      "WebFetch(domain:foundy.tigerfoundationtech.co.th)",
+      "Bash(\"C:/Users/Ts/Desktop/project/.venv/Scripts/python.exe\" -m pip freeze)",
+      "Bash(blog\")"
+    ]
+  }
+}

@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+    <meta name="description" content="Pet Finder — เว็บช่วยตามหาสัตว์เลี้ยงหายและคืนสัตว์เลี้ยงกลับบ้าน">
+    <meta name="theme-color" content="#FCEED5">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Pet Finder">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="format-detection" content="telephone=yes">
+
+    <title>{% block title %}Pet Finder — ตามหาสัตว์เลี้ยงหาย{% endblock %}</title>
+
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐾</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐾</text></svg>">
+
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=IBM+Plex+Sans+Thai+Looped:wght@400;500;700&family=Montserrat:wght@400;500;600;700&family=Chilanka&family=Crimson+Text:wght@400;600&family=Poppins:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+        body {
+            font-family: 'IBM Plex Sans Thai Looped', 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #FDF4E3; min-height: 100vh;
+            color: #1f2937;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow-x: hidden;
+        }
+        a { color: inherit; }
+        img { max-width: 100%; height: auto; display: block; }
+        input, button, select, textarea { font: inherit; -webkit-tap-highlight-color: transparent; }
+        button { cursor: pointer; }
+
+        /* ============ HEADER ============ */
+        header {
+            padding: 14px 24px;
+            display: flex; align-items: center; justify-content: space-between;
+            background: linear-gradient(180deg, #FCEED5 0%, #FFE7BA 100%);
+            position: sticky; top: 0; z-index: 1000;
+            box-shadow: 0 2px 12px rgba(0,0,0,.04);
+        }
+        .logo {
+            color: #021F74; font-size: 30px; font-family: 'Caveat', cursive;
+            text-decoration: none; font-weight: bold;
+            flex-shrink: 0;
+        }
+        .nav-links {
+            display: flex; gap: 22px; align-items: center;
+        }
+        .nav-link {
+            color: #021F74; font-size: 15px; font-weight: 700;
+            text-decoration: none;
+            padding: 6px 2px; border-radius: 6px;
+            transition: opacity .15s;
+            white-space: nowrap;
+        }
+        .nav-link:hover { opacity: .65; }
+        .nav-link.active { border-bottom: 2px solid #021F74; }
+        .btn-auth {
+            background: #021F74; color: #fff !important;
+            padding: 9px 20px; border-radius: 22px;
+            box-shadow: 0 3px 8px rgba(2,31,116,.25);
+        }
+        .btn-auth:hover { background: #001a5e; opacity: 1; }
+
+        .nav-profile-wrap { position: relative; }
+        .nav-profile-btn {
+            background: #fff;
+            border: 1.5px solid #021F74;
+            color: #021F74;
+            padding: 7px 16px;
+            border-radius: 22px;
+            font-weight: 700;
+            font-size: 14px;
+            display: inline-flex; align-items: center; gap: 6px;
+            text-decoration: none;
+            transition: all .15s;
+        }
+        .nav-profile-btn:hover { background: #021F74; color: #fff; }
+        .nav-dropdown {
+            position: absolute; top: calc(100% + 8px); right: 0;
+            min-width: 220px; background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 12px 32px rgba(0,0,0,.12);
+            padding: 8px;
+            display: none; z-index: 1001;
+            border: 1px solid #eee;
+        }
+        .nav-dropdown.open { display: block; }
+        .nav-dropdown a, .nav-dropdown button {
+            display: flex; align-items: center; gap: 10px;
+            width: 100%; padding: 10px 14px;
+            border: none; background: transparent;
+            color: #1f2937; font-size: 14px; font-weight: 600;
+            text-decoration: none; text-align: left;
+            border-radius: 10px;
+            font-family: inherit;
+        }
+        .nav-dropdown a:hover, .nav-dropdown button:hover { background: #FDF4E3; }
+        .nav-dropdown .divider {
+            height: 1px; background: #eee; margin: 6px 4px;
+        }
+        .nav-dropdown .logout-item { color: #CD0205; }
+
+        /* Hamburger */
+        .hamburger {
+            display: none;
+            background: transparent; border: none;
+            padding: 8px; border-radius: 8px;
+            color: #021F74;
+        }
+        .hamburger:hover { background: rgba(2,31,116,.08); }
+        .hamburger svg { width: 26px; height: 26px; display: block; }
+
+        /* ============ MESSAGES ============ */
+        .messages {
+            max-width: 900px; margin: 16px auto; padding: 0 20px;
+        }
+        .messages .msg {
+            padding: 12px 18px; border-radius: 12px;
+            margin-bottom: 8px;
+            font-family: inherit;
+            display: flex; align-items: center; gap: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,.05);
+            animation: slide-in .3s ease-out;
+        }
+        @keyframes slide-in {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .messages .msg.success { background: #D4EDDA; color: #155724; border-left: 4px solid #28a745; }
+        .messages .msg.error   { background: #F8D7DA; color: #721C24; border-left: 4px solid #dc3545; }
+        .messages .msg.info    { background: #D1ECF1; color: #0c5460; border-left: 4px solid #17a2b8; }
+        .messages .msg.warning { background: #FFF3CD; color: #856404; border-left: 4px solid #ffc107; }
+
+        /* ============ FOOTER ============ */
+        footer.site-footer {
+            background: linear-gradient(180deg, #FFF6E5 0%, #FFE0A7 60%, #FEC356 100%);
+            border-radius: 32px 32px 0 0;
+            padding: 40px 32px 22px;
+            margin-top: 60px;
+        }
+        .ft-grid {
+            max-width: 1200px; margin: 0 auto;
+            display: grid; grid-template-columns: 1.2fr 1fr 1fr 1fr;
+            gap: 28px;
+        }
+        .ft-brand .logo { font-size: 38px; }
+        .ft-tagline {
+            color: #021F74; font-size: 14px; font-weight: 500;
+            margin-top: 4px; max-width: 260px; line-height: 1.5;
+        }
+        .ft-col h4 {
+            color: #021F74; font-size: 15px; font-weight: 700;
+            margin-bottom: 12px;
+        }
+        .ft-col a {
+            display: block; color: #021F74; font-size: 14px; font-weight: 600;
+            text-decoration: none; padding: 4px 0;
+            opacity: .85;
+        }
+        .ft-col a:hover { opacity: 1; text-decoration: underline; }
+        .ft-bottom {
+            max-width: 1200px; margin: 28px auto 0;
+            padding-top: 18px;
+            border-top: 1px solid rgba(2,31,116,.15);
+            display: flex; justify-content: space-between;
+            flex-wrap: wrap; gap: 10px;
+            font-family: 'Crimson Text', serif;
+            font-size: 13px; color: #021F74; opacity: .75;
+        }
+
+        /* ============ MOBILE ============ */
+        @media (max-width: 960px) {
+            .nav-links { gap: 14px; }
+            .nav-link { font-size: 14px; }
+        }
+        @media (max-width: 820px) {
+            header { padding: 12px 16px; }
+            .logo { font-size: 26px; }
+
+            .nav-links {
+                position: fixed;
+                top: 60px; left: 0; right: 0;
+                background: #FFF9EA;
+                flex-direction: column; align-items: stretch;
+                gap: 0; padding: 0 16px;
+                max-height: 0; overflow: hidden;
+                transition: max-height .3s ease, padding .3s ease;
+                box-shadow: 0 8px 16px rgba(0,0,0,.06);
+                z-index: 999;
+            }
+            .nav-links.open {
+                max-height: 600px;
+                padding: 8px 16px 24px;
+            }
+            .nav-links .nav-link {
+                padding: 14px 12px;
+                border-bottom: 1px solid rgba(2,31,116,.08);
+                font-size: 16px;
+                width: 100%;
+            }
+            .nav-links .nav-link:last-of-type { border-bottom: none; }
+            .nav-links .btn-auth {
+                margin-top: 10px; text-align: center;
+                padding: 12px 20px;
+            }
+            .nav-profile-wrap { width: 100%; margin-top: 8px; }
+            .nav-profile-btn { width: 100%; justify-content: center; padding: 12px 20px; }
+            .nav-dropdown {
+                position: static; width: 100%; margin-top: 8px;
+                box-shadow: none; border: 1px solid #eee;
+            }
+
+            .hamburger { display: inline-flex; }
+
+            .ft-grid { grid-template-columns: 1fr 1fr; gap: 20px; }
+            footer.site-footer { padding: 32px 18px 20px; border-radius: 24px 24px 0 0; margin-top: 40px;}
+        }
+        @media (max-width: 500px) {
+            .ft-grid { grid-template-columns: 1fr; gap: 16px; }
+            .ft-bottom { flex-direction: column; text-align: center; }
+        }
+
+        /* ============ BODY WRAPPER ============ */
+        .site-wrap {
+            display: flex; flex-direction: column;
+            min-height: 100vh;
+        }
+        .site-main { flex: 1; }
+
+        /* Safe-area for iPhone notch */
+        @supports (padding: max(0px)) {
+            header {
+                padding-left: max(16px, env(safe-area-inset-left));
+                padding-right: max(16px, env(safe-area-inset-right));
+            }
+            footer.site-footer {
+                padding-left: max(18px, env(safe-area-inset-left));
+                padding-right: max(18px, env(safe-area-inset-right));
+                padding-bottom: max(22px, env(safe-area-inset-bottom));
+            }
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+<div class="site-wrap">
+
+    <header>
+        <a href="{% url 'home' %}" class="logo">Pet Finder</a>
+
+        <button class="hamburger" id="hamburgerBtn" aria-label="เปิดเมนู" aria-expanded="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+                <line x1="4" y1="7"  x2="20" y2="7"/>
+                <line x1="4" y1="12" x2="20" y2="12"/>
+                <line x1="4" y1="17" x2="20" y2="17"/>
+            </svg>
+        </button>
+
+        <nav class="nav-links" id="navLinks">
+            <a href="{% url 'home' %}" class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}">หน้าแรก</a>
+            <a href="{% url 'lost_pet_list' %}" class="nav-link {% if request.resolver_match.url_name == 'lost_pet_list' %}active{% endif %}">ประกาศสัตว์หาย</a>
+            <a href="{% url 'found_pet_list' %}" class="nav-link {% if request.resolver_match.url_name == 'found_pet_list' %}active{% endif %}">ประกาศสัตว์พบ</a>
+            <a href="{% url 'map_view' %}" class="nav-link {% if request.resolver_match.url_name == 'map_view' %}active{% endif %}">🗺️ แผนที่</a>
+            <a href="{% url 'search_pet' %}" class="nav-link {% if request.resolver_match.url_name == 'search_pet' %}active{% endif %}">🔍 AI ค้นหา</a>
+            <a href="{% url 'product_list' %}" class="nav-link {% if request.resolver_match.url_name == 'product_list' %}active{% endif %}">สินค้า</a>
+            <a href="{% url 'blog_list' %}" class="nav-link {% if request.resolver_match.url_name == 'blog_list' %}active{% endif %}">บทความ</a>
+
+            {% if user.is_authenticated %}
+                <div class="nav-profile-wrap">
+                    <a href="{% url 'profile' %}" class="nav-profile-btn" id="profileBtn" aria-haspopup="true">
+                        👤 โปรไฟล์ ▾
+                    </a>
+                    <div class="nav-dropdown" id="profileDropdown">
+                        <a href="{% url 'profile' %}">⚙️ โปรไฟล์ของฉัน</a>
+                        <a href="{% url 'my_posts' %}">📢 ประกาศของฉัน</a>
+                        <a href="{% url 'report_lost' %}">➕ แจ้งสัตว์หาย</a>
+                        <a href="{% url 'report_found' %}">🐾 แจ้งสัตว์ที่พบ</a>
+                        <div class="divider"></div>
+                        <button class="logout-item" id="navLogoutBtn">🚪 ออกจากระบบ</button>
+                    </div>
+                </div>
+            {% else %}
+                <a href="{% url 'login' %}" class="nav-link btn-auth">เข้าสู่ระบบ</a>
+            {% endif %}
+        </nav>
+    </header>
+
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+            <div class="msg {{ message.tags }}">
+                {% if 'success' in message.tags %}✅
+                {% elif 'error' in message.tags %}⚠️
+                {% elif 'warning' in message.tags %}⚡
+                {% else %}ℹ️{% endif %}
+                <span>{{ message }}</span>
+            </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <main class="site-main">
+        {% block content %}{% endblock %}
+    </main>
+
+    {% block footer %}
+    <footer class="site-footer">
+        <div class="ft-grid">
+            <div class="ft-brand ft-col">
+                <a href="{% url 'home' %}" class="logo">Pet Finder</a>
+                <p class="ft-tagline">เว็บไซต์ช่วยตามหาสัตว์เลี้ยงหาย ใช้ AI จับคู่รูปภาพ พาน้องกลับบ้านอย่างปลอดภัย</p>
+            </div>
+            <div class="ft-col">
+                <h4>ค้นหา</h4>
+                <a href="{% url 'lost_pet_list' %}">ประกาศสัตว์หาย</a>
+                <a href="{% url 'found_pet_list' %}">ประกาศสัตว์พบ</a>
+                <a href="{% url 'map_view' %}">แผนที่</a>
+                <a href="{% url 'search_pet' %}">ค้นหาด้วย AI</a>
+            </div>
+            <div class="ft-col">
+                <h4>ชุมชน</h4>
+                <a href="{% url 'blog_list' %}">บทความ</a>
+                <a href="{% url 'product_list' %}">สินค้าแนะนำ</a>
+                {% if user.is_authenticated %}
+                    <a href="{% url 'report_lost' %}">แจ้งสัตว์หาย</a>
+                    <a href="{% url 'report_found' %}">แจ้งสัตว์ที่พบ</a>
+                {% else %}
+                    <a href="{% url 'login' %}">เข้าสู่ระบบ</a>
+                    <a href="{% url 'signup' %}">สมัครสมาชิก</a>
+                {% endif %}
+            </div>
+            <div class="ft-col">
+                <h4>ติดต่อ</h4>
+                <a href="mailto:support@petfinder.local">support@petfinder.local</a>
+                <a href="#about">เกี่ยวกับเรา</a>
+                <a href="#privacy">นโยบายความเป็นส่วนตัว</a>
+                <a href="#terms">ข้อตกลงการใช้งาน</a>
+            </div>
+        </div>
+        <div class="ft-bottom">
+            <span>© {% now "Y" %} Pet Finder. พัฒนาเพื่อโครงงาน — ทุกสิทธิ์สงวน.</span>
+            <span>Made with 🐾 in Thailand</span>
+        </div>
+    </footer>
+    {% endblock %}
+
+</div>
+
+<script>
+    var SUPABASE_URL = '{{ SUPABASE_URL }}';
+    var SUPABASE_KEY = '{{ SUPABASE_ANON_KEY }}';
+    if (typeof window.mySupabaseClient === 'undefined' && window.supabase) {
+        window.mySupabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    }
+
+    (async function syncToken() {
+        try {
+            if (!window.mySupabaseClient) return;
+            const { data: { session } } = await window.mySupabaseClient.auth.getSession();
+            if (session && session.access_token) {
+                document.cookie = `sb-access-token=${session.access_token}; path=/; SameSite=Lax`;
+            }
+        } catch (e) { console.warn('Supabase session sync failed', e); }
+    })();
+
+    (function() {
+        const btn = document.getElementById('hamburgerBtn');
+        const nav = document.getElementById('navLinks');
+        if (!btn || !nav) return;
+        btn.addEventListener('click', () => {
+            const open = nav.classList.toggle('open');
+            btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+        nav.querySelectorAll('a').forEach(a => {
+            a.addEventListener('click', () => {
+                nav.classList.remove('open');
+                btn.setAttribute('aria-expanded', 'false');
+            });
+        });
+    })();
+
+    (function() {
+        const btn = document.getElementById('profileBtn');
+        const dd  = document.getElementById('profileDropdown');
+        if (!btn || !dd) return;
+        btn.addEventListener('click', (e) => {
+            if (window.innerWidth <= 820) return;
+            e.preventDefault();
+            dd.classList.toggle('open');
+        });
+        document.addEventListener('click', (e) => {
+            if (!btn.contains(e.target) && !dd.contains(e.target)) dd.classList.remove('open');
+        });
+    })();
+
+    window.doLogout = async function() {
+        if (!confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) return;
+        try {
+            if (window.mySupabaseClient) await window.mySupabaseClient.auth.signOut();
+        } catch (e) { console.warn('Supabase signOut failed', e); }
+        document.cookie = 'sb-access-token=; Max-Age=0; path=/';
+        try {
+            await fetch('{% url "logout" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                credentials: 'same-origin',
+            });
+        } catch (e) {}
+        window.location.href = '{% url "home" %}';
+    };
+
+    const navLogout = document.getElementById('navLogoutBtn');
+    if (navLogout) navLogout.addEventListener('click', window.doLogout);
+
+    setTimeout(() => {
+        document.querySelectorAll('.messages .msg').forEach(el => {
+            el.style.transition = 'opacity .5s ease, transform .5s ease';
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(-10px)';
+            setTimeout(() => el.remove(), 500);
+        });
+    }, 5000);
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

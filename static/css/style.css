@@ -1,0 +1,212 @@
+/* Pet Finder Global Styles - Clean Version */
+
+/* 1. Import Fonts */
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai+Looped:wght@300;400;500;600;700&family=Caveat:wght@400;700&family=Crimson+Text:wght@400;600;700&family=Montserrat:wght@400&family=Anonymous+Pro:wght@700&display=swap');
+
+/* 2. Global Variables */
+:root {
+    --navy-primary: #021F74;
+    --navy-secondary: #003459;
+    --text-dark: #00171F;
+    --text-muted: #887E7E;
+    --text-body: #282323;
+    --text-light: #667479;
+    --white: #FDFDFD;
+    
+    --font-thai: 'IBM Plex Sans Thai Looped', sans-serif;
+    --font-logo: 'Caveat', cursive;
+    --font-english: 'Crimson Text', serif;
+    --font-mono: 'Anonymous Pro', monospace;
+}
+
+/* 3. Base Styles */
+body {
+    font-family: var(--font-thai);
+    color: var(--navy-primary);
+    background-color: var(--white);
+    line-height: 1.6; /* ปรับจาก 24px เป็นค่าสัมพัทธ์เพื่อความยืดหยุ่น */
+}
+
+/* 4. Navigation & Links */
+.nav-custom-link {
+    color: var(--navy-primary) !important;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.login-link {
+    color: var(--navy-primary);
+    font-size: 20px;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.logo-text {
+    font-family: var(--font-logo);
+    font-size: 48px;
+    font-weight: 400;
+    color: var(--navy-primary);
+    text-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+    line-height: 1.2;
+}
+
+/* 5. Hero Section */
+.hero-wrapper {
+    padding: 60px 0;
+}
+
+.hero-title {
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--navy-primary);
+    line-height: 1.2;
+}
+
+.description-text {
+    font-size: 13px;
+    font-weight: 300;
+    color: var(--navy-primary);
+}
+
+/* 6. Buttons */
+.btn-search-found {
+    background-color: var(--navy-primary);
+    color: white !important;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 10px 24px;
+    border-radius: 50px;
+    border: none;
+}
+
+.btn-search-lost {
+    background-color: transparent;
+    color: var(--navy-secondary) !important;
+    border: 1.5px solid var(--navy-secondary);
+    font-size: 14px;
+    font-weight: 700;
+    padding: 10px 24px;
+    border-radius: 50px;
+}
+
+/* 7. Pet Card Styles */
+.section-title {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--navy-secondary);
+}
+
+.section-subtitle {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--navy-secondary);
+}
+
+.pet-card {
+    transition: transform 0.2s ease-in-out;
+    border-radius: 12px;
+}
+
+.pet-card:hover {
+    transform: translateY(-5px);
+}
+
+.pet-name {
+    font-size: 16px;
+    font-weight: 500;
+    color: black;
+}
+
+.pet-breed {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+.pet-location {
+    font-size: 11px !important;
+    color: var(--text-body);
+}
+
+.pet-date {
+    font-size: 13px;
+    font-weight: 500;
+    color: #342E2E;
+}
+
+.link-more {
+    font-size: 16px;    font-weight: 400;
+    color: var(--navy-secondary);
+    text-decoration: none;
+}
+
+/* 8. Products */
+.product-title {
+    font-family: var(--font-mono);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-dark);
+}
+
+.product-desc {
+    font-family: var(--font-english);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-light);
+}
+
+.btn-buy {
+    font-family: var(--font-english);
+    font-size: 14px;
+    font-weight: 700;
+    color: #002A48;
+    text-decoration: none;
+}
+
+/* 9. Knowledge Section */
+.knowledge-title-main {
+    font-size: 48px;
+    font-weight: 700;
+    color: var(--navy-secondary);
+}
+
+.knowledge-title-sub {
+    font-size: 48px;
+    font-weight: 400;
+    color: var(--navy-secondary);
+}
+
+.badge-crimson {
+    font-family: var(--font-english);
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.knowledge-card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--navy-secondary);
+}
+
+.knowledge-card-desc {
+    font-size: 11px;
+    font-weight: 300;
+    color: var(--navy-secondary);
+}
+
+/* 10. Footer */
+.footer-text {
+    font-family: var(--font-english);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-light);
+}
+
+.logo-text-footer {
+    font-size: 24px;
+}
+
+/* Utilities */
+.underline-text {
+    text-decoration: underline;
+}

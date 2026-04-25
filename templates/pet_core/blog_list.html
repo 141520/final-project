@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% block title %}บทความ | Pet Finder{% endblock %}
+
+{% block extra_css %}
+<style>
+  .blog-hero { background: linear-gradient(180deg, #FCEED5 0%, #FFE7BA 100%); padding: 40px 80px; text-align: center; }
+  .blog-hero h1 { font-family: 'Chilanka', sans-serif; color: #41403E; font-size: 42px; }
+  .blog-hero p { font-family: 'Montserrat', sans-serif; color: #908F8D; }
+
+  .blog-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 28px; padding: 40px 80px; max-width: 1400px; margin: 0 auto; }
+  .blog-card { background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 14px rgba(0,0,0,.06);
+               text-decoration: none; color: inherit; transition: transform .2s; }
+  .blog-card:hover { transform: translateY(-4px); }
+  .blog-card img { width: 100%; height: 200px; object-fit: cover; }
+  .blog-body { padding: 18px; }
+  .blog-title { font-family: 'Chilanka', sans-serif; color: #41403E; font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+  .blog-summary { font-family: 'Montserrat', sans-serif; color: #908F8D; font-size: 14px; margin-bottom: 10px; }
+  .blog-date { font-family: 'Crimson Text', serif; color: #DEAD6F; font-size: 14px; }
+  @media (max-width: 960px) {
+    .blog-hero { padding: 30px 30px; }
+    .blog-hero h1 { font-size: 32px; }
+    .blog-grid { padding: 30px; gap: 20px; }
+  }
+  @media (max-width: 720px) {
+    .blog-hero { padding: 24px 18px; }
+    .blog-hero h1 { font-size: 24px; }
+    .blog-hero p { font-size: 14px; }
+    .blog-grid {
+      grid-template-columns: 1fr;
+      padding: 20px 14px; gap: 14px;
+    }
+    .blog-card img { height: 170px; }
+    .blog-body { padding: 14px; }
+    .blog-title { font-size: 17px; }
+    .blog-summary { font-size: 13px; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="blog-hero">
+  <h1>บทความและเคล็ดลับ</h1>
+  <p>เรื่องน่ารู้เกี่ยวกับการดูแลสัตว์เลี้ยงของคุณ</p>
+  <a href="javascript:history.back()" style="display:inline-block;margin-top:14px;padding:8px 20px;border-radius:20px;background:white;color:#021F74;font-weight:700;text-decoration:none;font-size:14px;border:1.5px solid #021F74;">← ย้อนกลับ</a>
+</section>
+
+<section class="blog-grid">
+  {% for post in posts %}
+    <a href="{% url 'blog_detail' post.id %}" class="blog-card">
+      <img src="{{ post.display_cover_url }}" alt="{{ post.title }}">
+      <div class="blog-body">
+        <div class="blog-title">{{ post.title }}</div>
+        {% if post.summary %}<div class="blog-summary">{{ post.summary|truncatechars:90 }}</div>{% endif %}
+        <div class="blog-date">{{ post.published_at|date:"j M Y" }}{% if post.author_name %} · {{ post.author_name }}{% endif %}</div>
+      </div>
+    </a>
+  {% empty %}
+    <p style="grid-column:1/-1; text-align:center; color:#908F8D; padding:40px;">ยังไม่มีบทความ</p>
+  {% endfor %}
+</section>
+{% endblock %}

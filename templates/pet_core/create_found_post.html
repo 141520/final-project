@@ -1,0 +1,457 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}แจ้งพบสัตว์เลี้ยง | Pet Finder{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<style>
+    .d-none { display: none !important; }
+    .mt-2 { margin-top: 8px; }
+
+    main.report-main { padding: 28px 40px 50px; max-width: 1200px; margin: 0 auto; }
+    .form-card {
+        background: white; border-radius: 16px; padding: 36px 44px;
+        box-shadow: 0 6px 28px rgba(0,0,0,.06);
+    }
+    .form-header { margin-bottom: 26px; }
+    .form-header h1 { font-size: 28px; color: #021F74; font-weight: 700; margin-bottom: 6px; }
+    .form-header p { color: #666; font-size: 14px; }
+
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px 50px; }
+    .section-title { font-size: 18px; font-weight: 700; color: #021F74; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid #e0e0e0; }
+
+    .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .field label { font-size: 14px; color: #111; font-weight: 600; }
+    .field label .required { color: #FF0000; }
+    .field input, .field select, .field textarea {
+        padding: 12px 14px; border-radius: 10px; border: 1.5px solid #C8CDD0;
+        font-size: 15px; outline: none; transition: 0.2s; font-family: inherit; background: white;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus {
+        border-color: #1a7a4a; box-shadow: 0 0 0 3px rgba(26,122,74,.1);
+    }
+    .field textarea { resize: vertical; min-height: 90px; }
+    .field-row { display: flex; gap: 14px; }
+    .field-row .field { flex: 1; }
+
+    .time-chips-container { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+    .time-chip {
+        background: #f5f5f5; border: 1px solid #ccc; border-radius: 20px;
+        padding: 8px 16px; font-size: 13px; cursor: pointer; transition: 0.2s;
+        font-weight: 500;
+    }
+    .time-chip:hover { background: #e2e8f0; }
+    .time-chip.active { background: #1a7a4a; color: white; border-color: #1a7a4a; }
+
+    .map-container { width: 100%; height: 280px; border: 1px solid #C8CDD0; border-radius: 10px; margin-bottom: 8px; z-index: 1; }
+
+    .social-link-item { display: flex; gap: 8px; margin-bottom: 8px; }
+    .social-link-item input { flex: 1; }
+    .btn-remove-social { background: #FF2323; color: white; border: none; border-radius: 8px; padding: 0 14px; cursor: pointer; font-weight: bold; }
+    .btn-add-social { background: #f0f0f0; border: 1px dashed #99A2A5; color: #333; padding: 9px; border-radius: 8px; cursor: pointer; font-size: 13px; width: 100%; }
+
+    .upload-area { border: 2px dashed #99A2A5; border-radius: 12px; background: #fafafa; padding: 28px; text-align: center; cursor: pointer; margin-bottom: 8px; transition: all .2s; }
+    .upload-area:hover { background: #f0fdf4; border-color: #1a7a4a; }
+    .hidden-input { display: none; }
+    #imagePreviewContainer { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+    .preview-box { position: relative; width: 85px; height: 85px; }
+    .preview-box img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; border: 1px solid #ccc; }
+    .btn-remove-img {
+        position: absolute; top: -6px; right: -6px;
+        background: #FF2323; color: white; border: 2px solid white; border-radius: 50%;
+        width: 26px; height: 26px; font-size: 12px; font-weight: bold; cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+
+    .checklist { background: #fafafa; border-radius: 10px; padding: 18px; font-size: 14px; line-height: 26px; border: 1px solid #eee; }
+    .checklist ul { list-style: none; }
+    .checklist ul li { display: flex; align-items: center; gap: 8px; color: #555; }
+    .status-valid { color: #28a745 !important; font-weight: 600; }
+    .status-invalid { color: #dc3545; }
+
+    .divider { border: none; border-top: 1px solid #ddd; margin: 26px 0; }
+    .form-actions { display: flex; justify-content: flex-end; gap: 14px; margin-top: 32px; }
+    .btn-cancel, .btn-submit {
+        border: none; border-radius: 30px; padding: 13px 30px;
+        font-size: 15px; cursor: pointer; font-weight: 700; font-family: inherit;
+        transition: all .2s;
+    }
+    .btn-cancel { background: #f0f0f0; color: #333; }
+    .btn-cancel:hover { background: #e2e8f0; }
+    .btn-submit { background: #1a7a4a; color: white; box-shadow: 0 4px 12px rgba(26,122,74,.25); }
+    .btn-submit:hover { background: #155f3a; transform: translateY(-2px); }
+
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 9999; opacity: 0; transition: 0.3s; }
+    .modal-overlay.show { display: flex; opacity: 1; }
+    .modal-content {
+        background: linear-gradient(134deg, #FCEED5 6%, #FFE7BA 100%);
+        padding: 36px 50px; border-radius: 18px; border: 2px solid #1a7a4a;
+        text-align: center; transform: scale(0.8); transition: 0.3s;
+        max-width: 90%;
+    }
+    .modal-overlay.show .modal-content { transform: scale(1); }
+    .modal-check-icon { font-size: 56px; line-height: 1; }
+    .modal-heading { color: #1a7a4a; margin: 14px 0 8px; font-size: 24px; }
+
+    @media (max-width: 960px) {
+        main.report-main { padding: 22px 22px 40px; }
+        .form-card { padding: 28px 26px; }
+        .form-grid { grid-template-columns: 1fr; gap: 22px; }
+    }
+    @media (max-width: 600px) {
+        main.report-main { padding: 16px 14px 36px; }
+        .form-card { padding: 22px 18px; border-radius: 12px; }
+        .form-header h1 { font-size: 22px; }
+        .field-row { flex-direction: column; gap: 0; }
+        .map-container { height: 240px; }
+        .form-actions { flex-direction: column-reverse; gap: 10px; }
+        .btn-cancel, .btn-submit { width: 100%; padding: 14px; }
+        .time-chip { font-size: 12px; padding: 8px 12px; }
+        .preview-box { width: 70px; height: 70px; }
+        .modal-content { padding: 28px 24px; }
+        .modal-heading { font-size: 20px; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="modal-overlay" id="successModal">
+    <div class="modal-content">
+        <div class="modal-check-icon">✅</div>
+        <h2 class="modal-heading">แจ้งพบสัตว์เลี้ยงสำเร็จ!</h2>
+        <p>ขอบคุณที่ช่วยเหลือน้องๆ ระบบกำลังบันทึกข้อมูล...</p>
+    </div>
+</div>
+
+<main class="report-main">
+    <form id="foundPetForm" method="post" enctype="multipart/form-data" action="{% url 'report_found' %}">
+    {% csrf_token %}
+    <div class="form-card">
+        <div class="form-header">
+            <h1>💚 แจ้งพบสัตว์เลี้ยง</h1>
+            <p>กรอกข้อมูลเกี่ยวกับสัตว์เลี้ยงที่คุณพบ เพื่อช่วยตามหาเจ้าของ</p>
+        </div>
+
+        <div class="form-grid">
+            <div>
+                <h2 class="section-title">ข้อมูลสัตว์ที่พบ</h2>
+                <div class="field">
+                    <label for="pet_name">ชื่อที่ใช้เรียก (หรือระบุว่า "ไม่ทราบชื่อ") <span class="required">*</span></label>
+                    <input type="text" id="pet_name" name="pet_name" class="val-check" placeholder="เช่น น้องส้ม, ขาวน้อย, ไม่ทราบชื่อ" required>
+                </div>
+                <div class="field">
+                    <label for="pet_type">ประเภทของสัตว์ที่พบ <span class="required">*</span></label>
+                    <select id="pet_type" name="pet_type" class="val-check" required>
+                        <option value="">เลือกประเภท...</option>
+                        <option value="Dog">สุนัข (Dog)</option>
+                        <option value="Cat">แมว (Cat)</option>
+                        <option value="Bird">นก (Bird)</option>
+                        <option value="Rabbit">กระต่าย (Rabbit)</option>
+                        <option value="Rodent">สัตว์ฟันแทะ (แฮมสเตอร์, หนู ฯลฯ)</option>
+                        <option value="Reptile">สัตว์เลื้อยคลาน (เต่า, งู, กิ้งก่า ฯลฯ)</option>
+                        <option value="Other">อื่นๆ (โปรดระบุ)</option>
+                    </select>
+                    <input type="text" id="pet_type_other" name="pet_type_other" class="d-none mt-2" placeholder="โปรดระบุประเภทสัตว์ที่พบ">
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="gender">เพศที่คาดว่าเป็น <span class="required">*</span></label>
+                        <select id="gender" name="gender" class="val-check" required>
+                            <option value="ไม่ทราบ" selected>ไม่ทราบ</option>
+                            <option value="male">ตัวผู้</option>
+                            <option value="female">ตัวเมีย</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="color">สีของสัตว์ที่พบ</label>
+                        <input type="text" id="color" name="color" list="color-list" placeholder="พิมพ์หรือเลือกสี">
+                        <datalist id="color-list">
+                            <option value="ขาว"></option><option value="ดำ"></option>
+                            <option value="น้ำตาล"></option><option value="ส้ม"></option>
+                            <option value="สลิด"></option><option value="สามสี"></option>
+                            <option value="ขาวดำ"></option><option value="เทา"></option>
+                        </datalist>
+                    </div>
+                </div>
+
+                <hr class="divider">
+                <h2 class="section-title">ลักษณะพิเศษและจุดสังเกต</h2>
+                <div class="field">
+                    <textarea id="description" name="description" placeholder="ระบุลักษณะเฉพาะ ปลอกคอ ตำหนิ หรือพฤติกรรมของสัตว์ที่พบ"></textarea>
+                </div>
+
+                <hr class="divider">
+                <h2 class="section-title">ข้อมูลติดต่อของคุณ</h2>
+                <div class="field">
+                    <label for="contact_name">ชื่อผู้แจ้งพบ <span class="required">*</span></label>
+                    <input type="text" id="contact_name" name="contact_name" class="val-check" required>
+                </div>
+                <div class="field">
+                    <label for="contact_phone">เบอร์โทรศัพท์ <span class="required">*</span></label>
+                    <input type="tel" id="contact_phone" name="contact_phone" class="val-check phone-only" placeholder="กรอกตัวเลข 10 หลักเท่านั้น" maxlength="10" required>
+                </div>
+            </div>
+
+            <div>
+                <h2 class="section-title">สถานที่และเวลาที่พบ</h2>
+                <div class="field">
+                    <label>คลิกปักหมุดบนแผนที่เพื่อระบุตำแหน่งที่พบ <span class="required">*</span></label>
+                    <div id="map" class="map-container"></div>
+                    <input type="hidden" name="latitude" id="latitude" required>
+                    <input type="hidden" name="longitude" id="longitude" required>
+                </div>
+                <div class="field">
+                    <label for="location_name">รายละเอียดสถานที่ สั้นๆ <span class="required">*</span></label>
+                    <input type="text" id="location_name" name="location_name" class="val-check" placeholder="เช่น หน้าสวนสาธารณะ, ซอยสุขุมวิท 1" required>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="found_date">วันที่พบ <span class="required">*</span></label>
+                        <input type="text" id="found_date" name="found_date" class="date-picker val-check" placeholder="เลือกวันที่" required>
+                    </div>
+                    <div class="field">
+                        <label>เวลาที่พบ (โดยประมาณ) <span class="required">*</span></label>
+                        <div class="time-chips-container" id="timeChips">
+                            <div class="time-chip val-check" data-value="06:00:00">ช่วงเช้า</div>
+                            <div class="time-chip val-check" data-value="12:00:00">ช่วงบ่าย</div>
+                            <div class="time-chip val-check" data-value="18:00:00">ช่วงเย็น</div>
+                            <div class="time-chip val-check" data-value="21:00:00">กลางคืน</div>
+                            <div class="time-chip" id="btnExactTime">ระบุเวลาเอง...</div>
+                        </div>
+                        <input type="hidden" name="found_time_period" id="found_time_period" required>
+                        <input type="time" id="exact_time_input" name="found_time_exact" class="d-none mt-2 val-check">
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="situation">สถานการณ์ตอนที่พบ</label>
+                    <textarea id="situation" name="situation" placeholder="อธิบายว่าคุณเจอน้องได้อย่างไร น้องมีอาการบาดเจ็บไหม"></textarea>
+                </div>
+                <div class="field">
+                    <label>ลิงก์โพสต์ Social Media (ถ้ามี) - เพิ่มได้สูงสุด 5 ลิงก์</label>
+                    <div id="socialLinksWrap">
+                        <div class="social-link-item">
+                            <input type="url" name="social_link" placeholder="https://facebook.com/...">
+                        </div>
+                    </div>
+                    <button type="button" class="btn-add-social" id="btnAddSocial">+ เพิ่มลิงก์อื่น</button>
+                </div>
+
+                <hr class="divider">
+                <h2 class="section-title">อัพโหลดรูปภาพ <span class="required">*</span></h2>
+                <div class="field">
+                    <div class="upload-area" id="dropZone" tabindex="0">
+                        <p id="uploadText">📷 ลากรูปมาวาง หรือคลิกเพื่อเลือกรูป (0/5)</p>
+                        <input type="file" id="imgUpload" multiple accept="image/*" class="hidden-input">
+                    </div>
+                    <input type="file" name="images" id="finalImageInput" multiple class="hidden-input" required>
+                    <div id="imagePreviewContainer"></div>
+                </div>
+
+                <hr class="divider">
+                <h2 class="section-title">ตรวจสอบข้อมูลก่อนส่ง</h2>
+                <div class="checklist">
+                    <ul>
+                        <li id="chk-info"><span class="status-invalid">❌</span> ระบุข้อมูลสัตว์และผู้แจ้งพบ</li>
+                        <li id="chk-loc"><span class="status-invalid">❌</span> ระบุสถานที่และวันที่พบ</li>
+                        <li id="chk-img"><span class="status-invalid">❌</span> อัปโหลดรูปภาพอย่างน้อย 1 รูป</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button class="btn-cancel" type="button" onclick="history.back()">ยกเลิก</button>
+            <button class="btn-submit" type="submit">📢 ลงประกาศแจ้งพบ</button>
+        </div>
+    </div>
+    </form>
+</main>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://npmcdn.com/flatpickr/dist/l10n/th.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    const petTypeSelect = document.getElementById('pet_type');
+    const petTypeOther = document.getElementById('pet_type_other');
+    petTypeSelect.addEventListener('change', function() {
+        if (this.value === 'Other') {
+            petTypeOther.classList.remove('d-none');
+            petTypeOther.setAttribute('required', 'true');
+        } else {
+            petTypeOther.classList.add('d-none');
+            petTypeOther.removeAttribute('required');
+        }
+        checkFormValid();
+    });
+
+    document.querySelectorAll('.phone-only').forEach(input => {
+        input.addEventListener('input', function() {
+            this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);
+            checkFormValid();
+        });
+    });
+
+    const timeChips = document.querySelectorAll('.time-chip:not(#btnExactTime)');
+    const btnExactTime = document.getElementById('btnExactTime');
+    const exactTimeInput = document.getElementById('exact_time_input');
+    const timeHidden = document.getElementById('found_time_period');
+    function clearTimeActive() {
+        document.querySelectorAll('.time-chip').forEach(c => c.classList.remove('active'));
+    }
+    timeChips.forEach(chip => {
+        chip.addEventListener('click', function() {
+            clearTimeActive();
+            this.classList.add('active');
+            exactTimeInput.classList.add('d-none');
+            exactTimeInput.value = '';
+            timeHidden.value = this.getAttribute('data-value');
+            checkFormValid();
+        });
+    });
+    btnExactTime.addEventListener('click', function() {
+        clearTimeActive();
+        this.classList.add('active');
+        exactTimeInput.classList.remove('d-none');
+        timeHidden.value = 'Exact';
+        checkFormValid();
+    });
+    exactTimeInput.addEventListener('input', checkFormValid);
+
+    flatpickr(".date-picker", { locale: "th", dateFormat: "Y-m-d", maxDate: "today" });
+
+    const map = L.map('map').setView([13.7649, 100.5383], 12);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 19
+    }).addTo(map);
+    setTimeout(() => map.invalidateSize(), 200);
+
+    let marker;
+    map.on('click', function(e) {
+        if (marker) map.removeLayer(marker);
+        marker = L.marker([e.latlng.lat, e.latlng.lng]).addTo(map);
+        document.getElementById('latitude').value = e.latlng.lat.toFixed(6);
+        document.getElementById('longitude').value = e.latlng.lng.toFixed(6);
+        checkFormValid();
+    });
+
+    let uploadedFiles = [];
+    const maxFiles = 5;
+    const fileInput = document.getElementById('imgUpload');
+    const dropZone = document.getElementById('dropZone');
+    const previewContainer = document.getElementById('imagePreviewContainer');
+    const finalImageInput = document.getElementById('finalImageInput');
+
+    dropZone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (e) => {
+        for (let file of e.target.files) {
+            if (uploadedFiles.length < maxFiles && file.type.startsWith('image/')) uploadedFiles.push(file);
+        }
+        renderPreviews();
+    });
+
+    function renderPreviews() {
+        previewContainer.innerHTML = '';
+        document.getElementById('uploadText').textContent = `📷 ลากรูปมาวาง หรือคลิกเพื่อเลือกรูป (${uploadedFiles.length}/${maxFiles})`;
+        const dt = new DataTransfer();
+        uploadedFiles.forEach((file, index) => {
+            dt.items.add(file);
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const div = document.createElement('div');
+                div.className = 'preview-box';
+                div.innerHTML = `<img src="${e.target.result}" alt="ภาพตัวอย่าง"><button type="button" class="btn-remove-img" data-index="${index}">✖</button>`;
+                previewContainer.appendChild(div);
+                div.querySelector('.btn-remove-img').addEventListener('click', function(ev) {
+                    ev.stopPropagation();
+                    uploadedFiles.splice(this.getAttribute('data-index'), 1);
+                    renderPreviews();
+                });
+            };
+            reader.readAsDataURL(file);
+        });
+        finalImageInput.files = dt.files;
+        checkFormValid();
+    }
+
+    let socialCount = 1;
+    document.getElementById('btnAddSocial').addEventListener('click', () => {
+        if (socialCount >= 5) return alert("เพิ่มได้สูงสุด 5 ลิงก์ครับ");
+        const div = document.createElement('div');
+        div.className = 'social-link-item';
+        div.innerHTML = `<input type="url" name="social_link" placeholder="https://..."><button type="button" class="btn-remove-social">❌</button>`;
+        document.getElementById('socialLinksWrap').appendChild(div);
+        socialCount++;
+        div.querySelector('.btn-remove-social').addEventListener('click', () => { div.remove(); socialCount--; });
+    });
+
+    function checkFormValid() {
+        const pName = document.getElementById('pet_name').value;
+        const pType = document.getElementById('pet_type').value;
+        const cName = document.getElementById('contact_name').value;
+        const phone = document.getElementById('contact_phone').value;
+        const chkInfo = document.getElementById('chk-info');
+        if (pName && pType && cName && phone.length === 10) {
+            chkInfo.innerHTML = `✅ ระบุข้อมูลสัตว์และผู้พบ ครบถ้วน`;
+            chkInfo.classList.add('status-valid');
+        } else {
+            chkInfo.innerHTML = `❌ ระบุข้อมูลสัตว์ที่พบและเบอร์โทร (10 หลัก)`;
+            chkInfo.classList.remove('status-valid');
+        }
+
+        const lat = document.getElementById('latitude').value;
+        const loc = document.getElementById('location_name').value;
+        const date = document.getElementById('found_date').value;
+        const timePeriod = document.getElementById('found_time_period').value;
+        const timeExact = document.getElementById('exact_time_input').value;
+        const hasTime = (timePeriod && timePeriod !== 'Exact') || (timePeriod === 'Exact' && timeExact);
+        const chkLoc = document.getElementById('chk-loc');
+        if (lat && loc && date && hasTime) {
+            chkLoc.innerHTML = `✅ ระบุสถานที่และวันที่พบ ครบถ้วน`;
+            chkLoc.classList.add('status-valid');
+        } else {
+            chkLoc.innerHTML = `❌ ระบุสถานที่และวันที่พบ`;
+            chkLoc.classList.remove('status-valid');
+        }
+
+        const chkImg = document.getElementById('chk-img');
+        if (uploadedFiles.length > 0) {
+            chkImg.innerHTML = `✅ อัปโหลดรูปภาพแล้ว`;
+            chkImg.classList.add('status-valid');
+        } else {
+            chkImg.innerHTML = `❌ อัปโหลดรูปภาพอย่างน้อย 1 รูป`;
+            chkImg.classList.remove('status-valid');
+        }
+    }
+
+    document.querySelectorAll('.val-check').forEach(el => {
+        el.addEventListener('input', checkFormValid);
+        el.addEventListener('change', checkFormValid);
+    });
+
+    const form = document.getElementById('foundPetForm');
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        if (document.getElementById('contact_phone').value.length !== 10) {
+            alert("กรุณากรอกเบอร์โทรศัพท์ให้ครบ 10 หลักครับ");
+            return;
+        }
+        const timePeriod = document.getElementById('found_time_period').value;
+        const timeExact = document.getElementById('exact_time_input').value;
+        if (!timePeriod || (timePeriod === 'Exact' && !timeExact)) {
+            alert("กรุณาระบุช่วงเวลาที่พบด้วยครับ");
+            return;
+        }
+        document.getElementById('successModal').classList.add('show');
+        setTimeout(() => { form.submit(); }, 1500);
+    });
+
+});
+</script>
+{% endblock %}

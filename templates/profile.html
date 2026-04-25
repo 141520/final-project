@@ -1,0 +1,234 @@
+{% extends 'base.html' %}
+{% block title %}โปรไฟล์ของฉัน | Pet Finder{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ===== Background decorations (คงสีไว้) ===== */
+    .bg-wrap { position: relative; overflow: hidden; min-height: calc(100vh - 80px); }
+    .bg-shape-top-left {
+        position: absolute; top: -60px; left: -80px;
+        width: 320px; height: 160px;
+        background: #FCDA9C; border-radius: 100px;
+        transform: rotate(-20deg); z-index: 0;
+    }
+    .bg-shape-mid-left {
+        position: absolute; top: 280px; left: 60px;
+        width: 90px; height: 90px;
+        background: #FDE2AE; border-radius: 20px;
+        transform: rotate(15deg); z-index: 0;
+    }
+    .bg-shape-right {
+        position: absolute; top: 280px; right: -60px;
+        width: 200px; height: 520px;
+        background: #003459; border-radius: 100px 0 0 100px; z-index: 0;
+    }
+
+    /* ===== Container ===== */
+    .profile-page {
+        position: relative; z-index: 1;
+        max-width: 720px; margin: 40px auto 80px;
+        padding: 0 20px;
+    }
+
+    /* ===== Header card (avatar + email + stats) ===== */
+    .profile-card {
+        background: #fff;
+        border-radius: 24px;
+        padding: 32px 30px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, .06);
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    .avatar {
+        width: 88px; height: 88px; margin: 0 auto 14px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #021F74 0%, #4E73F6 100%);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 42px; color: #fff;
+        box-shadow: 0 6px 20px rgba(2, 31, 116, .25);
+    }
+    .profile-title {
+        color: #021F74; font-size: 28px; font-weight: 700;
+        margin-bottom: 6px;
+        font-family: 'IBM Plex Sans Thai Looped', sans-serif;
+    }
+    .profile-email {
+        display: inline-block;
+        background: #FCEED5; color: #021F74;
+        padding: 6px 16px; border-radius: 20px;
+        font-size: 14px; font-family: 'Montserrat', sans-serif;
+        margin-bottom: 22px;
+    }
+    .stats-grid {
+        display: grid; grid-template-columns: repeat(4, 1fr);
+        gap: 10px; margin-top: 10px;
+    }
+    .stat-box {
+        background: #FDF4E3; border-radius: 14px;
+        padding: 14px 6px;
+    }
+    .stat-num {
+        color: #021F74; font-size: 24px; font-weight: 700;
+        font-family: 'Montserrat', sans-serif;
+    }
+    .stat-label {
+        color: #908F8D; font-size: 12px; margin-top: 2px;
+        font-family: 'IBM Plex Sans Thai Looped', sans-serif;
+    }
+
+    /* ===== Menu ===== */
+    .menu-list { display: flex; flex-direction: column; gap: 12px; }
+    .menu-btn {
+        background: #fff; border: 1.5px solid #E6E2D6;
+        border-radius: 30px;
+        padding: 16px 26px;
+        font-size: 16px; color: #41403E;
+        text-decoration: none;
+        display: flex; align-items: center; gap: 14px;
+        transition: all .2s ease;
+        box-shadow: 0 2px 8px rgba(0,0,0,.03);
+        font-family: 'IBM Plex Sans Thai Looped', sans-serif;
+    }
+    .menu-btn:hover {
+        border-color: #021F74;
+        box-shadow: 0 6px 16px rgba(2,31,116,.12);
+        transform: translateY(-2px);
+    }
+    .menu-icon {
+        width: 36px; height: 36px; flex-shrink: 0;
+        display: flex; align-items: center; justify-content: center;
+        background: #FCEED5; border-radius: 50%;
+        font-size: 18px;
+    }
+    .menu-label { flex: 1; font-weight: 600; }
+    .badge {
+        border: 1.5px solid #FF4D4D; color: #FF4D4D;
+        border-radius: 50%;
+        min-width: 28px; height: 28px; padding: 0 6px;
+        display: flex; justify-content: center; align-items: center;
+        font-size: 13px; font-weight: 700;
+        font-family: 'Montserrat', sans-serif;
+    }
+    .badge.muted { border-color: #CCC; color: #999; }
+    .badge.zero  { border-color: #CCC; color: #AAA; }
+
+    /* ===== Logout ===== */
+    .logout-wrap { text-align: center; margin-top: 40px; }
+    .btn-logout {
+        background: #FF4D4D; color: #fff; border: none;
+        border-radius: 30px; padding: 14px 42px;
+        font-size: 16px; font-weight: 700; cursor: pointer;
+        box-shadow: 0 6px 16px rgba(255, 77, 77, .35);
+        transition: all .2s ease;
+        font-family: 'IBM Plex Sans Thai Looped', sans-serif;
+    }
+    .btn-logout:hover { background: #e60000; transform: translateY(-2px); }
+
+    @media (max-width: 540px) {
+        .stats-grid { grid-template-columns: repeat(2, 1fr); }
+        .bg-shape-right { display: none; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="bg-wrap">
+    <div class="bg-shape-top-left"></div>
+    <div class="bg-shape-mid-left"></div>
+    <div class="bg-shape-right"></div>
+
+    <div class="profile-page">
+        <!-- Header card -->
+        <div class="profile-card">
+            <div class="avatar">👤</div>
+            <h1 class="profile-title">แก้ไขโปรไฟล์</h1>
+            <div class="profile-email" id="userEmailDisplay">{{ user.email|default:"กำลังโหลด..." }}</div>
+
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-num">{{ total_posts|default:0 }}</div>
+                    <div class="stat-label">โพสต์ทั้งหมด</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-num">{{ active_count|default:0 }}</div>
+                    <div class="stat-label">กำลังตามหา</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-num">{{ lost_count|default:0 }}</div>
+                    <div class="stat-label">สัตว์หาย</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-num">{{ found_count|default:0 }}</div>
+                    <div class="stat-label">สัตว์ที่พบ</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Menu -->
+        <nav class="menu-list">
+            <a href="{% url 'report_lost' %}" class="menu-btn">
+                <span class="menu-icon">➕</span>
+                <span class="menu-label">แจ้งสัตว์เลี้ยงหาย</span>
+            </a>
+
+            <a href="{% url 'report_found' %}" class="menu-btn">
+                <span class="menu-icon">🐾</span>
+                <span class="menu-label">แจ้งสัตว์เลี้ยงที่พบ</span>
+            </a>
+
+            <a href="{% url 'my_posts' %}" class="menu-btn">
+                <span class="menu-icon">📢</span>
+                <span class="menu-label">ประกาศของฉันทั้งหมด</span>
+                <span class="badge {% if total_posts == 0 %}zero{% endif %}">{{ total_posts|default:0 }}</span>
+            </a>
+
+            <a href="{% url 'my_posts' %}?type=lost" class="menu-btn">
+                <span class="menu-icon">🔍</span>
+                <span class="menu-label">แก้ไขประกาศสัตว์หาย</span>
+                <span class="badge {% if lost_count == 0 %}zero{% endif %}">{{ lost_count|default:0 }}</span>
+            </a>
+
+            <a href="{% url 'my_posts' %}?type=found" class="menu-btn">
+                <span class="menu-icon">🐾</span>
+                <span class="menu-label">แก้ไขประกาศสัตว์ที่พบ</span>
+                <span class="badge {% if found_count == 0 %}zero{% endif %}">{{ found_count|default:0 }}</span>
+            </a>
+
+            <a href="{% url 'search_pet' %}" class="menu-btn">
+                <span class="menu-icon">🤖</span>
+                <span class="menu-label">ค้นหาด้วย AI</span>
+            </a>
+
+            <a href="mailto:support@petfinder.local" class="menu-btn">
+                <span class="menu-icon">💬</span>
+                <span class="menu-label">ติดต่อทีมงาน</span>
+            </a>
+        </nav>
+
+        <div class="logout-wrap">
+            <button class="btn-logout" id="logoutBtn">🚪 ออกจากระบบ</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // ดึง email จาก Supabase session (กรณี Django ไม่มี email)
+    (async function fillEmail() {
+        try {
+            const { data: { session } } = await window.mySupabaseClient.auth.getSession();
+            if (session && session.user && session.user.email) {
+                document.getElementById('userEmailDisplay').innerText = session.user.email;
+            }
+        } catch (e) {}
+    })();
+
+    // Logout — ใช้ doLogout จาก base.html
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+        if (typeof window.doLogout === 'function') {
+            window.doLogout();
+        }
+    });
+</script>
+{% endblock %}

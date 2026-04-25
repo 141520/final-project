@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta name="theme-color" content="#FCEED5">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐾</text></svg>">
+    <title>เข้าสู่ระบบ | Pet Finder</title>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=IBM+Plex+Sans+Thai+Looped:wght@400;700&family=Poppins:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { -webkit-text-size-adjust: 100%; }
+        body { background: linear-gradient(134deg, #FCEED5 6%, #FCEED5 75%, #FFE7BA 100%); min-height: 100vh; display: flex; flex-direction: column; font-family: 'Poppins', 'IBM Plex Sans Thai Looped', sans-serif; position: relative; overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+        .bg-shape-1 { position: absolute; width: 635px; height: 635px; left: 700px; top: 270px; transform: rotate(9deg); background: #003459; border-radius: 99px; z-index: -1; opacity: .9;}
+        .bg-shape-2 { position: absolute; width: 635px; height: 635px; left: 860px; top: 180px; transform: rotate(25deg); background: #F7DBA7; border-radius: 99px; z-index: -1; }
+        header { padding: 22px 48px; display: flex; align-items: center; gap: 32px; }
+        .logo { color: #021F74; font-size: 40px; font-family: 'Caveat', cursive; text-decoration: none; text-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25); }
+        .nav-link { color: #021F74; font-size: 18px; font-weight: 700; text-decoration: none; }
+        .nav-link:hover { opacity: .7; }
+        .auth-container { flex: 1; display: flex; justify-content: center; align-items: center; padding: 20px; }
+
+        .auth-card { background: white; width: 100%; max-width: 520px; border-radius: 20px; padding: 42px 54px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin: 16px 0;}
+
+        .auth-title { color: #021F74; font-size: 48px; font-weight: 700; margin-bottom: 10px; }
+        .title-underline { width: 176px; height: 7px; background: linear-gradient(90deg, #756EF5 36%, #D75CA7 67%, #F9C82F 94%); margin-bottom: 24px; }
+
+        .form-group { margin-bottom: 16px; }
+        .form-label { display:block; font-size: 13px; color: #667479; margin-bottom: 6px; font-weight: 600; }
+        .form-input { width: 100%; height: 56px; border-radius: 16px; border: 2px solid #BEBEBE; padding: 0 22px; font-size: 16px; outline: none; transition: 0.25s; font-family: inherit; }
+        .form-input:focus { border-color: #4E73F6; box-shadow: 0 0 0 4px rgba(78,115,246,.12); }
+        .btn-submit {
+            width: 100%; height: 56px; background: #4E73F6; color: white;
+            font-size: 17px; font-weight: 700; border: none; border-radius: 16px;
+            cursor: pointer; box-shadow: 0 6px 18px rgba(78,115,246,.3);
+            margin-top: 6px; transition: all .25s;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            font-family: inherit;
+        }
+        .btn-submit:hover:not(:disabled) { background: #3b5bdb; transform: translateY(-2px); }
+        .btn-submit:disabled { background: #ccc; cursor: not-allowed; transform: none; box-shadow: none; }
+        .spinner {
+            display: inline-block; width: 16px; height: 16px;
+            border: 2.5px solid rgba(255,255,255,.3); border-top-color: white;
+            border-radius: 50%; animation: spin .7s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Forgot password row */
+        .row-between { display: flex; justify-content: space-between; align-items: center; margin: -4px 0 14px; font-size: 13px; }
+        .link-muted { color: #4E73F6; text-decoration: none; font-weight: 600; }
+        .link-muted:hover { text-decoration: underline; }
+
+        /* Divider */
+        .divider { display: flex; align-items: center; text-align: center; margin: 26px 0 18px; color: #888; font-size: 13px; }
+        .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid #ddd; }
+        .divider:not(:empty)::before { margin-right: .8em; }
+        .divider:not(:empty)::after { margin-left: .8em; }
+
+        /* Provider buttons */
+        .provider-list { display: flex; flex-direction: column; gap: 10px; }
+        .btn-provider {
+            width: 100%; height: 50px; border-radius: 14px; border: 1.5px solid #ddd;
+            background: white; font-size: 15px; font-weight: 600; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            transition: all .2s; font-family: inherit;
+        }
+        .btn-provider:hover { background: #f8fafc; border-color: #4E73F6; transform: translateY(-1px); }
+        .btn-provider svg { width: 20px; height: 20px; }
+
+        .btn-anon { color: #667479; font-weight: 500; }
+
+        #msgBox { font-size: 14px; margin-bottom: 14px; padding: 11px 14px; border-radius: 10px; display: none; }
+        #msgBox.error { color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca; }
+        #msgBox.success { color: #065f46; background: #ecfdf5; border: 1px solid #a7f3d0; }
+        #msgBox.info { color: #1e40af; background: #eff6ff; border: 1px solid #bfdbfe; }
+
+        .toggle-auth { text-align: center; font-size: 14px; margin-top: 18px; color: #555; }
+        .toggle-auth a { color: #4E73F6; text-decoration: none; font-weight: 600; }
+        .toggle-auth a:hover { text-decoration: underline; }
+
+        .panel { display: none; }
+        .panel.active { display: block; }
+
+        @media (max-width: 720px) {
+            .bg-shape-1, .bg-shape-2 { display: none; }
+            header { padding: 16px 20px; gap: 16px; flex-wrap: wrap;}
+            .logo { font-size: 32px; }
+            .nav-link { font-size: 16px; }
+            .auth-card { padding: 28px 20px; border-radius: 18px; max-width: 100%;}
+            .auth-title { font-size: 30px; }
+            .form-input { height: 50px; font-size: 15px; padding: 0 18px; }
+            .btn-submit { height: 52px; font-size: 16px; }
+        }
+        @media (max-width: 400px) {
+            header { padding: 14px 14px; }
+            .logo { font-size: 28px; }
+            .auth-title { font-size: 26px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-shape-1"></div>
+    <div class="bg-shape-2"></div>
+    <header>
+        <a href="{% url 'home' %}" class="logo">Pet Finder</a>
+        <a href="{% url 'home' %}" class="nav-link">← หน้าแรก</a>
+    </header>
+
+    <div class="auth-container">
+        <div class="auth-card">
+            <h1 class="auth-title">เข้าสู่ระบบ</h1>
+            <div class="title-underline"></div>
+
+            <div id="msgBox"></div>
+
+            {# ─── Email Login Panel ─── #}
+            <div class="panel active" id="panel-email">
+                <form id="emailForm">
+                    <div class="form-group">
+                        <input type="email" id="email" class="form-input" placeholder="อีเมลของคุณ" required autocomplete="email">
+                    </div>
+                    <div class="form-group">
+                        <input type="password" id="password" class="form-input" placeholder="รหัสผ่าน" required autocomplete="current-password">
+                    </div>
+                    <div class="row-between">
+                        <span></span>
+                        <a href="#" id="linkForgot" class="link-muted">ลืมรหัสผ่าน?</a>
+                    </div>
+                    <button type="submit" id="emailBtn" class="btn-submit">เข้าสู่ระบบ</button>
+                </form>
+            </div>
+
+            {# ─── Forgot Password Panel ─── #}
+            <div class="panel" id="panel-forgot">
+                <p style="font-size:14px;color:#555;margin-bottom:14px;line-height:1.5;">
+                    ใส่อีเมลที่ใช้สมัคร เราจะส่งลิงก์รีเซ็ตรหัสผ่านไปให้
+                </p>
+                <form id="forgotForm">
+                    <div class="form-group">
+                        <input type="email" id="forgotEmail" class="form-input" placeholder="อีเมลของคุณ" required>
+                    </div>
+                    <button type="submit" id="forgotBtn" class="btn-submit">📧 ส่งลิงก์รีเซ็ต</button>
+                </form>
+                <div style="text-align:center;margin-top:14px;">
+                    <a href="#" id="linkBackLogin" class="link-muted">← กลับหน้าเข้าสู่ระบบ</a>
+                </div>
+            </div>
+
+            {# OAuth/Anonymous ปิดไว้ก่อน — เปิดได้เมื่อตั้ง provider ใน Supabase แล้ว #}
+            <div id="oauthBlock" style="display:none;"></div>
+
+            <div class="toggle-auth">
+                ยังไม่มีบัญชี? <a href="{% url 'signup' %}">สร้างบัญชีใหม่</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function(){
+        const SUPABASE_URL = '{{ SUPABASE_URL }}';
+        const SUPABASE_KEY = '{{ SUPABASE_ANON_KEY }}';
+        if (typeof window.mySupabaseClient === 'undefined') {
+            window.mySupabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        }
+        const sb = window.mySupabaseClient;
+
+        const msgBox = document.getElementById('msgBox');
+        function showMsg(text, type='info') {
+            msgBox.className = type;
+            msgBox.innerText = text;
+            msgBox.style.display = 'block';
+        }
+        function hideMsg() { msgBox.style.display = 'none'; }
+
+        function setLoading(btn, loadingText) {
+            btn.disabled = true;
+            btn.dataset.original = btn.innerHTML;
+            btn.innerHTML = `<span class="spinner"></span> ${loadingText}`;
+        }
+        function unsetLoading(btn) {
+            btn.disabled = false;
+            if (btn.dataset.original) btn.innerHTML = btn.dataset.original;
+        }
+
+        // ─── Panel switching (email ↔ forgot) ───
+        function showPanel(name) {
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-' + name)?.classList.add('active');
+            // ซ่อน OAuth block ถ้าอยู่หน้า forgot
+            document.getElementById('oauthBlock').style.display = (name === 'forgot') ? 'none' : 'block';
+            hideMsg();
+        }
+        document.getElementById('linkForgot').addEventListener('click', e => {
+            e.preventDefault(); showPanel('forgot');
+        });
+        document.getElementById('linkBackLogin').addEventListener('click', e => {
+            e.preventDefault(); showPanel('email');
+        });
+
+        // ─── Email login ───
+        document.getElementById('emailForm').addEventListener('submit', async e => {
+            e.preventDefault();
+            hideMsg();
+            const btn = document.getElementById('emailBtn');
+            setLoading(btn, 'กำลังเข้าสู่ระบบ...');
+            const { error } = await sb.auth.signInWithPassword({
+                email: document.getElementById('email').value,
+                password: document.getElementById('password').value,
+            });
+            if (error) {
+                showMsg('เข้าสู่ระบบไม่สำเร็จ: ' + error.message, 'error');
+                unsetLoading(btn);
+            } else {
+                window.location.href = '/';
+            }
+        });
+
+        // ─── Forgot password — ส่งอีเมลรีเซ็ต ───
+        document.getElementById('forgotForm').addEventListener('submit', async e => {
+            e.preventDefault();
+            hideMsg();
+            const btn = document.getElementById('forgotBtn');
+            const email = document.getElementById('forgotEmail').value.trim();
+            setLoading(btn, 'กำลังส่งอีเมล...');
+            const { error } = await sb.auth.resetPasswordForEmail(email, {
+                redirectTo: window.location.origin + '/reset-password/'
+            });
+            unsetLoading(btn);
+            if (error) {
+                showMsg('ส่งอีเมลไม่สำเร็จ: ' + error.message, 'error');
+            } else {
+                showMsg('✅ ส่งลิงก์รีเซ็ตไปที่ ' + email + ' แล้ว — กรุณาเช็กอีเมล (หรือ spam)', 'success');
+            }
+        });
+    })();
+    </script>
+</body>
+</html>

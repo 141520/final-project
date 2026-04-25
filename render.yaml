@@ -1,0 +1,22 @@
+# Render Blueprint — auto-deploy เมื่อ push GitHub
+services:
+  - type: web
+    name: petfinder
+    runtime: python
+    plan: free
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn petfinder_site.wsgi:application --workers 1 --timeout 120"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: DEBUG
+        value: "False"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com,localhost,127.0.0.1"
+      # ตั้ง 4 ตัวข้างล่างเองใน Render Dashboard (Environment tab)
+      # - SUPABASE_URL
+      # - SUPABASE_ANON_KEY
+      # - SUPABASE_SERVICE_KEY
+      # - DATABASE_URL  (จาก Supabase → Settings → Database → Connection string)

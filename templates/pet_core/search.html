@@ -1,0 +1,424 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}🔍 ค้นหาด้วย AI | Pet Finder{% endblock %}
+
+{% block extra_css %}
+<style>
+:root {
+  --navy:#003459; --navy-dark:#002A48; --gold:#FEC356;
+  --cream:#FCEED5; --green:#1a7a4a; --red:#CD0205;
+  --text-muted:#667479; --bg:#FAFBFC;
+}
+
+.search-page { max-width: 1100px; margin: 28px auto 80px; padding: 0 18px; }
+
+/* Hero */
+.search-hero {
+  text-align: center; padding: 22px 16px 26px;
+  background: linear-gradient(135deg, #FFF7E6, #FFE7BA);
+  border-radius: 20px; margin-bottom: 18px;
+}
+.search-hero h1 {
+  font-family: 'IBM Plex Sans Thai Looped', sans-serif;
+  font-size: 30px; font-weight: 700; color: var(--navy); margin-bottom: 6px;
+  letter-spacing: -0.5px;
+}
+.search-hero .ai-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: linear-gradient(135deg, #4E73F6, #756EF5);
+  color: white; padding: 4px 12px; border-radius: 20px;
+  font-size: 11px; font-weight: 700; margin-bottom: 10px;
+  font-family: 'Montserrat', sans-serif; letter-spacing: 0.5px;
+  box-shadow: 0 4px 14px rgba(78,115,246,.3);
+}
+.search-hero p { color: var(--text-muted); font-size: 15px; max-width: 540px; margin: 0 auto; }
+
+/* Upload card */
+.upload-card {
+  background: white; border-radius: 20px; padding: 26px;
+  box-shadow: 0 6px 28px rgba(0,0,0,.06); margin-bottom: 22px;
+}
+
+/* Filter chips */
+.filter-row {
+  display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px;
+  align-items: center;
+}
+.filter-label {
+  font-size: 13px; font-weight: 700; color: var(--navy); margin-right: 4px;
+  font-family: 'IBM Plex Sans Thai Looped', sans-serif;
+}
+.chip {
+  padding: 7px 14px; border-radius: 18px; font-size: 13px;
+  font-weight: 600; border: 1.5px solid #d8dbe0; background: white;
+  color: var(--navy); cursor: pointer; transition: all .15s;
+  font-family: 'IBM Plex Sans Thai Looped', sans-serif;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.chip:hover { border-color: var(--navy); transform: translateY(-1px); }
+.chip.active {
+  background: var(--navy); color: white; border-color: var(--navy);
+  box-shadow: 0 4px 12px rgba(0,52,89,.25);
+}
+.chip.lost.active { background: var(--red); border-color: var(--red); box-shadow: 0 4px 12px rgba(205,2,5,.25); }
+.chip.found.active { background: var(--green); border-color: var(--green); box-shadow: 0 4px 12px rgba(26,122,74,.25); }
+
+/* Dropzone */
+.dropzone {
+  display: block; width: 100%;
+  border: 2.5px dashed #cbd2d8; background: #FAFBFC;
+  border-radius: 16px; padding: 38px 20px; text-align: center;
+  cursor: pointer; transition: all .2s;
+  box-sizing: border-box;
+}
+.dropzone:hover, .dropzone.dragover {
+  border-color: var(--gold); background: #FFFAF0;
+  transform: translateY(-2px);
+}
+.dropzone .icon { font-size: 46px; margin-bottom: 10px; opacity: .85; }
+.dropzone .title { font-size: 17px; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
+.dropzone .hint { font-size: 13px; color: var(--text-muted); }
+#search_image { display: none; }
+
+.preview-wrap { display: none; position: relative; border-radius: 16px; overflow: hidden; margin-bottom: 14px; box-shadow: 0 6px 18px rgba(0,0,0,.1); }
+.preview-wrap img { width: 100%; max-height: 320px; object-fit: cover; display: block; }
+.btn-remove {
+  position: absolute; top: 10px; right: 10px;
+  background: rgba(0,0,0,.7); color: white; border: none;
+  width: 32px; height: 32px; border-radius: 50%; cursor: pointer;
+  font-size: 16px; backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* Submit button */
+.btn-search {
+  width: 100%; padding: 14px; border: none;
+  background: linear-gradient(135deg, var(--navy), var(--navy-dark));
+  color: white; font-size: 16px; font-weight: 700; border-radius: 14px;
+  cursor: pointer; font-family: inherit;
+  transition: all .2s; position: relative; overflow: hidden;
+  box-shadow: 0 6px 18px rgba(0,52,89,.3);
+}
+.btn-search:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,52,89,.4); }
+.btn-search:disabled { background: #cbd2d8; cursor: not-allowed; box-shadow: none; }
+.btn-search .spinner {
+  display: inline-block; width: 16px; height: 16px;
+  border: 2px solid rgba(255,255,255,.3); border-top-color: white;
+  border-radius: 50%; animation: spin 0.7s linear infinite;
+  vertical-align: middle; margin-right: 8px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* AI Detection panel */
+.ai-panel {
+  background: linear-gradient(135deg, #EEF2FF, #F5F3FF);
+  border: 1.5px solid #C7D2FE; border-radius: 16px;
+  padding: 16px 20px; margin-bottom: 22px;
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+}
+.ai-panel .ai-icon {
+  width: 48px; height: 48px; border-radius: 12px;
+  background: linear-gradient(135deg, #4E73F6, #756EF5);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; flex-shrink: 0;
+  box-shadow: 0 6px 16px rgba(78,115,246,.35);
+}
+.ai-panel .ai-text { flex: 1; min-width: 200px; }
+.ai-panel .ai-title { font-size: 13px; font-weight: 700; color: #4338CA; margin-bottom: 2px; font-family: 'Montserrat', sans-serif; letter-spacing: .5px; }
+.ai-panel .ai-result { font-size: 17px; font-weight: 700; color: var(--navy); }
+.ai-panel .ai-conf {
+  font-size: 12px; color: var(--text-muted); margin-top: 3px;
+  font-family: 'Montserrat', sans-serif;
+}
+.ai-panel .conf-bar {
+  display: inline-block; width: 80px; height: 6px; background: #E0E7FF;
+  border-radius: 4px; overflow: hidden; vertical-align: middle; margin-left: 6px;
+}
+.ai-panel .conf-fill { height: 100%; background: linear-gradient(90deg, #4E73F6, #756EF5); border-radius: 4px; transition: width .8s ease; }
+
+/* Results grid */
+.results-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px; flex-wrap: wrap; gap: 8px;
+}
+.results-header h2 {
+  font-family: 'IBM Plex Sans Thai Looped', sans-serif;
+  font-size: 20px; font-weight: 700; color: var(--navy);
+}
+.results-count { font-size: 13px; color: var(--text-muted); }
+
+.result-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+.result-card {
+  background: white; border-radius: 14px; overflow: hidden;
+  box-shadow: 0 4px 14px rgba(0,0,0,.06);
+  text-decoration: none; color: inherit;
+  transition: transform .2s, box-shadow .2s;
+  display: flex; flex-direction: column; position: relative;
+}
+.result-card:hover { transform: translateY(-4px); box-shadow: 0 10px 28px rgba(0,0,0,.12); }
+.result-img-wrap { position: relative; aspect-ratio: 1; background: #f5f5f5; overflow: hidden; }
+.result-img-wrap img { width: 100%; height: 100%; object-fit: cover; transition: transform .4s; }
+.result-card:hover .result-img-wrap img { transform: scale(1.05); }
+
+.sim-badge {
+  position: absolute; top: 10px; left: 10px;
+  padding: 5px 10px; border-radius: 20px; font-size: 12px; font-weight: 700;
+  font-family: 'Montserrat', sans-serif;
+  background: rgba(255,255,255,.95); backdrop-filter: blur(6px);
+  box-shadow: 0 2px 8px rgba(0,0,0,.15);
+}
+.sim-high { color: var(--green); }
+.sim-mid { color: #f59e0b; }
+.sim-low { color: var(--text-muted); }
+
+.type-badge {
+  position: absolute; top: 10px; right: 10px;
+  padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 700;
+  font-family: 'Montserrat', sans-serif; letter-spacing: .5px;
+  backdrop-filter: blur(6px);
+}
+.type-lost  { background: rgba(205,2,5,.92); color: white; }
+.type-found { background: rgba(26,122,74,.92); color: white; }
+
+.matched-imgs {
+  position: absolute; bottom: 10px; right: 10px;
+  background: rgba(0,0,0,.7); color: white;
+  padding: 3px 8px; border-radius: 12px;
+  font-size: 11px; font-family: 'Montserrat', sans-serif;
+  display: flex; align-items: center; gap: 3px;
+}
+
+.result-body { padding: 12px 14px 14px; }
+.result-name {
+  font-family: 'IBM Plex Sans Thai Looped', sans-serif;
+  font-size: 15px; font-weight: 700; color: var(--navy);
+  margin-bottom: 4px;
+  display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;
+}
+.result-meta { font-size: 12px; color: var(--text-muted); display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* Empty / no-result */
+.empty-state {
+  text-align: center; padding: 60px 20px;
+  background: white; border-radius: 16px;
+  box-shadow: 0 4px 14px rgba(0,0,0,.04);
+}
+.empty-state .icon { font-size: 64px; margin-bottom: 12px; opacity: .6; }
+.empty-state h3 { color: var(--navy); margin-bottom: 6px; font-size: 18px; }
+.empty-state p { color: var(--text-muted); font-size: 14px; }
+
+/* Skeleton (loading) */
+.skel { background: linear-gradient(90deg, #eee 25%, #f5f5f5 50%, #eee 75%); background-size: 200% 100%; animation: skel 1.5s infinite; border-radius: 8px; }
+@keyframes skel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+@media (max-width: 720px) {
+  .search-page { margin: 16px auto 60px; }
+  .search-hero { padding: 6px 0 18px; }
+  .search-hero h1 { font-size: 22px; }
+  .search-hero p { font-size: 13px; }
+  .upload-card { padding: 18px; border-radius: 16px; }
+  .dropzone { padding: 28px 14px; }
+  .dropzone .icon { font-size: 38px; }
+  .dropzone .title { font-size: 15px; }
+  .result-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .result-name { font-size: 14px; }
+  .ai-panel { padding: 12px 14px; }
+}
+@media (max-width: 380px) {
+  .result-grid { grid-template-columns: 1fr; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="search-page">
+
+  <header class="search-hero">
+    <span class="ai-badge">⚡ AI POWERED</span>
+    <h1>ค้นหาสัตว์เลี้ยงด้วยรูปภาพ</h1>
+    <p>อัปโหลดรูปสัตว์ที่คุณต้องการตามหา ระบบ AI จะวิเคราะห์ทุกองค์ประกอบและแสดงประกาศที่ใกล้เคียงที่สุด</p>
+  </header>
+
+  <form method="post" enctype="multipart/form-data" id="searchForm">
+    {% csrf_token %}
+    <div class="upload-card">
+
+      <div class="filter-row">
+        <span class="filter-label">ค้นหาในกลุ่ม:</span>
+        <button type="button" class="chip post-type-chip {% if not selected_post_type %}active{% endif %}" data-value="">ทั้งหมด</button>
+        <button type="button" class="chip lost post-type-chip {% if selected_post_type == 'lost' %}active{% endif %}" data-value="lost">🔍 ประกาศหาย</button>
+        <button type="button" class="chip found post-type-chip {% if selected_post_type == 'found' %}active{% endif %}" data-value="found">🐾 ประกาศพบ</button>
+        <input type="hidden" name="post_type" id="post_type_hidden" value="{{ selected_post_type }}">
+      </div>
+
+      <div class="filter-row">
+        <span class="filter-label">ประเภทสัตว์:</span>
+        <button type="button" class="chip pet-type-chip {% if not selected_pet_type %}active{% endif %}" data-value="">AI ตรวจให้</button>
+        <button type="button" class="chip pet-type-chip {% if selected_pet_type == 'สุนัข' %}active{% endif %}" data-value="สุนัข">🐶 สุนัข</button>
+        <button type="button" class="chip pet-type-chip {% if selected_pet_type == 'แมว' %}active{% endif %}" data-value="แมว">🐱 แมว</button>
+        <button type="button" class="chip pet-type-chip {% if selected_pet_type == 'นก' %}active{% endif %}" data-value="นก">🐦 นก</button>
+        <button type="button" class="chip pet-type-chip {% if selected_pet_type == 'กระต่าย' %}active{% endif %}" data-value="กระต่าย">🐰 กระต่าย</button>
+        <button type="button" class="chip pet-type-chip {% if selected_pet_type == 'เต่า' %}active{% endif %}" data-value="เต่า">🐢 เต่า</button>
+        <input type="hidden" name="pet_type" id="pet_type_hidden" value="{{ selected_pet_type }}">
+      </div>
+
+      <div class="preview-wrap" id="previewWrap">
+        <img id="previewImg" alt="preview">
+        <button type="button" class="btn-remove" id="btnRemove" aria-label="ลบรูป">×</button>
+      </div>
+
+      <label class="dropzone" id="dropzone" for="search_image">
+        <div class="icon">📸</div>
+        <div class="title">ลากรูปมาวางที่นี่ หรือคลิกเพื่อเลือก</div>
+        <div class="hint">รองรับไฟล์ JPG / PNG / HEIC ขนาดไม่เกิน 10 MB</div>
+        <input type="file" id="search_image" name="search_image" accept="image/*" required>
+      </label>
+
+      <button type="submit" class="btn-search" id="btnSearch" disabled style="margin-top:14px;">
+        🔍 ค้นหาด้วย AI
+      </button>
+    </div>
+  </form>
+
+  {# AI Detection result #}
+  {% if ai_detection and ai_detection.pet_type %}
+  <div class="ai-panel">
+    <div class="ai-icon">🤖</div>
+    <div class="ai-text">
+      <div class="ai-title">AI วิเคราะห์ภาพแล้ว</div>
+      <div class="ai-result">
+        ตรวจพบ: <span style="color:var(--green);">{{ ai_detection.pet_type }}</span>
+        {% if auto_detected %}<small style="font-weight:500;color:var(--text-muted);"> · กรองให้อัตโนมัติ</small>{% endif %}
+      </div>
+      <div class="ai-conf">
+        ความมั่นใจ {{ ai_detection.confidence|floatformat:1 }}
+        <span class="conf-bar"><span class="conf-fill" style="width: {% widthratio ai_detection.confidence 1 100 %}%;"></span></span>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {# Results #}
+  {% if searched %}
+    {% if results %}
+      <div class="results-header">
+        <h2>🎯 ผลการค้นหา</h2>
+        <span class="results-count">พบ {{ results|length }} ประกาศที่ใกล้เคียง</span>
+      </div>
+      <div class="result-grid">
+        {% for r in results %}
+        <a href="{% url 'pet_detail' r.post.id %}" class="result-card">
+          <div class="result-img-wrap">
+            <img src="{{ r.image.supabase_image_url }}" alt="{{ r.post.name }}" loading="lazy"
+                 onerror="this.style.display='none'">
+            <span class="sim-badge {% if r.similarity_pct >= 70 %}sim-high{% elif r.similarity_pct >= 50 %}sim-mid{% else %}sim-low{% endif %}">
+              {{ r.similarity_pct }}% ตรง
+            </span>
+            <span class="type-badge {% if r.post.post_type == 'lost' %}type-lost{% else %}type-found{% endif %}">
+              {% if r.post.post_type == 'lost' %}หาย{% else %}พบ{% endif %}
+            </span>
+            {% if r.matched_count > 1 %}
+            <span class="matched-imgs">📸 {{ r.matched_count }} รูป</span>
+            {% endif %}
+          </div>
+          <div class="result-body">
+            <div class="result-name">{{ r.post.name|default:'ไม่ระบุชื่อ' }}</div>
+            <div class="result-meta">
+              {% if r.post.pet_type %}<span>{{ r.post.pet_type }}</span>{% endif %}
+              {% if r.post.location_name %}<span>· 📍 {{ r.post.location_name|truncatechars:18 }}</span>{% endif %}
+            </div>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <div class="icon">🔎</div>
+        <h3>ไม่พบประกาศที่ใกล้เคียง</h3>
+        <p>ลองเลือกประเภทสัตว์อื่น หรือใช้รูปที่เห็นน้องชัดเจนขึ้น</p>
+      </div>
+    {% endif %}
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+  const fileInput = document.getElementById('search_image');
+  const dropzone  = document.getElementById('dropzone');
+  const preview   = document.getElementById('previewImg');
+  const previewWrap = document.getElementById('previewWrap');
+  const btnRemove = document.getElementById('btnRemove');
+  const btnSearch = document.getElementById('btnSearch');
+  const form      = document.getElementById('searchForm');
+
+  function showFile(file) {
+    if (!file || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      preview.src = e.target.result;
+      previewWrap.style.display = 'block';
+      dropzone.style.display = 'none';
+      btnSearch.disabled = false;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  fileInput.addEventListener('change', e => showFile(e.target.files[0]));
+
+  ['dragover','dragenter'].forEach(ev => {
+    dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+  });
+  ['dragleave','drop'].forEach(ev => {
+    dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('dragover'); });
+  });
+  dropzone.addEventListener('drop', e => {
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      const dt = new DataTransfer(); dt.items.add(file); fileInput.files = dt.files;
+      showFile(file);
+    }
+  });
+
+  btnRemove.addEventListener('click', () => {
+    fileInput.value = '';
+    previewWrap.style.display = 'none';
+    dropzone.style.display = 'block';
+    btnSearch.disabled = true;
+  });
+
+  // Filter chips → set hidden inputs
+  document.querySelectorAll('.post-type-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('.post-type-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      document.getElementById('post_type_hidden').value = chip.dataset.value;
+    });
+  });
+  document.querySelectorAll('.pet-type-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('.pet-type-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      document.getElementById('pet_type_hidden').value = chip.dataset.value;
+    });
+  });
+
+  // Loading state on submit
+  form.addEventListener('submit', () => {
+    if (btnSearch.disabled) return;
+    btnSearch.disabled = true;
+    btnSearch.innerHTML = '<span class="spinner"></span> กำลังวิเคราะห์ด้วย AI...';
+  });
+
+  // Auto-show preview if user came back with browser back
+  if (fileInput.files && fileInput.files[0]) showFile(fileInput.files[0]);
+})();
+</script>
+{% endblock %}

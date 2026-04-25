@@ -1,0 +1,232 @@
+{% extends 'base.html' %}
+{% block title %}สินค้า | Pet Finder{% endblock %}
+
+{% block extra_css %}
+<style>
+  .products-hero {
+    background: linear-gradient(180deg, #FCEED5 0%, #FFE7BA 100%);
+    padding: 40px 80px 30px;
+    text-align: center;
+  }
+  .products-hero h1 {
+    font-family: 'Chilanka', 'IBM Plex Sans Thai Looped', sans-serif;
+    color: #41403E; font-size: 42px; margin-bottom: 10px;
+  }
+  .products-hero p {
+    font-family: 'Montserrat', 'IBM Plex Sans Thai Looped', sans-serif;
+    color: #908F8D; font-size: 16px;
+  }
+
+  /* Category filter */
+  .cat-filters {
+    display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;
+    padding: 20px 20px 0; max-width: 1200px; margin: 0 auto;
+  }
+  .cat-chip {
+    padding: 8px 18px; border-radius: 20px; font-size: 14px;
+    font-family: 'Montserrat', sans-serif; font-weight: 600;
+    text-decoration: none; border: 1.5px solid #021F74; color: #021F74;
+    transition: all .2s;
+  }
+  .cat-chip:hover { background: #021F74; color: #fff; }
+  .cat-chip.active { background: #021F74; color: #fff; }
+
+  .products-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 28px; padding: 30px 80px; max-width: 1400px; margin: 0 auto;
+  }
+  .product-card {
+    background: #fff; border-radius: 16px; overflow: hidden;
+    box-shadow: 0 4px 14px rgba(0,0,0,.06);
+    transition: transform .2s, box-shadow .2s;
+    display: flex; flex-direction: column;
+    position: relative;
+  }
+  .product-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,.1); }
+  .product-card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; background: #f5f5f5; }
+  .product-badge {
+    position: absolute; top: 10px; right: 10px;
+    background: #E74C3C; color: #fff; padding: 4px 10px;
+    border-radius: 10px; font-size: 11px; font-family: 'Montserrat', sans-serif;
+    font-weight: 700;
+  }
+  .product-body { padding: 16px; flex: 1; display: flex; flex-direction: column; }
+  .product-name {
+    font-family: 'Chilanka', 'IBM Plex Sans Thai Looped', sans-serif;
+    color: #41403E; font-size: 18px; font-weight: 700;
+    margin-bottom: 6px; min-height: 48px; line-height: 1.25;
+  }
+  .product-desc {
+    font-family: 'Montserrat', 'IBM Plex Sans Thai Looped', sans-serif;
+    color: #908F8D; font-size: 13px; margin-bottom: 12px; flex: 1;
+  }
+  .product-price {
+    color: #021F74; font-weight: 700; font-size: 20px;
+    font-family: 'Montserrat', sans-serif;
+  }
+  .product-price-sub {
+    font-size: 11px; color: #908F8D; font-family: 'Montserrat', sans-serif;
+    font-weight: 500; margin-top: 2px;
+  }
+  .product-price-sub.live { color: #2980B9; font-weight: 600; }
+  .product-card a { text-decoration: none; color: inherit; }
+  .product-card .card-link { display: contents; }
+
+  .btn-view {
+    display: block; text-align: center;
+    margin: 12px 16px 16px;
+    padding: 10px 14px;
+    background: #021F74; color: #fff !important;
+    border-radius: 24px;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 700; font-size: 14px;
+    text-decoration: none;
+    transition: all .2s;
+  }
+  .btn-view:hover { background: #E74C3C; transform: translateY(-1px); }
+  .btn-view.outline {
+    background: #fff; color: #021F74 !important;
+    border: 1.5px solid #021F74;
+  }
+  .btn-view .ext-ico { font-size: 12px; margin-left: 4px; }
+
+  /* Blog */
+  .blog-section { background: #FDF4E3; padding: 50px 80px; }
+  .blog-section h2 {
+    font-family: 'Chilanka', 'IBM Plex Sans Thai Looped', sans-serif;
+    color: #41403E; font-size: 32px; text-align: center; margin-bottom: 10px;
+  }
+  .blog-section .see-all {
+    display: block; text-align: center; margin-bottom: 24px;
+    color: #021F74; font-weight: 700; font-family: 'Montserrat', sans-serif;
+    text-decoration: none;
+  }
+  .blog-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px; max-width: 1200px; margin: 0 auto;
+  }
+  .blog-card {
+    background: #fff; border-radius: 14px; overflow: hidden;
+    box-shadow: 0 3px 10px rgba(0,0,0,.05);
+    text-decoration: none; color: inherit; display: block;
+    transition: transform .2s;
+  }
+  .blog-card:hover { transform: translateY(-3px); }
+  .blog-card img { width: 100%; height: 180px; object-fit: cover; }
+  .blog-body { padding: 16px; }
+  .blog-title {
+    font-family: 'Chilanka', sans-serif; color: #41403E;
+    font-size: 18px; font-weight: 700; margin-bottom: 8px;
+  }
+  .blog-date { font-family: 'Crimson Text', serif; color: #DEAD6F; font-size: 14px; }
+
+  .empty-state {
+    text-align: center; padding: 60px 20px; color: #908F8D;
+    font-family: 'Montserrat', sans-serif;
+  }
+
+  @media (max-width: 960px) {
+    .products-hero { padding: 30px 30px 24px; }
+    .products-hero h1 { font-size: 32px; }
+    .products-grid { padding: 24px 30px; gap: 20px; }
+    .blog-section { padding: 40px 30px; }
+    .blog-section h2 { font-size: 26px; }
+  }
+  @media (max-width: 720px) {
+    .products-hero { padding: 24px 20px 18px; }
+    .products-hero h1 { font-size: 26px; margin-bottom: 6px; }
+    .products-hero p { font-size: 14px; }
+    .cat-filters { padding: 14px 16px 0; gap: 6px; }
+    .cat-chip { padding: 6px 14px; font-size: 13px; }
+    .products-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px; padding: 18px 14px;
+    }
+    .product-body { padding: 12px; }
+    .product-name { font-size: 15px; min-height: 38px; }
+    .product-desc { font-size: 12px; margin-bottom: 8px; }
+    .product-price { font-size: 17px; }
+    .btn-view { margin: 8px 12px 12px; padding: 9px 12px; font-size: 13px; }
+    .blog-section { padding: 30px 14px; }
+    .blog-section h2 { font-size: 22px; }
+    .blog-grid { grid-template-columns: 1fr; gap: 14px; }
+    .blog-card img { height: 160px; }
+  }
+  @media (max-width: 380px) {
+    .products-grid { grid-template-columns: 1fr; gap: 12px; }
+    .product-name { min-height: 0; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="products-hero">
+  <h1>สินค้าสำหรับสัตว์เลี้ยง</h1>
+  <p>คัดสรรอุปกรณ์และของเล่นคุณภาพ เพื่อเพื่อนสี่ขาของคุณ</p>
+</section>
+
+<div class="cat-filters">
+  <a href="{% url 'product_list' %}" class="cat-chip {% if not selected_category %}active{% endif %}">ทั้งหมด</a>
+  {% for value, label in category_choices %}
+    <a href="?category={{ value }}" class="cat-chip {% if selected_category == value %}active{% endif %}">{{ label }}</a>
+  {% endfor %}
+</div>
+
+<section class="products-grid">
+  {% for product in products %}
+    <div class="product-card">
+      <a href="{% url 'product_detail' product.id %}" class="card-link">
+        {% if product.promotion_end %}<span class="product-badge">โปรโมท</span>{% endif %}
+        <img src="{{ product.display_image_url }}" alt="{{ product.name }}" loading="lazy">
+        <div class="product-body">
+          <div class="product-name">{{ product.name }}</div>
+          <div class="product-desc">{{ product.description|truncatechars:60 }}</div>
+          {% if product.scraped_price and product.scraped_price > 0 %}
+            <div class="product-price">฿{{ product.scraped_price|floatformat:0 }}</div>
+            <div class="product-price-sub live">🔄 ราคาจากหน้าร้าน</div>
+          {% elif product.price and product.price > 0 %}
+            <div class="product-price">฿{{ product.price|floatformat:0 }}</div>
+            {% if product.external_link %}
+              <div class="product-price-sub">ราคาอาจเปลี่ยนที่หน้าร้าน</div>
+            {% endif %}
+          {% else %}
+            <div class="product-price" style="color:#908F8D;">ดูราคาที่ร้าน</div>
+          {% endif %}
+        </div>
+      </a>
+      {% if product.external_link %}
+        <a href="{{ product.external_link }}" target="_blank" rel="noopener noreferrer" class="btn-view">
+          🛒 ดูสินค้าที่ร้าน <span class="ext-ico">↗</span>
+        </a>
+      {% else %}
+        <a href="{% url 'product_detail' product.id %}" class="btn-view outline">
+          ดูรายละเอียด
+        </a>
+      {% endif %}
+    </div>
+  {% empty %}
+    <div class="empty-state" style="grid-column: 1/-1;">
+      <p>ยังไม่มีสินค้า — แอดมินสามารถเพิ่มได้ที่ <a href="/admin/pet_core/product/">หน้า Admin</a></p>
+    </div>
+  {% endfor %}
+</section>
+
+<section class="blog-section">
+  <h2>บทความน่ารู้</h2>
+  <a href="{% url 'blog_list' %}" class="see-all">ดูทั้งหมด →</a>
+  <div class="blog-grid">
+    {% for post in blog_posts %}
+      <a href="{% url 'blog_detail' post.id %}" class="blog-card">
+        <img src="{{ post.display_cover_url }}" alt="{{ post.title }}" loading="lazy">
+        <div class="blog-body">
+          <div class="blog-title">{{ post.title }}</div>
+          <div class="blog-date">{{ post.published_at|date:"j M Y" }}</div>
+        </div>
+      </a>
+    {% empty %}
+      <p class="empty-state">ยังไม่มีบทความ</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

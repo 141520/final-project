@@ -1,0 +1,311 @@
+from django.contrib import admin, messages
+from django.utils.html import format_html
+from django.utils.safestring import mark_safe
+from .models import PetPost, PetImage, Product, BlogPost
+
+
+# ==========================================================
+# Customize Admin Site — เปลี่ยนหัว-ท้าย
+# ==========================================================
+admin.site.site_header = "🐾 Pet Finder Admin"
+admin.site.site_title = "Pet Finder Admin"
+admin.site.index_title = "จัดการข้อมูลเว็บ Pet Finder"
+
+
+# ==========================================================
+# PetImage (inline — แสดงในหน้า PetPost)
+# ==========================================================
+class PetImageInline(admin.TabularInline):
+    model = PetImage
+    extra = 0
+    fields = ('thumbnail', 'image', 'has_vector')
+    readonly_fields = ('thumbnail', 'has_vector')
+
+    def thumbnail(self, obj):
+        if obj.image:
+            return format_html(
+                '<img src="{}" style="max-height:80px;max-width:80px;border-radius:6px;"/>',
+                obj.supabase_image_url,
+            )
+        return "—"
+    thumbnail.short_description = "รูป"
+
+    def has_vector(self, obj):
+        return "✅" if obj.feature_vector is not None else "❌ ยังไม่ได้สกัด"
+    has_vector.short_description = "AI Vector"
+
+
+# ==========================================================
+# PetPost
+# ==========================================================
+@admin.register(PetPost)
+class PetPostAdmin(admin.ModelAdmin):
+    list_display = (
+        'thumb', 'name', 'post_type_badge', 'pet_type', 'status_badge',
+        'owner', 'location_name', 'created_at',
+    )
+    list_filter = ('post_type', 'status', 'pet_type', 'gender', 'created_at')
+    search_fields = ('name', 'breed', 'description', 'contact_name',
+                     'contact_phone', 'contact_email', 'location_name')
+    list_per_page = 20
+    date_hierarchy = 'created_at'
+    autocomplete_fields = ('owner',)
+    readonly_fields = ('created_at', 'updated_at', 'main_image_preview')
+    inlines = [PetImageInline]
+
+    fieldsets = (
+        ('📌 สถานะและเจ้าของ', {
+            'fields': ('post_type', 'status', 'owner', 'supabase_user_id',
+                       'created_at', 'updated_at')
+        }),
+        ('🐶 ข้อมูลสัตว์เลี้ยง', {
+            'fields': ('name', 'pet_type', 'breed', 'age', 'gender', 'color',
+                       'microchip', 'description', 'main_image_preview', 'image')
+        }),
+        ('📞 ข้อมูลติดต่อ', {
+            'fields': ('contact_name', 'contact_email', 'contact_phone', 'social_link')
+        }),
+        ('📍 สถานที่และเวลา', {
+            'fields': ('location_name', 'latitude', 'longitude', 'situation',
+                       'lost_date', 'lost_time', 'found_date', 'found_time')
+        }),
+    )
+
+    def thumb(self, obj):
+        if obj.image:
+            return format_html(
+                '<img src="{}" style="width:48px;height:48px;object-fit:cover;border-radius:6px;"/>',
+                obj.supabase_image_url,
+            )
+        return "—"
+    thumb.short_description = "รูป"
+
+    def post_type_badge(self, obj):
+        colors = {'lost': '#E74C3C', 'found': '#27AE60'}
+        return format_html(
+            '<span style="background:{};color:#fff;padding:3px 10px;border-radius:10px;font-size:12px;">{}</span>',
+            colors.get(obj.post_type, '#888'), obj.get_post_type_display(),
+        )
+    post_type_badge.short_description = "ประเภท"
+
+    def status_badge(self, obj):
+        colors = {'active': '#F39C12', 'resolved': '#2ECC71'}
+        return format_html(
+            '<span style="background:{};color:#fff;padding:3px 10px;border-radius:10px;font-size:12px;">{}</span>',
+            colors.get(obj.status, '#888'), obj.get_status_display(),
+        )
+    status_badge.short_description = "สถานะ"
+
+    def main_image_preview(self, obj):
+        if obj.image:
+            return format_html(
+                '<img src="{}" style="max-width:300px;border-radius:8px;"/>',
+                obj.supabase_image_url,
+            )
+        return "ยังไม่มีรูป"
+    main_image_preview.short_description = "ตัวอย่างรูปหลัก"
+
+
+# ==========================================================
+# PetImage (standalone — สำหรับดู AI vectors)
+# ==========================================================
+@admin.register(PetImage)
+class PetImageAdmin(admin.ModelAdmin):
+    list_display = ('id', 'thumb', 'pet_post', 'has_vector')
+    list_filter = ('pet_post__post_type', 'pet_post__pet_type')
+    search_fields = ('pet_post__name',)
+    autocomplete_fields = ('pet_post',)
+
+    def thumb(self, obj):
+        if obj.image:
+            return format_html(
+                '<img src="{}" style="width:60px;height:60px;object-fit:cover;border-radius:6px;"/>',
+                obj.supabase_image_url,
+            )
+        return "—"
+    thumb.short_description = "รูป"
+
+    def has_vector(self, obj):
+        return "✅" if obj.feature_vector is not None else "❌"
+    has_vector.short_description = "AI vector"
+
+
+# ==========================================================
+# Product — สินค้าโปรโมท
+# ==========================================================
+@admin.register(Product)
+class ProductAdmin(admin.ModelAdmin):
+    list_display = (
+        'thumb', 'name', 'category', 'price_display', 'scraped_price_display',
+        'promotion_status', 'is_active', 'sort_order',
+    )
+    list_editable = ('is_active', 'sort_order')
+    list_filter = ('is_active', 'category', 'promotion_start', 'promotion_end')
+    search_fields = ('name', 'description')
+    list_per_page = 30
+    ordering = ('sort_order', '-created_at')
+    readonly_fields = ('created_at', 'updated_at', 'image_preview',
+                       'promotion_status_detail', 'days_remaining_display',
+                       'last_scraped_at')
+
+    fieldsets = (
+        ('🛒 ข้อมูลสินค้า', {
+            'fields': ('name', 'description', 'category', 'price',
+                       'image_preview', 'image', 'external_link',
+                       'scraped_price', 'last_scraped_at'),
+            'description': (
+                '💡 <b>external_link</b> = ลิงก์ไปร้านค้า (Shopee/Lazada/เว็บร้าน) — '
+                'ผู้ใช้กดปุ่ม "ดูสินค้า" จะไปที่ลิงก์นี้<br>'
+                '💰 <b>scraped_price</b> = ราคาจริงจากหน้าร้าน — กด action "🔄 Sync ราคา" '
+                'ในหน้ารายการเพื่อให้ระบบดึงมาอัตโนมัติ (ถ้ามี จะแสดงแทน price)'
+            ),
+        }),
+        ('⏰ ระยะเวลาโปรโมท', {
+            'description': 'กำหนด "วันที่เริ่ม" + "จำนวนวัน" แล้วระบบจะคำนวณวันสิ้นสุดให้',
+            'fields': ('promotion_start', 'promotion_days', 'promotion_end',
+                       'promotion_status_detail', 'days_remaining_display')
+        }),
+        ('🌐 การแสดงผลบนเว็บ', {
+            'fields': ('is_active', 'sort_order')
+        }),
+        ('🕐 Meta', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',),
+        }),
+    )
+
+    def thumb(self, obj):
+        url = obj.display_image_url
+        return format_html(
+            '<img src="{}" style="width:48px;height:48px;object-fit:cover;border-radius:6px;"/>',
+            url,
+        )
+    thumb.short_description = "รูป"
+
+    def image_preview(self, obj):
+        url = obj.display_image_url
+        return format_html('<img src="{}" style="max-width:300px;border-radius:8px;"/>', url)
+    image_preview.short_description = "ตัวอย่างรูป"
+
+    def price_display(self, obj):
+        if obj.price is None:
+            return format_html('<span style="color:#bbb;">—</span>')
+        return f"฿{obj.price:,.0f}"
+    price_display.short_description = "ราคาตั้ง"
+
+    def scraped_price_display(self, obj):
+        if obj.scraped_price is None:
+            return format_html('<span style="color:#bbb;">—</span>')
+        return format_html('<b style="color:#2980B9;">฿{}</b>', f"{obj.scraped_price:,.0f}")
+    scraped_price_display.short_description = "ราคาจากร้าน"
+
+    def promotion_status(self, obj):
+        if not obj.promotion_start:
+            return format_html('<span style="color:#888;">ยังไม่เริ่ม</span>')
+        if obj.is_promotion_active:
+            days = obj.days_remaining
+            return format_html(
+                '<span style="background:#2ECC71;color:#fff;padding:3px 10px;border-radius:10px;">'
+                'กำลังโปรโมท ({} วันเหลือ)</span>', days)
+        return format_html(
+            '<span style="background:#95A5A6;color:#fff;padding:3px 10px;border-radius:10px;">หมดอายุ</span>')
+    promotion_status.short_description = "สถานะ"
+
+    def promotion_status_detail(self, obj):
+        if not obj.pk:
+            return "บันทึกสินค้าก่อนเพื่อดูสถานะ"
+        if not obj.promotion_start:
+            return "⚪ ยังไม่ได้ตั้งวันเริ่มโปรโมท"
+        if obj.is_promotion_active:
+            return format_html(
+                '🟢 <b>กำลังโปรโมท</b> — เหลือ {} วัน<br>'
+                '(เริ่ม {} → สิ้นสุด {})',
+                obj.days_remaining, obj.promotion_start, obj.promotion_end)
+        return format_html(
+            '🔴 <b>หมดอายุ</b> (สิ้นสุดเมื่อ {})<br>'
+            'ถ้าต้องการโปรโมทต่อ: เปลี่ยน "วันที่เริ่ม" ใหม่ + ล้าง "วันที่สิ้นสุด"',
+            obj.promotion_end)
+    promotion_status_detail.short_description = "สถานะโปรโมท"
+
+    def days_remaining_display(self, obj):
+        if obj.days_remaining is None:
+            return "—"
+        return f"{obj.days_remaining} วัน"
+    days_remaining_display.short_description = "วันที่เหลือ"
+
+    actions = ['mark_active', 'mark_inactive', 'sync_prices']
+
+    @admin.action(description="🔄 Sync ราคาจาก external_link")
+    def sync_prices(self, request, queryset):
+        from .price_scraper import scrape_price
+        from django.utils import timezone
+        ok, fail = 0, 0
+        msgs = []
+        for p in queryset:
+            if not p.external_link:
+                msgs.append(f"⏭️ {p.name}: ไม่มี external_link")
+                fail += 1
+                continue
+            price, note = scrape_price(p.external_link)
+            if price is not None:
+                p.scraped_price = price
+                p.last_scraped_at = timezone.now()
+                p.save(update_fields=['scraped_price', 'last_scraped_at'])
+                msgs.append(f"✅ {p.name}: ฿{price:,.0f} ({note})")
+                ok += 1
+            else:
+                msgs.append(f"❌ {p.name}: {note}")
+                fail += 1
+        level = messages.SUCCESS if ok else messages.WARNING
+        self.message_user(request, f"Sync เสร็จ: สำเร็จ {ok} / ล้มเหลว {fail}  |  " + " · ".join(msgs[:8]), level=level)
+
+    @admin.action(description="✅ เปิดแสดงบนเว็บ")
+    def mark_active(self, request, queryset):
+        updated = queryset.update(is_active=True)
+        self.message_user(request, f"เปิดแสดง {updated} รายการ")
+
+    @admin.action(description="🚫 ซ่อนจากเว็บ")
+    def mark_inactive(self, request, queryset):
+        updated = queryset.update(is_active=False)
+        self.message_user(request, f"ซ่อน {updated} รายการ")
+
+
+# ==========================================================
+# BlogPost — บทความ/เคล็ดลับ
+# ==========================================================
+@admin.register(BlogPost)
+class BlogPostAdmin(admin.ModelAdmin):
+    list_display = ('thumb', 'title', 'author_name', 'published_at',
+                    'is_published', 'created_at')
+    list_editable = ('is_published',)
+    list_filter = ('is_published', 'published_at')
+    search_fields = ('title', 'summary', 'body', 'author_name')
+    date_hierarchy = 'published_at'
+    readonly_fields = ('created_at', 'updated_at', 'cover_preview')
+
+    fieldsets = (
+        ('📝 เนื้อหา', {
+            'fields': ('title', 'summary', 'cover_preview', 'cover_image', 'body')
+        }),
+        ('👤 ผู้เขียนและการเผยแพร่', {
+            'fields': ('author_name', 'published_at', 'is_published')
+        }),
+        ('🕐 Meta', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',),
+        }),
+    )
+
+    def thumb(self, obj):
+        return format_html(
+            '<img src="{}" style="width:80px;height:50px;object-fit:cover;border-radius:4px;"/>',
+            obj.display_cover_url,
+        )
+    thumb.short_description = "ปก"
+
+    def cover_preview(self, obj):
+        return format_html(
+            '<img src="{}" style="max-width:400px;border-radius:8px;"/>',
+            obj.display_cover_url,
+        )
+    cover_preview.short_description = "ตัวอย่างรูปปก"
