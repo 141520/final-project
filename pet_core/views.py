@@ -333,9 +333,10 @@ def search_pet(request):
             ai_pet_type = ai_detection.get('pet_type')
             ai_conf = ai_detection.get('confidence', 0)
 
-            # ถ้าผู้ใช้ไม่ได้เลือกประเภท + AI confident พอ (>30%) → ใช้ AI suggest
-            if not selected_pet_type and ai_pet_type and ai_conf > 0.30:
-                selected_pet_type = ai_pet_type
+            # AI suggest แสดงเป็นข้อความ — แต่ไม่ filter เข้ม (เป็น soft boost ตอน scoring)
+            user_picked_type = bool(selected_pet_type)
+            if not user_picked_type and ai_pet_type and ai_conf > 0.30:
+                selected_pet_type = ai_pet_type  # โชว์ที่ UI เฉยๆ
                 auto_detected = True
 
             if query_vector is not None:
@@ -344,7 +345,8 @@ def search_pet(request):
                     pet_post__status='active',  # ❗ ไม่ค้นเจอโพสต์ที่ปิดแล้ว
                 ).select_related('pet_post')
 
-                if selected_pet_type:
+                # Hard filter เฉพาะตอนผู้ใช้เลือกเอง — auto-detect ไม่ filter (กันโพสต์ที่ pet_type ว่าง/ต่างคำหลุด)
+                if user_picked_type:
                     qs = qs.filter(pet_post__pet_type__iexact=selected_pet_type)
                 if selected_post_type in ('lost', 'found'):
                     qs = qs.filter(pet_post__post_type=selected_post_type)
