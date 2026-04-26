@@ -50,6 +50,10 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     # 🟢 WhiteNoise — serve static files ใน production (Render)
     'whitenoise.middleware.WhiteNoiseMiddleware',
+    # 🟢 GZip HTML responses (~70% smaller HTML payload)
+    'django.middleware.gzip.GZipMiddleware',
+    # 🟢 ConditionalGetMiddleware — ส่ง 304 Not Modified เมื่อ ETag/Last-Modified ตรง
+    'django.middleware.http.ConditionalGetMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -59,6 +63,18 @@ MIDDLEWARE = [
     # 🟢 Sync Supabase JWT → Django User (วางหลัง AuthenticationMiddleware)
     'pet_core.middleware.SupabaseAuthMiddleware',
 ]
+
+# ─────────────────────────────────────────
+# Cache framework — local memory (free, no Redis needed)
+# ─────────────────────────────────────────
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'pf-default',
+        'TIMEOUT': 60,
+        'OPTIONS': {'MAX_ENTRIES': 1000},
+    }
+}
 
 ROOT_URLCONF = 'petfinder_site.urls'
 

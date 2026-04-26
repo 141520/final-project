@@ -5,7 +5,10 @@ services:
     runtime: python
     plan: free
     buildCommand: "./build.sh"
-    startCommand: "gunicorn petfinder_site.wsgi:application --workers 1 --timeout 120"
+    # --preload: โหลด PyTorch model ใน master ครั้งเดียว → fork workers ใช้ CoW memory
+    # --threads 4: รับ request พร้อมกัน 4 ตัว (เพิ่ม throughput เมื่อ I/O เยอะ เช่น Supabase upload)
+    # --max-requests + jitter: รีไซเคิล worker กัน memory leak ระยะยาว
+    startCommand: "gunicorn petfinder_site.wsgi:application --workers 1 --threads 4 --timeout 120 --preload --max-requests 800 --max-requests-jitter 100"
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9

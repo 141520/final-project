@@ -9,6 +9,8 @@ from datetime import date
 from django.core.files.base import ContentFile
 from .utils import extract_feature_vector, classify_pet_type, compress_image, analyze_image
 from pgvector.django import CosineDistance
+from django.core.cache import cache
+from django.db.models import Count, Q
 from collections import defaultdict
 import logging
 import os
@@ -22,55 +24,89 @@ logger = logging.getLogger(__name__)
 
 # ---- หน้าหลัก ----
 def home(request):
-    recent_lost_pets = PetPost.objects.filter(post_type='lost', status='active').order_by('-created_at')[:4]
-    if not recent_lost_pets.exists():
-        recent_lost_pets = PetPost.objects.filter(post_type='lost').order_by('-created_at')[:4]
+    """Home — แคช 60 วิ (ผ่าน DB-level cache, render ใหม่ทุกครั้งเพื่อให้ nav แสดง user ปัจจุบัน)"""
+    cached = cache.get('home_data_v2')
+    if cached is None:
+        # 1 query for stats (4 counts → 1 aggregate)
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        agg = PetPost.objects.aggregate(
+            total_posts=Count('id'),
+            active_posts=Count('id', filter=Q(status='active')),
+            resolved_posts=Count('id', filter=Q(status='resolved')),
+        )
+        recent_lost = list(
+            PetPost.objects.filter(post_type='lost', status='active')
+            .only('id', 'name', 'pet_type', 'breed', 'location_name', 'image', 'created_at', 'reward')
+            .order_by('-created_at')[:4]
+        )
+        recent_found = list(
+            PetPost.objects.filter(post_type='found', status='active')
+            .only('id', 'name', 'pet_type', 'breed', 'location_name', 'image', 'created_at')
+            .order_by('-created_at')[:4]
+        )
+        cached = {
+            'recent_lost_pets': recent_lost,
+            'recent_found_pets': recent_found,
+            'total_posts': agg['total_posts'],
+            'total_users': User.objects.count(),
+            'active_posts': agg['active_posts'],
+            'resolved_posts': agg['resolved_posts'],
+        }
+        cache.set('home_data_v2', cached, 60)
 
-    recent_found_pets = PetPost.objects.filter(post_type='found', status='active').order_by('-created_at')[:4]
-    if not recent_found_pets.exists():
-        recent_found_pets = PetPost.objects.filter(post_type='found').order_by('-created_at')[:4]
-
-    from django.contrib.auth import get_user_model
-    User = get_user_model()
-    stats = {
-        'total_posts': PetPost.objects.count(),
-        'total_users': User.objects.count(),
-        'active_posts': PetPost.objects.filter(status='active').count(),
-        'resolved_posts': PetPost.objects.filter(status='resolved').count(),
-    }
-
-    return render(request, 'pet_core/home.html', {
-        'recent_lost_pets': recent_lost_pets,
-        'recent_found_pets': recent_found_pets,
-        **stats,
-    })
+    return render(request, 'pet_core/home.html', cached)
 
 
 # ---- แผนที่ ----
 def map_view(request):
-    posts = PetPost.objects.filter(
-        latitude__isnull=False, longitude__isnull=False
-    ).exclude(latitude=0, longitude=0).order_by('-created_at')
+    cached = cache.get('map_data_v1')
+    if cached is None:
+        from django.conf import settings as _s
+        base_url = f"{_s.SUPABASE_URL}/storage/v1/object/public/{_s.AWS_STORAGE_BUCKET_NAME}/"
 
-    posts_json = []
-    for p in posts:
-        posts_json.append({
-            'id': p.id,
-            'name': p.name or 'ไม่ระบุชื่อ',
-            'post_type': p.post_type,
-            'status': p.status,
-            'pet_type': p.pet_type or '',
-            'location_name': p.location_name or '',
-            'reward': float(p.reward) if (p.reward and p.post_type == 'lost') else None,
-            'lat': float(p.latitude),
-            'lng': float(p.longitude),
-            'image_url': p.supabase_image_url if p.image else '',
-            'detail_url': f'/pet/{p.id}/',
-            'created_at': p.created_at.strftime('%d/%m/%Y'),
-        })
+        # values() — skip model object creation, ~5x faster than .all() loop
+        rows = PetPost.objects.filter(
+            latitude__isnull=False, longitude__isnull=False, status='active'
+        ).exclude(latitude=0, longitude=0).order_by('-created_at').values(
+            'id', 'name', 'post_type', 'status', 'pet_type', 'location_name',
+            'reward', 'latitude', 'longitude', 'image', 'created_at'
+        )[:500]
 
-    total_lost = PetPost.objects.filter(post_type='lost', status='active').count()
-    total_found = PetPost.objects.filter(post_type='found', status='active').count()
+        posts_json = []
+        for r in rows:
+            img = str(r['image']) if r['image'] else ''
+            if img and not img.startswith('http'):
+                img = base_url + img.lstrip('/').removeprefix('media/')
+            posts_json.append({
+                'id': r['id'],
+                'name': r['name'] or 'ไม่ระบุชื่อ',
+                'post_type': r['post_type'],
+                'status': r['status'],
+                'pet_type': r['pet_type'] or '',
+                'location_name': r['location_name'] or '',
+                'reward': float(r['reward']) if (r['reward'] and r['post_type'] == 'lost') else None,
+                'lat': float(r['latitude']),
+                'lng': float(r['longitude']),
+                'image_url': img,
+                'detail_url': f"/pet/{r['id']}/",
+                'created_at': r['created_at'].strftime('%d/%m/%Y'),
+            })
+
+        agg = PetPost.objects.filter(status='active').aggregate(
+            total_lost=Count('id', filter=Q(post_type='lost')),
+            total_found=Count('id', filter=Q(post_type='found')),
+        )
+        cached = {
+            'posts_json': posts_json,
+            'total_lost': agg['total_lost'],
+            'total_found': agg['total_found'],
+        }
+        cache.set('map_data_v1', cached, 90)
+
+    posts_json = cached['posts_json']
+    total_lost = cached['total_lost']
+    total_found = cached['total_found']
 
     return render(request, 'pet_core/map.html', {
         'posts_json': json.dumps(posts_json, ensure_ascii=False),
@@ -79,30 +115,49 @@ def map_view(request):
         'total_map': len(posts_json),
     })
 
-# ---- รายการประกาศสัตว์หาย ----
-def lost_pet_list(request):
-    from django.db.models import Q
-    q = request.GET.get('q', '').strip()
-    posts = PetPost.objects.filter(post_type='lost', status='active').order_by('-created_at')
+_LIST_FIELDS = ('id', 'name', 'pet_type', 'breed', 'color', 'location_name',
+                'image', 'created_at', 'reward', 'post_type', 'status')
+
+
+def _list_posts(post_type: str, q: str):
+    """Helper: คืน QuerySet เบาๆ (.only() ดึงเฉพาะ fields ที่ template ใช้)"""
+    qs = (PetPost.objects
+          .filter(post_type=post_type, status='active')
+          .only(*_LIST_FIELDS)
+          .order_by('-created_at'))
     if q:
-        posts = posts.filter(
+        qs = qs.filter(
             Q(name__icontains=q) | Q(breed__icontains=q) |
             Q(location_name__icontains=q) | Q(color__icontains=q) |
             Q(description__icontains=q) | Q(pet_type__icontains=q)
         )
+    return qs
+
+
+# ---- รายการประกาศสัตว์หาย ----
+def lost_pet_list(request):
+    q = request.GET.get('q', '').strip()
+    if not q:
+        # Cache เฉพาะ list ที่ไม่มี search query (60s)
+        posts = cache.get('list_lost_v1')
+        if posts is None:
+            posts = list(_list_posts('lost', q)[:120])
+            cache.set('list_lost_v1', posts, 60)
+    else:
+        posts = _list_posts('lost', q)[:120]
     return render(request, 'pet_core/lost_pet_list.html', {'posts': posts, 'q': q})
+
 
 # ---- รายการประกาศสัตว์ที่พบ ----
 def found_pet_list(request):
-    from django.db.models import Q
     q = request.GET.get('q', '').strip()
-    posts = PetPost.objects.filter(post_type='found', status='active').order_by('-created_at')
-    if q:
-        posts = posts.filter(
-            Q(name__icontains=q) | Q(breed__icontains=q) |
-            Q(location_name__icontains=q) | Q(color__icontains=q) |
-            Q(description__icontains=q) | Q(pet_type__icontains=q)
-        )
+    if not q:
+        posts = cache.get('list_found_v1')
+        if posts is None:
+            posts = list(_list_posts('found', q)[:120])
+            cache.set('list_found_v1', posts, 60)
+    else:
+        posts = _list_posts('found', q)[:120]
     return render(request, 'pet_core/found_pet_list.html', {'posts': posts, 'q': q})
 
 
