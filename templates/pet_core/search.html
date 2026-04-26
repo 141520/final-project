@@ -239,7 +239,6 @@
 <div class="search-page">
 
   <header class="search-hero">
-    <span class="ai-badge">⚡ AI POWERED</span>
     <h1>ค้นหาสัตว์เลี้ยงด้วยรูปภาพ</h1>
     <p>อัปโหลดรูปสัตว์ที่คุณต้องการตามหา ระบบ AI จะวิเคราะห์ทุกองค์ประกอบและแสดงประกาศที่ใกล้เคียงที่สุด</p>
   </header>
@@ -294,10 +293,6 @@
       <div class="ai-result">
         ตรวจพบ: <span style="color:var(--green);">{{ ai_detection.pet_type }}</span>
         {% if auto_detected %}<small style="font-weight:500;color:var(--text-muted);"> · กรองให้อัตโนมัติ</small>{% endif %}
-      </div>
-      <div class="ai-conf">
-        ความมั่นใจ {{ ai_detection.confidence|floatformat:1 }}
-        <span class="conf-bar"><span class="conf-fill" style="width: {% widthratio ai_detection.confidence 1 100 %}%;"></span></span>
       </div>
     </div>
   </div>
