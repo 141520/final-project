@@ -349,11 +349,11 @@ def search_pet(request):
                 if selected_post_type in ('lost', 'found'):
                     qs = qs.filter(pet_post__post_type=selected_post_type)
 
-                # ดึงรอบใหญ่ก่อน (top 80) → re-rank ด้วย custom score → ตัดเหลือ 12
-                # threshold 0.78 (ผ่อนเล็กน้อยเพื่อให้ re-rank คัดได้)
+                # ดึงรอบใหญ่ก่อน (top 120) → re-rank ด้วย custom score → ตัดเหลือ 24
+                # threshold 0.90 (ผ่อนกว้างมากเพื่อแสดงผลเยอะขึ้น — re-rank จะคัดมาให้)
                 similar = qs.annotate(
                     distance=CosineDistance('feature_vector', query_vector)
-                ).filter(distance__lt=0.78).order_by('distance')[:80]
+                ).filter(distance__lt=0.90).order_by('distance')[:120]
 
                 # Group ตาม post — เก็บ best image + นับจำนวน match
                 best_per_post = {}
@@ -388,7 +388,7 @@ def search_pet(request):
 
                 # เรียงตาม final_score มาก→น้อย
                 scored.sort(key=lambda x: -x[0])
-                top = scored[:12]
+                top = scored[:24]
 
                 for final_score, base_sim, n_match, img_obj in top:
                     # แสดง similarity ที่เห็นในการ์ดเป็น base_sim (ไม่ใช่ score รวม)
