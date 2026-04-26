@@ -1,0 +1,167 @@
+/* ============================================================
+   PetFinder — Pro UX layer
+   - Top loading bar (NProgress-style, 0 deps)
+   - Toast notifications
+   - Scroll-reveal animations
+   - Skeleton loaders
+   - Smooth focus rings
+   - prefers-reduced-motion respected
+   ============================================================ */
+
+/* ---------- 1. Top loading bar ---------- */
+#pf-progress {
+  position: fixed; top: 0; left: 0; right: 0;
+  height: 3px; z-index: 99999;
+  background: linear-gradient(90deg, #756EF5 0%, #D75CA7 50%, #F9C82F 100%);
+  transform: scaleX(0); transform-origin: 0 50%;
+  transition: transform .25s ease-out, opacity .35s ease;
+  box-shadow: 0 0 10px rgba(215, 92, 167, .6), 0 0 4px rgba(117, 110, 245, .8);
+  opacity: 0; pointer-events: none;
+}
+#pf-progress.active { opacity: 1; }
+
+/* ---------- 2. Toast container ---------- */
+#pf-toasts {
+  position: fixed; bottom: 24px; right: 24px;
+  display: flex; flex-direction: column; gap: 10px;
+  z-index: 99998; max-width: calc(100vw - 32px);
+  pointer-events: none;
+}
+.pf-toast {
+  pointer-events: auto;
+  min-width: 280px; max-width: 380px;
+  background: white; color: #1f2937;
+  padding: 14px 18px; border-radius: 14px;
+  box-shadow: 0 10px 40px rgba(0,0,0,.18), 0 2px 6px rgba(0,0,0,.06);
+  display: flex; align-items: flex-start; gap: 10px;
+  font-size: 14px; line-height: 1.5;
+  border-left: 4px solid #4E73F6;
+  animation: pf-toast-in .35s cubic-bezier(.21,1.02,.73,1);
+  position: relative; overflow: hidden;
+}
+.pf-toast.leaving {
+  animation: pf-toast-out .25s ease-in forwards;
+}
+.pf-toast.success { border-left-color: #10b981; }
+.pf-toast.error   { border-left-color: #ef4444; }
+.pf-toast.warning { border-left-color: #f59e0b; }
+.pf-toast.info    { border-left-color: #3b82f6; }
+.pf-toast .icon { font-size: 20px; line-height: 1; flex-shrink: 0; }
+.pf-toast .body { flex: 1; }
+.pf-toast .close {
+  background: none; border: none; cursor: pointer;
+  font-size: 18px; line-height: 1; color: #9ca3af;
+  padding: 0; margin-left: 4px; transition: color .15s;
+}
+.pf-toast .close:hover { color: #1f2937; }
+.pf-toast::after {
+  content: ''; position: absolute;
+  bottom: 0; left: 0; height: 2px;
+  background: currentColor; opacity: .25;
+  width: 100%; transform-origin: 0 50%;
+  animation: pf-toast-progress var(--life, 5s) linear forwards;
+}
+
+@keyframes pf-toast-in {
+  from { opacity: 0; transform: translateX(40px) scale(.96); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+@keyframes pf-toast-out {
+  to { opacity: 0; transform: translateX(40px) scale(.96); }
+}
+@keyframes pf-toast-progress {
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0); }
+}
+
+@media (max-width: 540px) {
+  #pf-toasts { left: 12px; right: 12px; bottom: 12px; }
+  .pf-toast { min-width: 0; width: 100%; }
+}
+
+/* ---------- 3. Scroll-reveal ---------- */
+[data-reveal] {
+  opacity: 0; transform: translateY(28px);
+  transition: opacity .7s cubic-bezier(.21,1.02,.73,1),
+              transform .7s cubic-bezier(.21,1.02,.73,1);
+  will-change: opacity, transform;
+}
+[data-reveal].in {
+  opacity: 1; transform: translateY(0);
+}
+[data-reveal-delay="1"].in { transition-delay: .08s; }
+[data-reveal-delay="2"].in { transition-delay: .16s; }
+[data-reveal-delay="3"].in { transition-delay: .24s; }
+[data-reveal-delay="4"].in { transition-delay: .32s; }
+
+/* ---------- 4. Skeleton loader ---------- */
+.pf-skeleton {
+  background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+  background-size: 200% 100%;
+  animation: pf-skel 1.4s ease-in-out infinite;
+  border-radius: 8px;
+}
+@keyframes pf-skel {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ---------- 5. Focus ring (a11y) ---------- */
+:focus-visible {
+  outline: 2px solid #4E73F6;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* ---------- 6. Smooth scroll-to-top button ---------- */
+#pf-totop {
+  position: fixed; bottom: 22px; left: 22px;
+  width: 44px; height: 44px; border-radius: 50%;
+  background: #021F74; color: white;
+  border: none; cursor: pointer;
+  font-size: 20px; line-height: 1;
+  box-shadow: 0 8px 24px rgba(2,31,116,.35);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; visibility: hidden;
+  transform: translateY(20px);
+  transition: opacity .25s, transform .25s, visibility .25s;
+  z-index: 99997;
+}
+#pf-totop.show { opacity: 1; visibility: visible; transform: translateY(0); }
+#pf-totop:hover { background: #001a5e; transform: translateY(-3px); }
+@media (max-width: 540px) { #pf-totop { bottom: 14px; left: 14px; width: 40px; height: 40px;} }
+
+/* ---------- 7. PWA install button ---------- */
+#pf-install {
+  position: fixed; bottom: 22px; right: 22px;
+  background: linear-gradient(135deg, #756EF5, #D75CA7);
+  color: white; border: none; cursor: pointer;
+  padding: 12px 18px; border-radius: 30px;
+  font-weight: 700; font-size: 14px; font-family: inherit;
+  box-shadow: 0 10px 30px rgba(215, 92, 167, .4);
+  display: none; align-items: center; gap: 8px;
+  z-index: 99997; transition: transform .2s;
+  animation: pf-install-pop .5s cubic-bezier(.21,1.02,.73,1);
+}
+#pf-install.show { display: inline-flex; }
+#pf-install:hover { transform: translateY(-2px); }
+@keyframes pf-install-pop {
+  from { opacity: 0; transform: translateY(20px) scale(.9); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ---------- 8. View Transitions API (Chrome 111+) ---------- */
+@view-transition { navigation: auto; }
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: .35s;
+}
+
+/* ---------- Reduced motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+  }
+  [data-reveal] { opacity: 1; transform: none; }
+}

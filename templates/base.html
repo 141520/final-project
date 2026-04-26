@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
-    <meta name="description" content="Pet Finder — เว็บช่วยตามหาสัตว์เลี้ยงหายและคืนสัตว์เลี้ยงกลับบ้าน">
-    <meta name="theme-color" content="#FCEED5">
+    <meta name="description" content="{% block meta_description %}Pet Finder — เว็บช่วยตามหาสัตว์เลี้ยงหายและคืนสัตว์เลี้ยงกลับบ้าน ใช้ AI จับคู่รูปภาพ ครอบคลุมทั่วประเทศไทย{% endblock %}">
+    <meta name="theme-color" content="#FCEED5" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#1a1a2e" media="(prefers-color-scheme: dark)">
+    <meta name="color-scheme" content="light">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Pet Finder">
@@ -13,11 +15,68 @@
 
     <title>{% block title %}Pet Finder — ตามหาสัตว์เลี้ยงหาย{% endblock %}</title>
 
+    {# ─── Open Graph / Twitter Card (Facebook/Line/Twitter preview) ─── #}
+    <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+    <meta property="og:site_name" content="Pet Finder">
+    <meta property="og:title" content="{% block og_title %}Pet Finder — ตามหาสัตว์เลี้ยงหาย{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}เว็บช่วยตามหาสัตว์เลี้ยงหาย ใช้ AI จับคู่รูปภาพ คืนน้องกลับบ้านอย่างปลอดภัย 🐾{% endblock %}">
+    <meta property="og:image" content="{% block og_image %}https://final-project-1nzc.onrender.com/static/images/og-default.png{% endblock %}">
+    <meta property="og:url" content="{{ request.build_absolute_uri }}">
+    <meta property="og:locale" content="th_TH">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{% block twitter_title %}Pet Finder — ตามหาสัตว์เลี้ยงหาย{% endblock %}">
+    <meta name="twitter:description" content="{% block twitter_description %}ตามหาสัตว์เลี้ยงหาย ด้วย AI 🐾{% endblock %}">
+
+    {# ─── Canonical + alt language ─── #}
+    <link rel="canonical" href="{{ request.build_absolute_uri }}">
+
+    {# ─── PWA ─── #}
+    <link rel="manifest" href="/manifest.webmanifest">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐾</text></svg>">
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐾</text></svg>">
 
+    {# ─── Performance: preconnect to 3rd-party origins ─── #}
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="{{ SUPABASE_URL }}" crossorigin>
+    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+
     <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=IBM+Plex+Sans+Thai+Looped:wght@400;500;700&family=Montserrat:wght@400;500;600;700&family=Chilanka&family=Crimson+Text:wght@400;600&family=Poppins:wght@400;500;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/app.css' %}">
+
+    {# ─── Structured data (Schema.org WebSite + Organization) ─── #}
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "@id": "{{ request.scheme }}://{{ request.get_host }}/#website",
+          "url": "{{ request.scheme }}://{{ request.get_host }}/",
+          "name": "Pet Finder",
+          "description": "เว็บช่วยตามหาสัตว์เลี้ยงหายและคืนสัตว์เลี้ยงกลับบ้าน",
+          "inLanguage": "th-TH",
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": "{{ request.scheme }}://{{ request.get_host }}/search/?q={search_term_string}",
+            "query-input": "required name=search_term_string"
+          }
+        },
+        {
+          "@type": "Organization",
+          "@id": "{{ request.scheme }}://{{ request.get_host }}/#org",
+          "name": "Pet Finder",
+          "url": "{{ request.scheme }}://{{ request.get_host }}/",
+          "logo": "{{ request.scheme }}://{{ request.get_host }}/favicon.ico"
+        }
+      ]
+    }
+    </script>
+    {% block schema_org %}{% endblock %}
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
@@ -429,6 +488,8 @@
         });
     }, 5000);
 </script>
+{# ─── Pro UX layer: top loading bar, toasts, scroll reveal, PWA install ─── #}
+<script src="{% static 'js/app.js' %}" defer></script>
 {% block extra_js %}{% endblock %}
 </body>
 </html>

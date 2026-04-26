@@ -11,7 +11,10 @@
       "Bash(awk '{print $5, $9}')",
       "WebFetch(domain:foundy.tigerfoundationtech.co.th)",
       "Bash(\"C:/Users/Ts/Desktop/project/.venv/Scripts/python.exe\" -m pip freeze)",
-      "Bash(blog\")"
+      "Bash(blog\")",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)"
     ]
   }
 }

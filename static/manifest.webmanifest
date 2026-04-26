@@ -1,0 +1,48 @@
+{
+  "name": "Pet Finder — ตามหาสัตว์เลี้ยงหาย",
+  "short_name": "Pet Finder",
+  "description": "เว็บช่วยตามหาสัตว์เลี้ยงหายและคืนสัตว์เลี้ยงกลับบ้าน — ใช้ AI จับคู่รูปภาพ",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#FCEED5",
+  "theme_color": "#FCEED5",
+  "lang": "th",
+  "dir": "ltr",
+  "categories": ["lifestyle", "social", "utilities"],
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='42' fill='%23FCEED5'/%3E%3Ctext x='50%25' y='55%25' dominant-baseline='middle' text-anchor='middle' font-size='130'%3E🐾%3C/text%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='110' fill='%23FCEED5'/%3E%3Ctext x='50%25' y='55%25' dominant-baseline='middle' text-anchor='middle' font-size='340'%3E🐾%3C/text%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "ค้นหาด้วย AI",
+      "short_name": "AI Search",
+      "url": "/search/",
+      "icons": [{
+        "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'%3E%3Crect width='96' height='96' rx='20' fill='%234E73F6'/%3E%3Ctext x='50%25' y='58%25' text-anchor='middle' font-size='52'%3E🔍%3C/text%3E%3C/svg%3E",
+        "sizes": "96x96"
+      }]
+    },
+    {
+      "name": "แจ้งสัตว์หาย",
+      "short_name": "แจ้งหาย",
+      "url": "/report/lost/",
+      "icons": [{
+        "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'%3E%3Crect width='96' height='96' rx='20' fill='%23CD0205'/%3E%3Ctext x='50%25' y='58%25' text-anchor='middle' font-size='52'%3E📢%3C/text%3E%3C/svg%3E",
+        "sizes": "96x96"
+      }]
+    }
+  ]
+}

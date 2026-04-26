@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sitemaps',  # 🟢 SEO: /sitemap.xml
 
     # Library เสริม
     'storages',  # 🟢 ใช้สำหรับเชื่อมต่อ Supabase Storage
@@ -128,6 +129,28 @@ CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:8000',
 ]
 
+# ======================
+# 🛡️ Security headers (production-grade)
+# ======================
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
+X_FRAME_OPTIONS = 'SAMEORIGIN'
+SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin'
+
+if not DEBUG:
+    # HTTPS-only (เปิดเฉพาะ production)
+    SECURE_SSL_REDIRECT = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_HSTS_SECONDS = 60 * 60 * 24 * 365  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+
+# WhiteNoise: cache static อย่างหนักหน่วง (immutable hash filename)
+WHITENOISE_MAX_AGE = 60 * 60 * 24 * 365  # 1 year
+
 # Auth
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
@@ -151,7 +174,8 @@ STORAGES = {
         "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
     },
     "staticfiles": {
-        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        # WhiteNoise: gzip + brotli + manifest (cache-busting via hash)
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
 
