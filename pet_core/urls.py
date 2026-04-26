@@ -23,6 +23,7 @@ urlpatterns = [
     # รายละเอียด / แก้ไข / ลบ
     path('pet/<int:pet_id>/', views.pet_detail, name='pet_detail'),
     path('pet/<int:pet_id>/edit/', views.edit_post, name='edit_post'),
+    path('pet/<int:pet_id>/resolved/', views.mark_as_resolved, name='mark_as_resolved'),
     path('pet/<int:pet_id>/delete/', views.delete_post, name='delete_post'),
 
     # แผนที่

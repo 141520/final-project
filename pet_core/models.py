@@ -77,11 +77,18 @@ class PetPost(models.Model):
     found_date = models.DateField(null=True, blank=True, verbose_name="วันที่พบ")
     found_time = models.TimeField(null=True, blank=True, verbose_name="เวลาที่พบ")
     
+    # --- การปิดประกาศ (เจอน้อง / ส่งคืนเจ้าของ) ---
+    resolved_at = models.DateTimeField(null=True, blank=True, verbose_name="วันที่ปิดประกาศ")
+    resolved_note = models.TextField(
+        blank=True, verbose_name="ข้อความเมื่อปิดประกาศ",
+        help_text="เช่น เรื่องราวการกลับมา / ขอบคุณคนที่ช่วย"
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = 'pet_core_petpost' 
+        db_table = 'pet_core_petpost'
         ordering = ['-created_at'] 
         verbose_name = "ประกาศสัตว์เลี้ยง"
         verbose_name_plural = "ประกาศสัตว์เลี้ยงทั้งหมด"

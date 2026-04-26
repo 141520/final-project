@@ -183,6 +183,22 @@
 <div class="pd-wrap">
   <a href="javascript:history.back()" class="btn-back">← ย้อนกลับ</a>
 
+  {% if pet.status == 'resolved' %}
+    <div style="background:linear-gradient(135deg,#e8f5ee 0%,#d4f1de 100%);border:2px solid #1a7a4a;border-radius:16px;padding:18px 22px;margin-bottom:18px;color:#0f5132;">
+      <div style="font-size:18px;font-weight:800;margin-bottom:6px;">
+        ✅ {% if pet.post_type == 'lost' %}พบน้องแล้ว — กลับบ้านปลอดภัย{% else %}ส่งคืนเจ้าของแล้ว{% endif %}
+      </div>
+      {% if pet.resolved_at %}
+        <div style="font-size:13px;opacity:.85;margin-bottom:8px;">ปิดประกาศเมื่อ {{ pet.resolved_at|date:"d M Y H:i" }}</div>
+      {% endif %}
+      {% if pet.resolved_note %}
+        <div style="background:white;padding:10px 14px;border-radius:10px;font-size:14px;line-height:1.6;white-space:pre-wrap;">
+          💬 {{ pet.resolved_note }}
+        </div>
+      {% endif %}
+    </div>
+  {% endif %}
+
   <div class="pd-card">
 
     {# ─── GALLERY (รองรับสูงสุด 5 รูป + swipe มือถือ) ─── #}
@@ -317,13 +333,9 @@
 
         {% if is_owner %}
           {% if pet.status != 'resolved' %}
-            <form method="post" action="{% url 'edit_post' pet.id %}" style="margin:0;">
-              {% csrf_token %}
-              <input type="hidden" name="status" value="resolved">
-              <button type="submit" class="btn-action btn-resolve" onclick="return confirm('ปิดประกาศนี้?')">
-                ✅ {% if pet.post_type == 'lost' %}พบน้องแล้ว{% else %}ส่งคืนเจ้าของแล้ว{% endif %} — ปิดประกาศ
-              </button>
-            </form>
+            <button type="button" class="btn-action btn-resolve" onclick="document.getElementById('resolveModal').style.display='flex'">
+              ✅ {% if pet.post_type == 'lost' %}พบน้องแล้ว{% else %}ส่งคืนเจ้าของแล้ว{% endif %} — ปิดประกาศ
+            </button>
           {% endif %}
           <a href="{% url 'edit_post' pet.id %}" class="btn-action btn-edit-post">✏️ แก้ไขประกาศ</a>
           <form method="post" action="{% url 'delete_post' pet.id %}" style="margin:0;">
@@ -338,6 +350,41 @@
     </div>
   </div>
 </div>
+
+{% if is_owner and pet.status != 'resolved' %}
+<div id="resolveModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:white;border-radius:18px;max-width:480px;width:100%;padding:28px;box-shadow:0 20px 60px rgba(0,0,0,.3);">
+    <h2 style="font-size:22px;color:#003459;margin-bottom:8px;">
+      🎉 {% if pet.post_type == 'lost' %}ยินดีด้วย! เจอน้องแล้วใช่ไหม?{% else %}ส่งคืนน้องสำเร็จใช่ไหม?{% endif %}
+    </h2>
+    <p style="color:#667479;font-size:14px;margin-bottom:18px;line-height:1.6;">
+      ปิดประกาศนี้แล้วจะไม่แสดงในรายการค้นหาและ Image Search อีก<br>
+      คุณยังเข้ามาดูโพสต์นี้ได้ปกติ
+    </p>
+
+    <form method="post" action="{% url 'mark_as_resolved' pet.id %}">
+      {% csrf_token %}
+      <label style="display:block;font-size:13px;font-weight:700;color:#003459;margin-bottom:6px;">
+        💬 ฝากข้อความ (ไม่บังคับ)
+      </label>
+      <textarea name="resolved_note" rows="4" maxlength="1000"
+        placeholder="เช่น ขอบคุณทุกคนที่ช่วยแชร์ น้องกลับมาแล้ว 🐶"
+        style="width:100%;padding:12px;border:1.5px solid #ddd;border-radius:12px;font-family:inherit;font-size:14px;resize:vertical;outline:none;"></textarea>
+
+      <div style="display:flex;gap:10px;margin-top:18px;justify-content:flex-end;">
+        <button type="button" onclick="document.getElementById('resolveModal').style.display='none'"
+          style="padding:10px 20px;border-radius:12px;border:1.5px solid #ddd;background:white;font-weight:600;cursor:pointer;font-family:inherit;">
+          ยกเลิก
+        </button>
+        <button type="submit"
+          style="padding:10px 22px;border-radius:12px;border:none;background:#1a7a4a;color:white;font-weight:700;cursor:pointer;font-family:inherit;">
+          ✓ ยืนยันปิดประกาศ
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
 
 <script>
 (function(){

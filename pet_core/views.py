@@ -7,7 +7,7 @@ from django.views.decorators.http import require_POST
 from .models import PetPost, PetImage, Product, BlogPost
 from datetime import date
 from django.core.files.base import ContentFile
-from .utils import extract_feature_vector, classify_pet_type, compress_image
+from .utils import extract_feature_vector, classify_pet_type, compress_image, analyze_image
 from pgvector.django import CosineDistance
 from collections import defaultdict
 import logging
@@ -83,7 +83,7 @@ def map_view(request):
 def lost_pet_list(request):
     from django.db.models import Q
     q = request.GET.get('q', '').strip()
-    posts = PetPost.objects.filter(post_type='lost').order_by('-created_at')
+    posts = PetPost.objects.filter(post_type='lost', status='active').order_by('-created_at')
     if q:
         posts = posts.filter(
             Q(name__icontains=q) | Q(breed__icontains=q) |
@@ -96,7 +96,7 @@ def lost_pet_list(request):
 def found_pet_list(request):
     from django.db.models import Q
     q = request.GET.get('q', '').strip()
-    posts = PetPost.objects.filter(post_type='found').order_by('-created_at')
+    posts = PetPost.objects.filter(post_type='found', status='active').order_by('-created_at')
     if q:
         posts = posts.filter(
             Q(name__icontains=q) | Q(breed__icontains=q) |
@@ -124,18 +124,16 @@ def _process_uploaded_image(uploaded_file):
             pass
         compressed_bytes = uploaded_file.read()
 
-    # AI: feature vector + classification จาก bytes ที่ compress แล้ว (เร็วกว่ารูปต้นฉบับ)
+    # AI: รวม feature extract + classify ในรอบเดียว (TTA + L2 normalized)
+    # → DB ได้ vector คุณภาพสูง + auto-detect pet_type พร้อมกัน
     vector = None
     pet_type = None
     try:
-        vector = extract_feature_vector(compressed_bytes)
+        analysis = analyze_image(compressed_bytes)
+        vector = analysis.get('feature_vector')
+        pet_type = analysis.get('pet_type')
     except Exception as e:
-        logger.warning(f"feature extract failed: {e}")
-    try:
-        cls = classify_pet_type(compressed_bytes)
-        pet_type = cls.get('pet_type')
-    except Exception as e:
-        logger.warning(f"classify failed: {e}")
+        logger.warning(f"AI analyze failed: {e}")
 
     # ตั้งชื่อไฟล์ใหม่ unique เพื่อป้องกันชนกัน
     fname = f"{uuid.uuid4().hex}.jpg"
@@ -324,20 +322,26 @@ def search_pet(request):
             img_bytes = search_img.read()
 
         try:
-            # 🤖 AI Classify (ตรวจประเภทสัตว์)
-            ai_detection = classify_pet_type(img_bytes)
-            # ถ้าผู้ใช้ไม่ได้เลือกประเภท + AI confident พอ (>30%) → ใช้ AI suggest
-            if not selected_pet_type and ai_detection.get('pet_type') \
-                    and ai_detection.get('confidence', 0) > 0.30:
-                selected_pet_type = ai_detection['pet_type']
-                auto_detected = True
+            # 🤖 Single-pass: TTA + classify + feature extract ในรอบเดียว (~2x เร็วกว่าเดิม)
+            analysis = analyze_image(img_bytes)
+            ai_detection = {
+                'pet_type': analysis.get('pet_type'),
+                'confidence': analysis.get('confidence', 0.0),
+                'top_labels': analysis.get('top_labels', []),
+            }
+            query_vector = analysis.get('feature_vector')
+            ai_pet_type = ai_detection.get('pet_type')
+            ai_conf = ai_detection.get('confidence', 0)
 
-            # 🧠 Feature vector
-            query_vector = extract_feature_vector(img_bytes)
+            # ถ้าผู้ใช้ไม่ได้เลือกประเภท + AI confident พอ (>30%) → ใช้ AI suggest
+            if not selected_pet_type and ai_pet_type and ai_conf > 0.30:
+                selected_pet_type = ai_pet_type
+                auto_detected = True
 
             if query_vector is not None:
                 qs = PetImage.objects.filter(
-                    feature_vector__isnull=False
+                    feature_vector__isnull=False,
+                    pet_post__status='active',  # ❗ ไม่ค้นเจอโพสต์ที่ปิดแล้ว
                 ).select_related('pet_post')
 
                 if selected_pet_type:
@@ -345,29 +349,55 @@ def search_pet(request):
                 if selected_post_type in ('lost', 'found'):
                     qs = qs.filter(pet_post__post_type=selected_post_type)
 
-                # threshold 0.75 — ผ่อนเพื่อจับผลที่อาจจะใช่
+                # ดึงรอบใหญ่ก่อน (top 80) → re-rank ด้วย custom score → ตัดเหลือ 12
+                # threshold 0.78 (ผ่อนเล็กน้อยเพื่อให้ re-rank คัดได้)
                 similar = qs.annotate(
                     distance=CosineDistance('feature_vector', query_vector)
-                ).filter(distance__lt=0.75).order_by('distance')[:50]
+                ).filter(distance__lt=0.78).order_by('distance')[:80]
 
-                # Group ตาม pet_post — เก็บ image ที่ similarity สูงสุดของโพสต์นั้น
+                # Group ตาม post — เก็บ best image + นับจำนวน match
                 best_per_post = {}
                 count_per_post = defaultdict(int)
+                sum_dist_per_post = defaultdict(float)
                 for img_obj in similar:
                     pid = img_obj.pet_post_id
                     count_per_post[pid] += 1
+                    sum_dist_per_post[pid] += img_obj.distance
                     if pid not in best_per_post or img_obj.distance < best_per_post[pid].distance:
                         best_per_post[pid] = img_obj
 
-                # เรียงโดย distance น้อยสุดก่อน (similarity สูง)
-                ranked = sorted(best_per_post.values(), key=lambda x: x.distance)[:12]
-                for img_obj in ranked:
-                    similarity = round((1 - img_obj.distance) * 100, 1)
+                # 🎯 Smart re-ranking score (ค่ายิ่งสูง = match ดี)
+                # องค์ประกอบ:
+                #  - base similarity (1 - distance) ของรูปที่ดีที่สุด → 0..1
+                #  - multi-image bonus: ถ้ามีหลายรูปของโพสต์เดียว match ด้วย → bonus 0..0.15
+                #  - pet_type match bonus: ถ้า AI ทำนายตรงกับโพสต์ → bonus 0.05
+                scored = []
+                for pid, img_obj in best_per_post.items():
+                    base_sim = max(0.0, 1.0 - float(img_obj.distance))
+                    n_match = count_per_post[pid]
+                    # log-scale bonus: 1 รูป=0, 2 รูป=+0.07, 3=+0.10, 5=+0.13
+                    multi_bonus = min(0.15, 0.07 * (n_match - 1) ** 0.7) if n_match > 1 else 0.0
+                    # pet_type bonus
+                    type_bonus = 0.0
+                    if ai_pet_type and img_obj.pet_post.pet_type \
+                            and img_obj.pet_post.pet_type.lower() == ai_pet_type.lower():
+                        type_bonus = 0.05
+
+                    final_score = base_sim + multi_bonus + type_bonus
+                    scored.append((final_score, base_sim, n_match, img_obj))
+
+                # เรียงตาม final_score มาก→น้อย
+                scored.sort(key=lambda x: -x[0])
+                top = scored[:12]
+
+                for final_score, base_sim, n_match, img_obj in top:
+                    # แสดง similarity ที่เห็นในการ์ดเป็น base_sim (ไม่ใช่ score รวม)
+                    # เพื่อไม่ให้ผู้ใช้เข้าใจผิดว่า >100%
                     results.append({
                         'post': img_obj.pet_post,
                         'image': img_obj,
-                        'similarity_pct': similarity,
-                        'matched_count': count_per_post[img_obj.pet_post_id],
+                        'similarity_pct': round(base_sim * 100, 1),
+                        'matched_count': n_match,
                     })
 
         except Exception:
@@ -469,6 +499,34 @@ def edit_post(request, pet_id):
         'pet_images': pet.images.all().order_by('id'),
         'max_images': MAX_IMAGES_PER_POST,
     })
+
+
+# ---- ปิดประกาศ: เจอน้องแล้ว / ส่งคืนเจ้าของแล้ว (เฉพาะเจ้าของ) ----
+@login_required
+@require_POST
+def mark_as_resolved(request, pet_id):
+    pet = get_object_or_404(PetPost, id=pet_id)
+    if pet.owner_id != request.user.id:
+        return HttpResponseForbidden("❌ คุณไม่ใช่เจ้าของประกาศนี้")
+
+    if pet.status == 'resolved':
+        messages.info(request, 'ประกาศนี้ถูกปิดไปแล้ว')
+        return redirect('pet_detail', pet_id=pet.id)
+
+    from django.utils import timezone
+    pet.status = 'resolved'
+    pet.resolved_at = timezone.now()
+    pet.resolved_note = (request.POST.get('resolved_note') or '').strip()[:1000]
+    pet.save(update_fields=['status', 'resolved_at', 'resolved_note', 'updated_at'])
+
+    # ลบ feature_vector เพื่อไม่ให้โผล่ใน image search อีก (โพสต์ยังคงอยู่)
+    pet.images.update(feature_vector=None)
+
+    if pet.post_type == 'lost':
+        messages.success(request, '🎉 ยินดีด้วย! ปิดประกาศเรียบร้อย — น้องกลับบ้านปลอดภัยแล้ว')
+    else:
+        messages.success(request, '🎉 ส่งคืนน้องเรียบร้อย — ขอบคุณที่ช่วยเหลือน้อง!')
+    return redirect('pet_detail', pet_id=pet.id)
 
 
 # ---- ลบโพสต์ (เฉพาะเจ้าของ) ----
