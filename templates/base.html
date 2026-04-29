@@ -340,7 +340,6 @@
             <a href="{% url 'found_pet_list' %}" class="nav-link {% if request.resolver_match.url_name == 'found_pet_list' %}active{% endif %}">ประกาศสัตว์พบ</a>
             <a href="{% url 'map_view' %}" class="nav-link {% if request.resolver_match.url_name == 'map_view' %}active{% endif %}">🗺️ แผนที่</a>
             <a href="{% url 'search_pet' %}" class="nav-link {% if request.resolver_match.url_name == 'search_pet' %}active{% endif %}">🔍 AI ค้นหา</a>
-            <a href="{% url 'stories' %}" class="nav-link {% if request.resolver_match.url_name == 'stories' %}active{% endif %}">🎉 ความสำเร็จ</a>
             <a href="{% url 'product_list' %}" class="nav-link {% if request.resolver_match.url_name == 'product_list' %}active{% endif %}">สินค้า</a>
             <a href="{% url 'blog_list' %}" class="nav-link {% if request.resolver_match.url_name == 'blog_list' %}active{% endif %}">บทความ</a>
 
@@ -402,8 +401,6 @@
             </div>
             <div class="ft-col">
                 <h4>ชุมชน</h4>
-                <a href="{% url 'stories' %}">🎉 ความสำเร็จ</a>
-                <a href="{% url 'feed' %}">📱 Feed</a>
                 <a href="{% url 'blog_list' %}">บทความ</a>
                 <a href="{% url 'product_list' %}">สินค้าแนะนำ</a>
                 {% if user.is_authenticated %}

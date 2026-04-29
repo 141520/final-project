@@ -150,12 +150,9 @@
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* ---------- 8. View Transitions API (Chrome 111+) ---------- */
-@view-transition { navigation: auto; }
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation-duration: .35s;
-}
+/* ---------- 8. View Transitions API — DISABLED ---------- */
+/* คอมเมนต์ออกเพราะทำให้ AbortError เวลา redirect ทันทีหลัง login
+@view-transition { navigation: auto; } */
 
 /* ---------- Reduced motion ---------- */
 @media (prefers-reduced-motion: reduce) {

@@ -389,8 +389,10 @@ def search_pet(request):
             ai_conf = ai_detection.get('confidence', 0)
 
             # AI suggest แสดงเป็นข้อความ — แต่ไม่ filter เข้ม (เป็น soft boost ตอน scoring)
-            user_picked_type = bool(selected_pet_type)
-            if not user_picked_type and ai_pet_type and ai_conf > 0.30:
+            # __any__ = ผู้ใช้เลือก "อื่นๆ/ทั้งหมด" → ไม่ filter ประเภทเลย
+            any_type = (selected_pet_type == '__any__')
+            user_picked_type = bool(selected_pet_type) and not any_type
+            if not selected_pet_type and ai_pet_type and ai_conf > 0.30:
                 selected_pet_type = ai_pet_type  # โชว์ที่ UI เฉยๆ
                 auto_detected = True
 
@@ -400,7 +402,8 @@ def search_pet(request):
                     pet_post__status='active',  # ❗ ไม่ค้นเจอโพสต์ที่ปิดแล้ว
                 ).select_related('pet_post')
 
-                # Hard filter เฉพาะตอนผู้ใช้เลือกเอง — auto-detect ไม่ filter (กันโพสต์ที่ pet_type ว่าง/ต่างคำหลุด)
+                # Hard filter เฉพาะตอนผู้ใช้เลือกประเภทแบบเฉพาะเจาะจง
+                # ('อื่นๆ/ทั้งหมด' หรือ auto-detect → ไม่ filter, ให้ AI หาทุกประเภท)
                 if user_picked_type:
                     qs = qs.filter(pet_post__pet_type__iexact=selected_pet_type)
                 if selected_post_type in ('lost', 'found'):
@@ -699,38 +702,6 @@ def post_comment(request, pet_id):
             },
         })
     return redirect(f'/pet/{pet.id}/#comments')
-
-
-# ---- Success Stories (โพสต์ที่ resolved + มี note) ----
-def stories_view(request):
-    cached = cache.get('stories_v1')
-    if cached is None:
-        stories = list(
-            PetPost.objects.filter(status='resolved')
-            .exclude(resolved_note='')
-            .only('id', 'name', 'pet_type', 'image', 'resolved_at',
-                  'resolved_note', 'post_type', 'location_name')
-            .order_by('-resolved_at')[:48]
-        )
-        agg = PetPost.objects.aggregate(
-            resolved_count=Count('id', filter=Q(status='resolved')),
-            active_count=Count('id', filter=Q(status='active')),
-            total=Count('id'),
-        )
-        cached = {'stories': stories, **agg}
-        cache.set('stories_v1', cached, 120)
-    return render(request, 'pet_core/stories.html', cached)
-
-
-# ---- Web Stories feed (swipeable cards) ----
-def feed_view(request):
-    posts = list(
-        PetPost.objects.filter(status='active')
-        .only('id', 'name', 'image', 'pet_type', 'breed',
-              'location_name', 'post_type', 'reward', 'created_at')
-        .order_by('-created_at')[:20]
-    )
-    return render(request, 'pet_core/feed.html', {'posts': posts})
 
 
 # ---- Dynamic OG image for sharing (Pillow generated) ----

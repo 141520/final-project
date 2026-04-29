@@ -136,11 +136,19 @@
                 signupBtn.innerText = 'เริ่มต้นใช้งาน';
                 signupBtn.disabled = false;
             } else {
-                showMessage("สร้างบัญชีสำเร็จ! กำลังพากลับไปหน้าเข้าสู่ระบบ...", "success-text");
-                signupForm.reset();
-                setTimeout(() => {
-                    window.location.href = "{% url 'login' %}";
-                }, 2000);
+                // 🟢 ถ้า signup สำเร็จและมี session (auto-confirm) → ตั้ง cookie + เข้าหน้าแรกเลย
+                if (data && data.session && data.session.access_token) {
+                    document.cookie = 'sb-access-token=' + data.session.access_token +
+                                      '; path=/; SameSite=Lax; max-age=86400';
+                    showMessage("สร้างบัญชีสำเร็จ! กำลังเข้าระบบ...", "success-text");
+                    setTimeout(() => window.location.replace('/'), 800);
+                } else {
+                    showMessage("สร้างบัญชีสำเร็จ! กรุณายืนยันอีเมลแล้วเข้าสู่ระบบ", "success-text");
+                    signupForm.reset();
+                    setTimeout(() => {
+                        window.location.href = "{% url 'login' %}";
+                    }, 2000);
+                }
             }
         });
 

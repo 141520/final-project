@@ -204,7 +204,7 @@
             hideMsg();
             const btn = document.getElementById('emailBtn');
             setLoading(btn, 'กำลังเข้าสู่ระบบ...');
-            const { error } = await sb.auth.signInWithPassword({
+            const { data, error } = await sb.auth.signInWithPassword({
                 email: document.getElementById('email').value,
                 password: document.getElementById('password').value,
             });
@@ -212,7 +212,13 @@
                 showMsg('เข้าสู่ระบบไม่สำเร็จ: ' + error.message, 'error');
                 unsetLoading(btn);
             } else {
-                window.location.href = '/';
+                // 🟢 ตั้ง cookie ก่อน redirect — Django middleware จะอ่านได้ทันที request แรก
+                if (data && data.session && data.session.access_token) {
+                    document.cookie = 'sb-access-token=' + data.session.access_token +
+                                      '; path=/; SameSite=Lax; max-age=86400';
+                }
+                // ใช้ replace เพื่อกัน back-button ย้อนกลับมาหน้า login
+                window.location.replace('/');
             }
         });
 

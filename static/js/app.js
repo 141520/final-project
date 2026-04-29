@@ -132,29 +132,8 @@
     lastY = y;
   }, { passive: true });
 
-  // ---------- 5. PWA install prompt ----------
-  let deferred;
-  const installBtn = d.createElement('button');
-  installBtn.id = 'pf-install';
-  installBtn.innerHTML = '📱 ติดตั้งแอป';
-  d.body.appendChild(installBtn);
-  w.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferred = e;
-    installBtn.classList.add('show');
-  });
-  installBtn.addEventListener('click', async () => {
-    if (!deferred) return;
-    installBtn.classList.remove('show');
-    deferred.prompt();
-    const { outcome } = await deferred.userChoice;
-    deferred = null;
-    if (outcome === 'accepted') PF.toast('ติดตั้งแอปสำเร็จ! 🎉', 'success');
-  });
-  w.addEventListener('appinstalled', () => {
-    installBtn.classList.remove('show');
-    PF.toast('Pet Finder ถูกติดตั้งบนเครื่องคุณแล้ว 🐾', 'success');
-  });
+  // ---------- 5. PWA install prompt — DISABLED (browser default behavior) ----------
+  // ไม่เรียก preventDefault → browser จัดการเอง (ไม่มีปุ่มลอย)
 
   // ---------- 6. Lazy-load all images ----------
   d.querySelectorAll('img:not([loading])').forEach(img => {
