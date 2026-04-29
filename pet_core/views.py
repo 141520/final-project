@@ -406,11 +406,11 @@ def search_pet(request):
                 if selected_post_type in ('lost', 'found'):
                     qs = qs.filter(pet_post__post_type=selected_post_type)
 
-                # ดึงรอบใหญ่ก่อน (top 120) → re-rank ด้วย custom score → ตัดเหลือ 24
-                # threshold 0.90 (ผ่อนกว้างมากเพื่อแสดงผลเยอะขึ้น — re-rank จะคัดมาให้)
+                # ดึงทั้งหมดมาเทียบ (ไม่มี threshold) → re-rank → ตัดเหลือ 24
+                # ผ่อนสุดทางเพื่อให้แสดงผลเยอะที่สุด — เรียงลำดับโดย similarity ดี-แย่
                 similar = qs.annotate(
                     distance=CosineDistance('feature_vector', query_vector)
-                ).filter(distance__lt=0.90).order_by('distance')[:120]
+                ).order_by('distance')[:200]
 
                 # Group ตาม post — เก็บ best image + นับจำนวน match
                 best_per_post = {}
@@ -485,10 +485,6 @@ def pet_detail(request, pet_id):
         and pet.owner_id == request.user.id
     )
     comments = list(pet.comments.select_related('user').all()[:50])
-    reaction_counts = {r: 0 for r in ['❤️', '🙏', '😢', '👀']}
-    for c in pet.comments.exclude(reaction='').values('reaction'):
-        if c['reaction'] in reaction_counts:
-            reaction_counts[c['reaction']] += 1
 
     return render(request, 'pet_core/pet_detail.html', {
         'pet': pet,
@@ -497,7 +493,6 @@ def pet_detail(request, pet_id):
         'image_count': len(image_urls),
         'comments': comments,
         'comments_count': len(comments),
-        'reaction_counts': reaction_counts,
     })
 
 
@@ -736,43 +731,6 @@ def feed_view(request):
         .order_by('-created_at')[:20]
     )
     return render(request, 'pet_core/feed.html', {'posts': posts})
-
-
-# ---- Leaderboard: คนที่ช่วยพาน้องกลับบ้านเยอะสุด ----
-def leaderboard_view(request):
-    cached = cache.get('leaderboard_v1')
-    if cached is None:
-        from django.contrib.auth import get_user_model
-        User = get_user_model()
-        # นับโพสต์ที่ resolved per user
-        rows = (PetPost.objects.filter(status='resolved', owner__isnull=False)
-                .values('owner_id', 'owner__username', 'owner__first_name')
-                .annotate(reunited=Count('id'))
-                .order_by('-reunited')[:20])
-        leaders = [
-            {
-                'rank': i + 1,
-                'name': r['owner__first_name'] or r['owner__username'] or 'User',
-                'reunited': r['reunited'],
-            }
-            for i, r in enumerate(rows)
-        ]
-        # Top contributors by post count (active + resolved)
-        contributors = (PetPost.objects.filter(owner__isnull=False)
-                        .values('owner_id', 'owner__username', 'owner__first_name')
-                        .annotate(posts=Count('id'))
-                        .order_by('-posts')[:20])
-        contributors = [
-            {
-                'rank': i + 1,
-                'name': r['owner__first_name'] or r['owner__username'] or 'User',
-                'posts': r['posts'],
-            }
-            for i, r in enumerate(contributors)
-        ]
-        cached = {'leaders': leaders, 'contributors': contributors}
-        cache.set('leaderboard_v1', cached, 300)
-    return render(request, 'pet_core/leaderboard.html', cached)
 
 
 # ---- Dynamic OG image for sharing (Pillow generated) ----

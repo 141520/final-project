@@ -368,30 +368,18 @@
     </div>
   </div>
 
-  <!-- ===== Reactions + Share ===== -->
-  <div class="pf-glass" style="max-width:900px;margin:24px auto;padding:18px 22px;display:flex;flex-wrap:wrap;align-items:center;gap:14px;justify-content:space-between;">
-    <div style="display:flex;gap:8px;flex-wrap:wrap;" id="reactBar">
-      {% for emo, count in reaction_counts.items %}
-        <button class="pf-ripple" data-react="{{ emo }}"
-          style="background:var(--pf-surface-2,#f3f4f6);border:1.5px solid var(--pf-border,#e5e7eb);
-                 padding:8px 14px;border-radius:100px;font-size:15px;font-weight:700;cursor:pointer;
-                 display:inline-flex;align-items:center;gap:6px;font-family:inherit;color:var(--pf-text);">
-          <span>{{ emo }}</span><span class="cnt">{{ count }}</span>
-        </button>
-      {% endfor %}
-    </div>
-    <div style="display:flex;gap:8px;">
-      <button class="pf-share-btn pf-ripple"
-        data-share-url="{{ request.build_absolute_uri }}"
-        data-share-title="{{ pet.name }} — Pet Finder"
-        data-share-text="{% if pet.post_type == 'lost' %}ช่วยกันตามหา{% else %}ช่วยตามหาเจ้าของ{% endif %} {{ pet.name }} 🐾">
-        ↗ แชร์
-      </button>
-      <button class="pf-share-btn pf-ripple" type="button" onclick="window.PF&&PF.copyToClipboard(location.href)"
-        style="background:linear-gradient(135deg,#4E73F6,#021F74);">
-        🔗 คัดลอก
-      </button>
-    </div>
+  <!-- ===== Share buttons ===== -->
+  <div class="pf-glass" style="max-width:900px;margin:24px auto;padding:18px 22px;display:flex;flex-wrap:wrap;align-items:center;gap:10px;justify-content:flex-end;">
+    <button class="pf-share-btn pf-ripple"
+      data-share-url="{{ request.build_absolute_uri }}"
+      data-share-title="{{ pet.name }} — Pet Finder"
+      data-share-text="{% if pet.post_type == 'lost' %}ช่วยกันตามหา{% else %}ช่วยตามหาเจ้าของ{% endif %} {{ pet.name }} 🐾">
+      ↗ แชร์
+    </button>
+    <button class="pf-share-btn pf-ripple" type="button" onclick="window.PF&&PF.copyToClipboard(location.href)"
+      style="background:linear-gradient(135deg,#4E73F6,#021F74);">
+      🔗 คัดลอก
+    </button>
   </div>
 
   <!-- ===== Comments ===== -->
@@ -522,31 +510,6 @@
       }
     }, {passive: true});
   }
-})();
-
-/* ========== Reactions (AJAX) ========== */
-(function(){
-  const csrf = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token }}';
-  const url = '{% url "post_comment" pet.id %}';
-  document.querySelectorAll('#reactBar [data-react]').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const emo = btn.dataset.react;
-      const cnt = btn.querySelector('.cnt');
-      // Optimistic UI
-      cnt.textContent = (parseInt(cnt.textContent || '0', 10) + 1);
-      btn.style.transform = 'scale(1.1)';
-      setTimeout(()=> btn.style.transform='', 200);
-      window.PF && PF.haptic && PF.haptic(20);
-
-      try {
-        const fd = new FormData();
-        fd.append('csrfmiddlewaretoken', csrf);
-        fd.append('reaction', emo);
-        fd.append('text', '');
-        await fetch(url, { method:'POST', body: fd, headers: {'X-Requested-With':'fetch'} });
-      } catch(_) {}
-    });
-  });
 })();
 
 /* ========== Comments (AJAX submit) ========== */

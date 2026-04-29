@@ -40,7 +40,6 @@ urlpatterns = [
     # 🆕 PRO features
     path('stories/', views.stories_view, name='stories'),
     path('feed/', views.feed_view, name='feed'),
-    path('leaderboard/', views.leaderboard_view, name='leaderboard'),
     path('pet/<int:pet_id>/comment/', views.post_comment, name='post_comment'),
     path('pet/<int:pet_id>/og.png', views.og_image, name='pet_og_image'),
 
