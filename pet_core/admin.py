@@ -7,9 +7,9 @@ from .models import PetPost, PetImage, Product, BlogPost
 # ==========================================================
 # Customize Admin Site — เปลี่ยนหัว-ท้าย
 # ==========================================================
-admin.site.site_header = "🐾 Pet Finder Admin"
-admin.site.site_title = "Pet Finder Admin"
-admin.site.index_title = "จัดการข้อมูลเว็บ Pet Finder"
+admin.site.site_header = "🐾 TarmRoy Admin"
+admin.site.site_title = "TarmRoy Admin"
+admin.site.index_title = "จัดการข้อมูลเว็บ TarmRoy"
 
 
 # ==========================================================

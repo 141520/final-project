@@ -1,5 +1,5 @@
 # ==========================================
-# PetFinder — Python Dependencies
+# TarmRoy — Python Dependencies
 # ติดตั้ง: pip install -r requirements.txt
 # ==========================================
 

@@ -3,28 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
-    <meta name="description" content="{% block meta_description %}Pet Finder — เว็บช่วยตามหาสัตว์เลี้ยงหายและคืนสัตว์เลี้ยงกลับบ้าน ใช้ AI จับคู่รูปภาพ ครอบคลุมทั่วประเทศไทย{% endblock %}">
+    <meta name="description" content="{% block meta_description %}TarmRoy — เว็บช่วยตามหาสัตว์เลี้ยงหายและคืนสัตว์เลี้ยงกลับบ้าน ใช้ AI จับคู่รูปภาพ ครอบคลุมทั่วประเทศไทย{% endblock %}">
     <meta name="theme-color" content="#FCEED5" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#1a1a2e" media="(prefers-color-scheme: dark)">
     <meta name="color-scheme" content="light">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="Pet Finder">
+    <meta name="apple-mobile-web-app-title" content="TarmRoy">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="format-detection" content="telephone=yes">
 
-    <title>{% block title %}Pet Finder — ตามหาสัตว์เลี้ยงหาย{% endblock %}</title>
+    <title>{% block title %}TarmRoy — ตามหาสัตว์เลี้ยงหาย{% endblock %}</title>
 
     {# ─── Open Graph / Twitter Card (Facebook/Line/Twitter preview) ─── #}
     <meta property="og:type" content="{% block og_type %}website{% endblock %}">
-    <meta property="og:site_name" content="Pet Finder">
-    <meta property="og:title" content="{% block og_title %}Pet Finder — ตามหาสัตว์เลี้ยงหาย{% endblock %}">
+    <meta property="og:site_name" content="TarmRoy">
+    <meta property="og:title" content="{% block og_title %}TarmRoy — ตามหาสัตว์เลี้ยงหาย{% endblock %}">
     <meta property="og:description" content="{% block og_description %}เว็บช่วยตามหาสัตว์เลี้ยงหาย ใช้ AI จับคู่รูปภาพ คืนน้องกลับบ้านอย่างปลอดภัย 🐾{% endblock %}">
     <meta property="og:image" content="{% block og_image %}https://final-project-1nzc.onrender.com/static/images/og-default.png{% endblock %}">
     <meta property="og:url" content="{{ request.build_absolute_uri }}">
     <meta property="og:locale" content="th_TH">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="{% block twitter_title %}Pet Finder — ตามหาสัตว์เลี้ยงหาย{% endblock %}">
+    <meta name="twitter:title" content="{% block twitter_title %}TarmRoy — ตามหาสัตว์เลี้ยงหาย{% endblock %}">
     <meta name="twitter:description" content="{% block twitter_description %}ตามหาสัตว์เลี้ยงหาย ด้วย AI 🐾{% endblock %}">
 
     {# ─── Canonical + alt language ─── #}
@@ -71,7 +71,7 @@
           "@type": "WebSite",
           "@id": "{{ request.scheme }}://{{ request.get_host }}/#website",
           "url": "{{ request.scheme }}://{{ request.get_host }}/",
-          "name": "Pet Finder",
+          "name": "TarmRoy",
           "description": "เว็บช่วยตามหาสัตว์เลี้ยงหายและคืนสัตว์เลี้ยงกลับบ้าน",
           "inLanguage": "th-TH",
           "potentialAction": {
@@ -83,7 +83,7 @@
         {
           "@type": "Organization",
           "@id": "{{ request.scheme }}://{{ request.get_host }}/#org",
-          "name": "Pet Finder",
+          "name": "TarmRoy",
           "url": "{{ request.scheme }}://{{ request.get_host }}/",
           "logo": "{{ request.scheme }}://{{ request.get_host }}/favicon.ico"
         }
@@ -324,7 +324,7 @@
 <div class="site-wrap">
 
     <header>
-        <a href="{% url 'home' %}" class="logo">Pet Finder</a>
+        <a href="{% url 'home' %}" class="logo">TarmRoy</a>
 
         <button class="hamburger" id="hamburgerBtn" aria-label="เปิดเมนู" aria-expanded="false">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
@@ -389,7 +389,7 @@
     <footer class="site-footer">
         <div class="ft-grid">
             <div class="ft-brand ft-col">
-                <a href="{% url 'home' %}" class="logo">Pet Finder</a>
+                <a href="{% url 'home' %}" class="logo">TarmRoy</a>
                 <p class="ft-tagline">เว็บไซต์ช่วยตามหาสัตว์เลี้ยงหาย ใช้ AI จับคู่รูปภาพ พาน้องกลับบ้านอย่างปลอดภัย</p>
             </div>
             <div class="ft-col">
@@ -420,7 +420,7 @@
             </div>
         </div>
         <div class="ft-bottom">
-            <span>© {% now "Y" %} Pet Finder. พัฒนาเพื่อโครงงาน — ทุกสิทธิ์สงวน.</span>
+            <span>© {% now "Y" %} TarmRoy. พัฒนาเพื่อโครงงาน — ทุกสิทธิ์สงวน.</span>
             <span>Made with 🐾 in Thailand</span>
         </div>
     </footer>

@@ -768,7 +768,7 @@ def og_image(request, pet_id):
         draw.text((560, y), line, fill=(50, 50, 70), font=font_mid)
         y += 50
 
-    draw.text((560, H - 80), 'Pet Finder · ตามหาสัตว์เลี้ยงหาย 🐾',
+    draw.text((560, H - 80), 'TarmRoy · ตามหาสัตว์เลี้ยงหาย 🐾',
               fill=(2, 31, 116), font=font_sm)
 
     out = _io.BytesIO()

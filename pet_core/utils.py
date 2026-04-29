@@ -1,5 +1,5 @@
 """
-AI Utilities for PetFinder — Improved image search v2
+AI Utilities for TarmRoy — Improved image search v2
 
 Improvements over v1:
 - Use the official preprocessing transforms bundled with ResNet50_Weights (matches training distribution)

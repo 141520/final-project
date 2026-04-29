@@ -1,4 +1,4 @@
-/* PetFinder service worker — minimal, safe defaults
+/* TarmRoy service worker — minimal, safe defaults
  * - Stale-while-revalidate for static assets
  * - Network-first for HTML (so logged-in pages stay fresh)
  * - Bypass: API endpoints, Supabase, admin

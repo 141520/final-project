@@ -1,5 +1,5 @@
 /* ============================================================
-   PetFinder PRO — premium UX behaviors
+   TarmRoy PRO — premium UX behaviors
    - Dark mode (no flash, syncs with OS)
    - Ripple effect (auto-applied to .pf-ripple)
    - Tilt 3D (auto-applied to .pf-tilt)

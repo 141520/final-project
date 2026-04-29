@@ -1,8 +1,8 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}{{ pet.name }} | Pet Finder{% endblock %}
+{% block title %}{{ pet.name }} | TarmRoy{% endblock %}
 {% block og_type %}article{% endblock %}
-{% block og_title %}{{ pet.name }} — {% if pet.post_type == 'lost' %}ตามหาน้อง{% else %}พบน้อง{% endif %} | Pet Finder{% endblock %}
+{% block og_title %}{{ pet.name }} — {% if pet.post_type == 'lost' %}ตามหาน้อง{% else %}พบน้อง{% endif %} | TarmRoy{% endblock %}
 {% block og_description %}{% if pet.description %}{{ pet.description|truncatechars:160 }}{% else %}{% if pet.pet_type %}{{ pet.pet_type }} · {% endif %}{% if pet.location_name %}📍 {{ pet.location_name }} · {% endif %}ช่วยกันแชร์เพื่อพาน้องกลับบ้าน 🐾{% endif %}{% endblock %}
 {% block og_image %}{{ request.scheme }}://{{ request.get_host }}{% url 'pet_og_image' pet.id %}{% endblock %}
 {% block schema_org %}
@@ -10,11 +10,11 @@
 {
   "@context": "https://schema.org",
   "@type": "Article",
-  "headline": "{{ pet.name }} — Pet Finder",
+  "headline": "{{ pet.name }} — TarmRoy",
   "image": "{{ request.scheme }}://{{ request.get_host }}{% url 'pet_og_image' pet.id %}",
   "datePublished": "{{ pet.created_at|date:'c' }}",
   "dateModified": "{{ pet.updated_at|date:'c' }}",
-  "author": {"@type": "Organization", "name": "Pet Finder"},
+  "author": {"@type": "Organization", "name": "TarmRoy"},
   "description": "{{ pet.description|default:''|truncatechars:200|escapejs }}"
 }
 </script>
@@ -372,7 +372,7 @@
   <div class="pf-glass" style="max-width:900px;margin:24px auto;padding:18px 22px;display:flex;flex-wrap:wrap;align-items:center;gap:10px;justify-content:flex-end;">
     <button class="pf-share-btn pf-ripple"
       data-share-url="{{ request.build_absolute_uri }}"
-      data-share-title="{{ pet.name }} — Pet Finder"
+      data-share-title="{{ pet.name }} — TarmRoy"
       data-share-text="{% if pet.post_type == 'lost' %}ช่วยกันตามหา{% else %}ช่วยตามหาเจ้าของ{% endif %} {{ pet.name }} 🐾">
       ↗ แชร์
     </button>

@@ -1,6 +1,6 @@
 {
-  "name": "Pet Finder — ตามหาสัตว์เลี้ยงหาย",
-  "short_name": "Pet Finder",
+  "name": "TarmRoy — ตามหาสัตว์เลี้ยงหาย",
+  "short_name": "TarmRoy",
   "description": "เว็บช่วยตามหาสัตว์เลี้ยงหายและคืนสัตว์เลี้ยงกลับบ้าน — ใช้ AI จับคู่รูปภาพ",
   "start_url": "/",
   "scope": "/",

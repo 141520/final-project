@@ -1,5 +1,5 @@
 /* ============================================================
-   PetFinder Pro UX — vanilla JS, 0 deps
+   TarmRoy Pro UX — vanilla JS, 0 deps
    - Top loading bar on link nav + form submit
    - Toast API: PF.toast(text, type, opts)
    - Scroll-reveal via IntersectionObserver
