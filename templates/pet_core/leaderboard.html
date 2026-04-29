@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% block title %}🏆 อันดับฮีโร่ — ผู้ช่วยพาน้องกลับบ้าน | Pet Finder{% endblock %}
+
+{% block extra_css %}
+<style>
+.lb-wrap { max-width: 920px; margin: 40px auto; padding: 0 18px; }
+.lb-hero {
+  text-align: center; padding: 60px 20px 50px;
+  border-radius: 28px; margin-bottom: 30px;
+}
+.lb-hero h1 {
+  font-size: clamp(30px, 4.5vw, 48px);
+  color: #021F74; margin-bottom: 8px;
+  position: relative; z-index: 2;
+}
+.lb-hero p { color: #021F74; opacity: .8; position: relative; z-index: 2; }
+
+.tabs { display: flex; gap: 10px; margin-bottom: 22px; flex-wrap: wrap; }
+.tab {
+  padding: 10px 20px; border-radius: 100px;
+  background: var(--pf-surface); color: var(--pf-text);
+  border: 2px solid var(--pf-border); cursor: pointer;
+  font-weight: 700; font-family: inherit; font-size: 14px;
+  transition: all .2s;
+}
+.tab.active { background: #021F74; color: white; border-color: #021F74; }
+.tab:hover { transform: translateY(-1px); }
+
+.section { display: none; }
+.section.active { display: block; }
+
+.empty {
+  text-align: center; padding: 50px 20px;
+  color: var(--pf-text-muted); background: var(--pf-surface);
+  border-radius: 18px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="lb-wrap">
+  <div class="lb-hero pf-hero-mesh" data-reveal>
+    <h1>🏆 อันดับฮีโร่ของชุมชน</h1>
+    <p>ขอบคุณทุกท่านที่ช่วยพาน้องๆ กลับบ้าน — คุณคือฮีโร่ที่แท้จริง 🐾</p>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="reunited">🎉 พาน้องกลับบ้านมากที่สุด</button>
+    <button class="tab" data-tab="contributors">📢 โพสต์ช่วยเหลือมากที่สุด</button>
+  </div>
+
+  <div class="section active" id="sec-reunited">
+    {% if leaders %}
+      {% for l in leaders %}
+      <div class="pf-rank-row {% if l.rank == 1 %}top1{% elif l.rank == 2 %}top2{% elif l.rank == 3 %}top3{% endif %}" data-reveal>
+        <div class="pf-rank-num">
+          {% if l.rank == 1 %}🥇{% elif l.rank == 2 %}🥈{% elif l.rank == 3 %}🥉{% else %}#{{ l.rank }}{% endif %}
+        </div>
+        <div style="flex:1;font-weight:700;">{{ l.name }}</div>
+        <div style="font-size:14px;color:var(--pf-text-muted);">
+          พาน้องกลับบ้าน <strong style="color:#1a7a4a;">{{ l.reunited }}</strong> ตัว
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty">ยังไม่มีข้อมูล — มาช่วยกันเป็นคนแรกที่พาน้องกลับบ้านสิ! 🐾</div>
+    {% endif %}
+  </div>
+
+  <div class="section" id="sec-contributors">
+    {% if contributors %}
+      {% for l in contributors %}
+      <div class="pf-rank-row {% if l.rank == 1 %}top1{% elif l.rank == 2 %}top2{% elif l.rank == 3 %}top3{% endif %}" data-reveal>
+        <div class="pf-rank-num">
+          {% if l.rank == 1 %}🥇{% elif l.rank == 2 %}🥈{% elif l.rank == 3 %}🥉{% else %}#{{ l.rank }}{% endif %}
+        </div>
+        <div style="flex:1;font-weight:700;">{{ l.name }}</div>
+        <div style="font-size:14px;color:var(--pf-text-muted);">
+          โพสต์ <strong style="color:#4E73F6;">{{ l.posts }}</strong> ครั้ง
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty">ยังไม่มีข้อมูล</div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById('sec-' + t.dataset.tab).classList.add('active');
+  });
+});
+</script>
+{% endblock %}

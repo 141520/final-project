@@ -3,8 +3,8 @@ from django.contrib import messages
 from django.contrib.auth import logout as django_logout
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden, JsonResponse
-from django.views.decorators.http import require_POST
-from .models import PetPost, PetImage, Product, BlogPost
+from django.views.decorators.http import require_POST, require_GET
+from .models import PetPost, PetImage, Product, BlogPost, Comment
 from datetime import date
 from django.core.files.base import ContentFile
 from .utils import extract_feature_vector, classify_pet_type, compress_image, analyze_image
@@ -484,11 +484,20 @@ def pet_detail(request, pet_id):
         and pet.owner_id
         and pet.owner_id == request.user.id
     )
+    comments = list(pet.comments.select_related('user').all()[:50])
+    reaction_counts = {r: 0 for r in ['❤️', '🙏', '😢', '👀']}
+    for c in pet.comments.exclude(reaction='').values('reaction'):
+        if c['reaction'] in reaction_counts:
+            reaction_counts[c['reaction']] += 1
+
     return render(request, 'pet_core/pet_detail.html', {
         'pet': pet,
         'is_owner': is_owner,
         'image_urls': image_urls,
         'image_count': len(image_urls),
+        'comments': comments,
+        'comments_count': len(comments),
+        'reaction_counts': reaction_counts,
     })
 
 
@@ -656,6 +665,188 @@ def logout_view(request):
     django_logout(request)
     response = redirect('home')
     response.delete_cookie('sb-access-token', path='/')
+    return response
+
+
+# =========================================================
+# 🆕 PRO FEATURES: Comments, Stories, Leaderboard, OG image
+# =========================================================
+
+# ---- POST: comment / reaction บนโพสต์ ----
+@require_POST
+def post_comment(request, pet_id):
+    pet = get_object_or_404(PetPost, id=pet_id)
+    text = (request.POST.get('text') or '').strip()[:1000]
+    reaction = (request.POST.get('reaction') or '').strip()[:8]
+
+    if not text and not reaction:
+        return JsonResponse({'ok': False, 'error': 'empty'}, status=400)
+
+    user = request.user if request.user.is_authenticated else None
+    author = (request.POST.get('author_name') or '').strip()[:80]
+    if user and not author:
+        author = user.first_name or user.username or ''
+
+    c = Comment.objects.create(
+        pet_post=pet, user=user,
+        author_name=author, text=text or '👍', reaction=reaction,
+    )
+    if request.headers.get('x-requested-with') == 'fetch':
+        return JsonResponse({
+            'ok': True,
+            'comment': {
+                'id': c.id,
+                'name': c.display_name,
+                'initial': c.initial,
+                'text': c.text,
+                'reaction': c.reaction,
+                'when': 'เมื่อสักครู่',
+            },
+        })
+    return redirect(f'/pet/{pet.id}/#comments')
+
+
+# ---- Success Stories (โพสต์ที่ resolved + มี note) ----
+def stories_view(request):
+    cached = cache.get('stories_v1')
+    if cached is None:
+        stories = list(
+            PetPost.objects.filter(status='resolved')
+            .exclude(resolved_note='')
+            .only('id', 'name', 'pet_type', 'image', 'resolved_at',
+                  'resolved_note', 'post_type', 'location_name')
+            .order_by('-resolved_at')[:48]
+        )
+        agg = PetPost.objects.aggregate(
+            resolved_count=Count('id', filter=Q(status='resolved')),
+            active_count=Count('id', filter=Q(status='active')),
+            total=Count('id'),
+        )
+        cached = {'stories': stories, **agg}
+        cache.set('stories_v1', cached, 120)
+    return render(request, 'pet_core/stories.html', cached)
+
+
+# ---- Web Stories feed (swipeable cards) ----
+def feed_view(request):
+    posts = list(
+        PetPost.objects.filter(status='active')
+        .only('id', 'name', 'image', 'pet_type', 'breed',
+              'location_name', 'post_type', 'reward', 'created_at')
+        .order_by('-created_at')[:20]
+    )
+    return render(request, 'pet_core/feed.html', {'posts': posts})
+
+
+# ---- Leaderboard: คนที่ช่วยพาน้องกลับบ้านเยอะสุด ----
+def leaderboard_view(request):
+    cached = cache.get('leaderboard_v1')
+    if cached is None:
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        # นับโพสต์ที่ resolved per user
+        rows = (PetPost.objects.filter(status='resolved', owner__isnull=False)
+                .values('owner_id', 'owner__username', 'owner__first_name')
+                .annotate(reunited=Count('id'))
+                .order_by('-reunited')[:20])
+        leaders = [
+            {
+                'rank': i + 1,
+                'name': r['owner__first_name'] or r['owner__username'] or 'User',
+                'reunited': r['reunited'],
+            }
+            for i, r in enumerate(rows)
+        ]
+        # Top contributors by post count (active + resolved)
+        contributors = (PetPost.objects.filter(owner__isnull=False)
+                        .values('owner_id', 'owner__username', 'owner__first_name')
+                        .annotate(posts=Count('id'))
+                        .order_by('-posts')[:20])
+        contributors = [
+            {
+                'rank': i + 1,
+                'name': r['owner__first_name'] or r['owner__username'] or 'User',
+                'posts': r['posts'],
+            }
+            for i, r in enumerate(contributors)
+        ]
+        cached = {'leaders': leaders, 'contributors': contributors}
+        cache.set('leaderboard_v1', cached, 300)
+    return render(request, 'pet_core/leaderboard.html', cached)
+
+
+# ---- Dynamic OG image for sharing (Pillow generated) ----
+@require_GET
+def og_image(request, pet_id):
+    """Generate 1200x630 PNG with pet name/photo/branding for social sharing."""
+    from django.http import HttpResponse
+    from PIL import Image as PImage, ImageDraw, ImageFont
+    import io as _io
+    import urllib.request
+
+    pet = get_object_or_404(PetPost, id=pet_id)
+    W, H = 1200, 630
+
+    # Background
+    img = PImage.new('RGB', (W, H), (252, 238, 213))
+    draw = ImageDraw.Draw(img)
+
+    # Decorative blob
+    for r, c in [(420, (117, 110, 245, 100)), (320, (215, 92, 167, 90))]:
+        blob = PImage.new('RGBA', (W, H), (0, 0, 0, 0))
+        bd = ImageDraw.Draw(blob)
+        bd.ellipse((W - r * 2, -r // 2, W + r // 2, r), fill=c)
+        img.paste(blob, (0, 0), blob)
+
+    # Try to load pet image from Supabase
+    if pet.image:
+        try:
+            url = pet.thumb_url(width=520, quality=80)
+            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=4) as resp:
+                pet_img = PImage.open(_io.BytesIO(resp.read())).convert('RGB')
+            pet_img.thumbnail((460, 460))
+            # circular mask
+            mask = PImage.new('L', pet_img.size, 0)
+            ImageDraw.Draw(mask).ellipse((0, 0, *pet_img.size), fill=255)
+            img.paste(pet_img, (60, (H - pet_img.height) // 2), mask)
+        except Exception:
+            pass
+
+    # Text — use default font (no font file required)
+    try:
+        font_big = ImageFont.truetype("DejaVuSans-Bold.ttf", 64)
+        font_mid = ImageFont.truetype("DejaVuSans.ttf", 32)
+        font_sm  = ImageFont.truetype("DejaVuSans.ttf", 26)
+    except Exception:
+        font_big = ImageFont.load_default()
+        font_mid = ImageFont.load_default()
+        font_sm  = ImageFont.load_default()
+
+    badge = '🔍 ตามหา' if pet.post_type == 'lost' else '🐾 พบเจอ'
+    draw.rectangle((560, 100, 760, 150), fill=(2, 31, 116))
+    draw.text((576, 108), badge, fill='white', font=font_mid)
+
+    name = (pet.name or 'ไม่ระบุชื่อ')[:30]
+    draw.text((560, 180), name, fill=(2, 31, 116), font=font_big)
+
+    info_lines = []
+    if pet.pet_type: info_lines.append(f"ประเภท: {pet.pet_type}")
+    if pet.breed: info_lines.append(f"พันธุ์: {pet.breed[:30]}")
+    if pet.location_name: info_lines.append(f"สถานที่: {pet.location_name[:35]}")
+    y = 280
+    for line in info_lines[:3]:
+        draw.text((560, y), line, fill=(50, 50, 70), font=font_mid)
+        y += 50
+
+    draw.text((560, H - 80), 'Pet Finder · ตามหาสัตว์เลี้ยงหาย 🐾',
+              fill=(2, 31, 116), font=font_sm)
+
+    out = _io.BytesIO()
+    img.save(out, format='PNG', optimize=True)
+    out.seek(0)
+    response = HttpResponse(out.read(), content_type='image/png')
+    response['Cache-Control'] = 'public, max-age=86400'
     return response
 
 

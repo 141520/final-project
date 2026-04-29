@@ -1,6 +1,24 @@
 {% extends 'base.html' %}
 {% load static %}
 {% block title %}{{ pet.name }} | Pet Finder{% endblock %}
+{% block og_type %}article{% endblock %}
+{% block og_title %}{{ pet.name }} — {% if pet.post_type == 'lost' %}ตามหาน้อง{% else %}พบน้อง{% endif %} | Pet Finder{% endblock %}
+{% block og_description %}{% if pet.description %}{{ pet.description|truncatechars:160 }}{% else %}{% if pet.pet_type %}{{ pet.pet_type }} · {% endif %}{% if pet.location_name %}📍 {{ pet.location_name }} · {% endif %}ช่วยกันแชร์เพื่อพาน้องกลับบ้าน 🐾{% endif %}{% endblock %}
+{% block og_image %}{{ request.scheme }}://{{ request.get_host }}{% url 'pet_og_image' pet.id %}{% endblock %}
+{% block schema_org %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "{{ pet.name }} — Pet Finder",
+  "image": "{{ request.scheme }}://{{ request.get_host }}{% url 'pet_og_image' pet.id %}",
+  "datePublished": "{{ pet.created_at|date:'c' }}",
+  "dateModified": "{{ pet.updated_at|date:'c' }}",
+  "author": {"@type": "Organization", "name": "Pet Finder"},
+  "description": "{{ pet.description|default:''|truncatechars:200|escapejs }}"
+}
+</script>
+{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -349,6 +367,76 @@
 
     </div>
   </div>
+
+  <!-- ===== Reactions + Share ===== -->
+  <div class="pf-glass" style="max-width:900px;margin:24px auto;padding:18px 22px;display:flex;flex-wrap:wrap;align-items:center;gap:14px;justify-content:space-between;">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;" id="reactBar">
+      {% for emo, count in reaction_counts.items %}
+        <button class="pf-ripple" data-react="{{ emo }}"
+          style="background:var(--pf-surface-2,#f3f4f6);border:1.5px solid var(--pf-border,#e5e7eb);
+                 padding:8px 14px;border-radius:100px;font-size:15px;font-weight:700;cursor:pointer;
+                 display:inline-flex;align-items:center;gap:6px;font-family:inherit;color:var(--pf-text);">
+          <span>{{ emo }}</span><span class="cnt">{{ count }}</span>
+        </button>
+      {% endfor %}
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="pf-share-btn pf-ripple"
+        data-share-url="{{ request.build_absolute_uri }}"
+        data-share-title="{{ pet.name }} — Pet Finder"
+        data-share-text="{% if pet.post_type == 'lost' %}ช่วยกันตามหา{% else %}ช่วยตามหาเจ้าของ{% endif %} {{ pet.name }} 🐾">
+        ↗ แชร์
+      </button>
+      <button class="pf-share-btn pf-ripple" type="button" onclick="window.PF&&PF.copyToClipboard(location.href)"
+        style="background:linear-gradient(135deg,#4E73F6,#021F74);">
+        🔗 คัดลอก
+      </button>
+    </div>
+  </div>
+
+  <!-- ===== Comments ===== -->
+  <div class="pf-glass" id="comments" style="max-width:900px;margin:24px auto;padding:24px;">
+    <h2 style="font-size:20px;color:var(--pf-text);margin-bottom:14px;">
+      💬 ความเห็น <span style="color:var(--pf-text-muted);font-weight:500;font-size:14px;">({{ comments_count }})</span>
+    </h2>
+
+    <form id="cmtForm" method="post" action="{% url 'post_comment' pet.id %}"
+      style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
+      {% csrf_token %}
+      {% if not user.is_authenticated %}
+        <input type="text" name="author_name" placeholder="ชื่อของคุณ (ไม่บังคับ)" maxlength="80"
+          style="padding:10px 14px;border-radius:10px;border:1.5px solid var(--pf-border);background:var(--pf-surface);color:var(--pf-text);font-family:inherit;">
+      {% endif %}
+      <textarea name="text" rows="2" maxlength="1000" placeholder="ฝากข้อความช่วยเหลือ ให้กำลังใจ หรือเบาะแส..."
+        style="padding:12px 14px;border-radius:12px;border:1.5px solid var(--pf-border);background:var(--pf-surface);color:var(--pf-text);font-family:inherit;font-size:14px;resize:vertical;"></textarea>
+      <div style="display:flex;justify-content:flex-end;">
+        <button type="submit" class="pf-ripple"
+          style="background:#021F74;color:white;border:none;padding:10px 22px;border-radius:100px;font-weight:700;cursor:pointer;font-family:inherit;">
+          ส่งความเห็น
+        </button>
+      </div>
+    </form>
+
+    <div id="cmtList">
+      {% for c in comments %}
+        <div class="pf-comment">
+          <div class="avatar">{{ c.initial }}</div>
+          <div class="body">
+            <div class="meta">
+              <strong>{{ c.display_name }}</strong>
+              {% if c.reaction %} · {{ c.reaction }}{% endif %}
+              · {{ c.created_at|timesince }} ที่แล้ว
+            </div>
+            <div class="text">{{ c.text }}</div>
+          </div>
+        </div>
+      {% empty %}
+        <div style="color:var(--pf-text-muted);padding:14px 0;text-align:center;font-size:14px;">
+          ยังไม่มีความเห็น เป็นคนแรกได้เลย!
+        </div>
+      {% endfor %}
+    </div>
+  </div>
 </div>
 
 {% if is_owner and pet.status != 'resolved' %}
@@ -434,6 +522,70 @@
       }
     }, {passive: true});
   }
+})();
+
+/* ========== Reactions (AJAX) ========== */
+(function(){
+  const csrf = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token }}';
+  const url = '{% url "post_comment" pet.id %}';
+  document.querySelectorAll('#reactBar [data-react]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const emo = btn.dataset.react;
+      const cnt = btn.querySelector('.cnt');
+      // Optimistic UI
+      cnt.textContent = (parseInt(cnt.textContent || '0', 10) + 1);
+      btn.style.transform = 'scale(1.1)';
+      setTimeout(()=> btn.style.transform='', 200);
+      window.PF && PF.haptic && PF.haptic(20);
+
+      try {
+        const fd = new FormData();
+        fd.append('csrfmiddlewaretoken', csrf);
+        fd.append('reaction', emo);
+        fd.append('text', '');
+        await fetch(url, { method:'POST', body: fd, headers: {'X-Requested-With':'fetch'} });
+      } catch(_) {}
+    });
+  });
+})();
+
+/* ========== Comments (AJAX submit) ========== */
+(function(){
+  const form = document.getElementById('cmtForm');
+  const list = document.getElementById('cmtList');
+  if (!form || !list) return;
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(form);
+    if (!(fd.get('text') || '').toString().trim()) {
+      window.PF && PF.toast && PF.toast('กรุณากรอกข้อความ', 'warning');
+      return;
+    }
+    try {
+      const r = await fetch(form.action, {method:'POST', body:fd, headers:{'X-Requested-With':'fetch'}});
+      const data = await r.json();
+      if (data.ok && data.comment) {
+        const c = data.comment;
+        const empty = list.querySelector('div[style*="text-align:center"]');
+        if (empty) empty.remove();
+        const div = document.createElement('div');
+        div.className = 'pf-comment';
+        div.innerHTML = `<div class="avatar">${c.initial}</div>
+          <div class="body">
+            <div class="meta"><strong></strong> · ${c.when}</div>
+            <div class="text"></div>
+          </div>`;
+        div.querySelector('strong').textContent = c.name;
+        div.querySelector('.text').textContent = c.text;
+        list.prepend(div);
+        form.querySelector('textarea').value = '';
+        window.PF && PF.toast && PF.toast('ส่งความเห็นแล้ว 💬', 'success');
+        window.PF && PF.haptic && PF.haptic(30);
+      }
+    } catch(_) {
+      window.PF && PF.toast && PF.toast('ส่งไม่สำเร็จ ลองใหม่', 'error');
+    }
+  });
 })();
 </script>
 {% endblock %}

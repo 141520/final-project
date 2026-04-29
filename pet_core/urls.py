@@ -37,6 +37,13 @@ urlpatterns = [
     path('blog/', views.blog_list, name='blog_list'),
     path('blog/<int:post_id>/', views.blog_detail, name='blog_detail'),
 
+    # 🆕 PRO features
+    path('stories/', views.stories_view, name='stories'),
+    path('feed/', views.feed_view, name='feed'),
+    path('leaderboard/', views.leaderboard_view, name='leaderboard'),
+    path('pet/<int:pet_id>/comment/', views.post_comment, name='post_comment'),
+    path('pet/<int:pet_id>/og.png', views.og_image, name='pet_og_image'),
+
     # ส่วนของสมาชิก
     path('my_posts/', views.my_posts_view, name='my_posts'),
     path('login/', TemplateView.as_view(template_name='registration/login.html'), name='login'),

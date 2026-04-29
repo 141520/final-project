@@ -96,7 +96,20 @@ class PetPost(models.Model):
     def __str__(self):
         return f"[{self.get_post_type_display()}] {self.name} - สถานะ: {self.get_status_display()}"
 
-    # 👇👇👇 ส่วนที่เพิ่มเข้ามาใหม่สำหรับ PetPost 👇👇👇
+    def thumb_url(self, width=400, quality=72):
+        """Supabase Image Transform — render-on-the-fly resize/WebP at the edge.
+        Returns smaller image for list cards. Original URL still works for detail view."""
+        if not self.image:
+            return "https://placehold.co/400x400?text=No+Image"
+        path = str(self.image)
+        if path.startswith('http'):
+            return path
+        path = path.lstrip('/').removeprefix('media/')
+        from django.conf import settings
+        return (f"{settings.SUPABASE_URL}/storage/v1/render/image/public/"
+                f"{settings.AWS_STORAGE_BUCKET_NAME}/{path}"
+                f"?width={width}&quality={quality}&resize=cover")
+
     @property
     def supabase_image_url(self):
         if self.image:
@@ -288,3 +301,41 @@ class BlogPost(models.Model):
             from django.conf import settings
             return f"{settings.SUPABASE_URL}/storage/v1/object/public/{settings.AWS_STORAGE_BUCKET_NAME}/{path}"
         return "https://placehold.co/400x260?text=No+Image"
+
+
+# =========================================================
+# 5. Comment — ความเห็นใต้โพสต์ pet (Reaction + Comment)
+# =========================================================
+class Comment(models.Model):
+    pet_post = models.ForeignKey(
+        'PetPost', related_name='comments', on_delete=models.CASCADE
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='comments'
+    )
+    author_name = models.CharField(max_length=80, blank=True, verbose_name="ชื่อผู้แสดงความเห็น")
+    text = models.TextField(verbose_name="ข้อความ")
+    reaction = models.CharField(max_length=8, blank=True, verbose_name="รีแอ็กชัน")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'pet_core_comment'
+        ordering = ['-created_at']
+        indexes = [models.Index(fields=['pet_post', '-created_at'])]
+
+    def __str__(self):
+        return f"Comment by {self.author_name or self.user_id} on post {self.pet_post_id}"
+
+    @property
+    def display_name(self):
+        if self.user:
+            return self.user.first_name or self.user.username or self.author_name or 'ผู้ใช้'
+        return self.author_name or 'ผู้ใช้'
+
+    @property
+    def initial(self):
+        n = self.display_name
+        return n[0].upper() if n else '?'
+
+

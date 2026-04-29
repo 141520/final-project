@@ -125,11 +125,37 @@ html, body { height:100%; }
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 <script>
 const POSTS = {{ posts_json|safe }};
 
 // ── Init map ──
 const map = L.map('map', { zoomControl: true }).setView([13.75, 100.5], 6);
+
+// ── Heatmap layer (toggle ผ่านปุ่มล่าง) ──
+const heatPoints = POSTS
+  .filter(p => p.lat && p.lng)
+  .map(p => [p.lat, p.lng, p.post_type === 'lost' ? 1.0 : 0.6]);
+const heatLayer = L.heatLayer(heatPoints, {
+  radius: 26, blur: 22, minOpacity: .35,
+  gradient: { 0.2:'#4E73F6', 0.5:'#F9C82F', 0.8:'#D75CA7', 1:'#CD0205' },
+});
+
+// ปุ่มสลับ heatmap
+const heatBtn = L.control({ position: 'topright' });
+heatBtn.onAdd = () => {
+  const b = L.DomUtil.create('button');
+  b.innerHTML = '🔥 Heatmap'; b.style.cssText =
+    'padding:8px 14px;border:none;border-radius:8px;background:white;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.15);font-family:inherit;';
+  b.onclick = (e) => {
+    e.preventDefault(); e.stopPropagation();
+    if (map.hasLayer(heatLayer)) { map.removeLayer(heatLayer); b.innerHTML = '🔥 Heatmap'; }
+    else { heatLayer.addTo(map); b.innerHTML = '✓ Heatmap เปิด'; }
+  };
+  L.DomEvent.disableClickPropagation(b);
+  return b;
+};
+heatBtn.addTo(map);
 
 // ใช้ CartoDB Voyager (ฟรี + ไม่ block referer แบบ osm.org)
 L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {

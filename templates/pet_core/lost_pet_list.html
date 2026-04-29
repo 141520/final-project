@@ -144,7 +144,7 @@
   </div>
 </div>
 
-<div class="toolbar">
+<div class="toolbar" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
   {% if q %}
     <span class="result-count">ผลการค้นหา "<span>{{ q }}</span>" — พบ <span>{{ posts.count }}</span> รายการ
       <a href="{% url 'lost_pet_list' %}" style="margin-left:10px;font-size:13px;color:var(--text-muted);font-weight:500;text-decoration:underline;">ล้างการค้นหา</a>
@@ -152,12 +152,31 @@
   {% else %}
     <span class="result-count">มีประกาศอยู่ <span>{{ posts.count }}</span> รายการ</span>
   {% endif %}
+  <button type="button" id="btnNearby" class="pf-ripple"
+    style="background:linear-gradient(135deg,#4E73F6,#021F74);color:white;border:none;
+           padding:8px 16px;border-radius:100px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;">
+    📍 เรียงตามใกล้ฉัน
+  </button>
 </div>
+
+<script>
+(function(){
+  var btn = document.getElementById('btnNearby');
+  if(!btn) return;
+  btn.addEventListener('click', function(){
+    document.querySelectorAll('.pf-distance').forEach(d => d.style.display='inline-block');
+    window.PF && PF.sortByDistance && PF.sortByDistance('.cards-grid', '.pet-card');
+  });
+})();
+</script>
 
 <div class="cards-wrap">
   <div class="cards-grid">
     {% for post in posts %}
-      <a href="{% url 'pet_detail' post.id %}" class="pet-card" style="animation-delay: {{ forloop.counter0|add:0 }}0ms">
+      <a href="{% url 'pet_detail' post.id %}" class="pet-card pf-tilt"
+         data-reveal data-reveal-delay="{% cycle '1' '2' '3' '0' %}"
+         {% if post.latitude and post.longitude %}data-lat="{{ post.latitude }}" data-lng="{{ post.longitude }}"{% endif %}
+         style="animation-delay: {{ forloop.counter0|add:0 }}0ms">
         {% if post.status == 'resolved' %}
           <div class="resolved-ribbon">✅ เจอแล้ว!</div>
         {% else %}
@@ -166,12 +185,13 @@
 
         <div class="card-img-wrap">
           {% if post.image %}
-            <img src="{{ post.supabase_image_url }}" alt="{{ post.name }}" loading="lazy"
+            <img src="{{ post.thumb_url }}" alt="{{ post.name }}" loading="lazy" decoding="async"
                  onerror="this.parentElement.innerHTML='<span style=&quot;font-size:52px&quot;>🐾</span>'">
           {% else %}
             🐾
           {% endif %}
         </div>
+        <div class="pf-distance" style="position:absolute;top:10px;right:10px;background:rgba(0,0,0,.7);color:white;padding:3px 10px;border-radius:100px;font-size:11px;font-weight:700;display:none;"></div>
 
         <div class="card-body">
           <div class="card-badge">

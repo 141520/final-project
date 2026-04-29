@@ -1,0 +1,292 @@
+/* ============================================================
+   PetFinder PRO — premium UI layer
+   - Dark mode (CSS variables, no flash)
+   - Glassmorphism cards
+   - Animated gradient hero (mesh)
+   - Micro-interactions (ripple, tilt, scale, glow)
+   - Bento grid
+   - Bottom sheet
+   - Skeleton + counter animations
+   - Mobile pro touches
+   ============================================================ */
+
+/* ─── Dark mode tokens ─── */
+:root {
+  --pf-bg: #FDF4E3;
+  --pf-surface: #ffffff;
+  --pf-surface-2: #fafafa;
+  --pf-text: #1f2937;
+  --pf-text-muted: #6b7280;
+  --pf-border: #e5e7eb;
+  --pf-primary: #021F74;
+  --pf-primary-hover: #001a5e;
+  --pf-accent: #4E73F6;
+  --pf-shadow-sm: 0 2px 6px rgba(0,0,0,.06);
+  --pf-shadow-md: 0 8px 24px rgba(0,0,0,.08);
+  --pf-shadow-lg: 0 20px 60px rgba(0,0,0,.12);
+  --pf-glass-bg: rgba(255,255,255,.65);
+  --pf-glass-border: rgba(255,255,255,.4);
+}
+html[data-theme="dark"] {
+  --pf-bg: #0f1419;
+  --pf-surface: #1a1f2e;
+  --pf-surface-2: #232938;
+  --pf-text: #e7eaf0;
+  --pf-text-muted: #94a3b8;
+  --pf-border: #2d3548;
+  --pf-primary: #7ea7ff;
+  --pf-primary-hover: #a3c0ff;
+  --pf-accent: #6e8eff;
+  --pf-shadow-sm: 0 2px 6px rgba(0,0,0,.4);
+  --pf-shadow-md: 0 8px 24px rgba(0,0,0,.5);
+  --pf-shadow-lg: 0 20px 60px rgba(0,0,0,.6);
+  --pf-glass-bg: rgba(26,31,46,.65);
+  --pf-glass-border: rgba(255,255,255,.08);
+  color-scheme: dark;
+}
+html[data-theme="dark"] body { background: var(--pf-bg); color: var(--pf-text); }
+html[data-theme="dark"] header { background: linear-gradient(180deg, #1a1f2e 0%, #232938 100%) !important; }
+html[data-theme="dark"] footer.site-footer {
+  background: linear-gradient(180deg, #1a1f2e 0%, #0f1419 100%) !important;
+}
+html[data-theme="dark"] .nav-link, html[data-theme="dark"] .logo { color: var(--pf-text) !important; }
+html[data-theme="dark"] .ft-col h4, html[data-theme="dark"] .ft-col a, html[data-theme="dark"] .ft-tagline,
+html[data-theme="dark"] .ft-bottom { color: var(--pf-text) !important; }
+
+/* ─── Theme toggle button ─── */
+.pf-theme-toggle {
+  background: transparent; border: 1.5px solid currentColor;
+  width: 38px; height: 38px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #021F74; cursor: pointer; transition: all .2s;
+  flex-shrink: 0;
+}
+.pf-theme-toggle:hover { transform: rotate(15deg) scale(1.05); }
+html[data-theme="dark"] .pf-theme-toggle { color: var(--pf-text); }
+.pf-theme-toggle .sun, .pf-theme-toggle .moon { font-size: 18px; line-height: 1; }
+.pf-theme-toggle .moon { display: none; }
+html[data-theme="dark"] .pf-theme-toggle .sun  { display: none; }
+html[data-theme="dark"] .pf-theme-toggle .moon { display: inline; }
+
+/* ─── Glassmorphism card ─── */
+.pf-glass {
+  background: var(--pf-glass-bg);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid var(--pf-glass-border);
+  border-radius: 20px;
+  box-shadow: var(--pf-shadow-md);
+}
+
+/* ─── Animated mesh gradient hero ─── */
+.pf-hero-mesh {
+  position: relative; overflow: hidden;
+  background: linear-gradient(135deg, #FCEED5 0%, #FFE7BA 100%);
+}
+.pf-hero-mesh::before, .pf-hero-mesh::after {
+  content: ''; position: absolute; border-radius: 50%;
+  filter: blur(80px); opacity: .55; pointer-events: none;
+  animation: pf-blob 18s ease-in-out infinite;
+}
+.pf-hero-mesh::before {
+  width: 480px; height: 480px;
+  background: radial-gradient(circle, #756EF5 0%, transparent 70%);
+  top: -120px; left: -120px;
+}
+.pf-hero-mesh::after {
+  width: 540px; height: 540px;
+  background: radial-gradient(circle, #D75CA7 0%, transparent 70%);
+  bottom: -160px; right: -140px;
+  animation-delay: -9s;
+  animation-duration: 22s;
+}
+@keyframes pf-blob {
+  0%, 100% { transform: translate(0,0) scale(1); }
+  33%      { transform: translate(60px,-40px) scale(1.1); }
+  66%      { transform: translate(-50px,40px) scale(.95); }
+}
+
+/* ─── Micro-interactions ─── */
+.pf-lift { transition: transform .25s cubic-bezier(.21,1.02,.73,1), box-shadow .25s; }
+.pf-lift:hover { transform: translateY(-4px); box-shadow: var(--pf-shadow-lg); }
+.pf-scale { transition: transform .2s; }
+.pf-scale:hover { transform: scale(1.04); }
+.pf-glow { transition: box-shadow .3s; }
+.pf-glow:hover { box-shadow: 0 0 0 4px rgba(78,115,246,.18), 0 8px 24px rgba(78,115,246,.25); }
+
+/* Tilt 3D — JS sets --tilt-x/--tilt-y */
+.pf-tilt {
+  transform: perspective(800px)
+             rotateX(var(--tilt-x, 0deg))
+             rotateY(var(--tilt-y, 0deg));
+  transition: transform .15s ease-out;
+  will-change: transform;
+}
+
+/* Ripple effect */
+.pf-ripple { position: relative; overflow: hidden; isolation: isolate; }
+.pf-ripple .pf-ripple-fx {
+  position: absolute; border-radius: 50%;
+  background: rgba(255,255,255,.55);
+  transform: translate(-50%,-50%) scale(0); opacity: 1;
+  animation: pf-ripple-anim .65s ease-out forwards;
+  pointer-events: none;
+}
+@keyframes pf-ripple-anim {
+  to { transform: translate(-50%,-50%) scale(4); opacity: 0; }
+}
+
+/* ─── Bento grid ─── */
+.pf-bento {
+  display: grid; gap: 16px;
+  grid-template-columns: repeat(4, 1fr);
+}
+.pf-bento > * {
+  background: var(--pf-surface);
+  border-radius: 20px;
+  padding: 22px;
+  box-shadow: var(--pf-shadow-sm);
+  transition: transform .25s, box-shadow .25s;
+}
+.pf-bento > *:hover { transform: translateY(-3px); box-shadow: var(--pf-shadow-md); }
+.pf-bento .span-2 { grid-column: span 2; }
+.pf-bento .span-3 { grid-column: span 3; }
+.pf-bento .span-4 { grid-column: span 4; }
+.pf-bento .row-2  { grid-row: span 2; }
+@media (max-width: 900px) {
+  .pf-bento { grid-template-columns: repeat(2, 1fr); }
+  .pf-bento .span-3, .pf-bento .span-4 { grid-column: span 2; }
+}
+
+/* ─── Bottom sheet ─── */
+.pf-sheet-back {
+  position: fixed; inset: 0; background: rgba(0,0,0,.45);
+  z-index: 9990; opacity: 0; pointer-events: none;
+  transition: opacity .3s; backdrop-filter: blur(2px);
+}
+.pf-sheet-back.open { opacity: 1; pointer-events: auto; }
+.pf-sheet {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  background: var(--pf-surface); color: var(--pf-text);
+  border-radius: 22px 22px 0 0; padding: 12px 18px 28px;
+  z-index: 9991; max-height: 85vh; overflow-y: auto;
+  transform: translateY(100%); transition: transform .35s cubic-bezier(.21,1.02,.73,1);
+  box-shadow: 0 -10px 40px rgba(0,0,0,.18);
+}
+.pf-sheet.open { transform: translateY(0); }
+.pf-sheet::before {
+  content: ''; display: block;
+  width: 44px; height: 5px; background: var(--pf-border);
+  border-radius: 3px; margin: 0 auto 16px;
+}
+
+/* ─── Counter animation (scroll-triggered numeric count-up) ─── */
+.pf-counter { font-variant-numeric: tabular-nums; }
+
+/* ─── Native Lottie-style empty SVG illustration container ─── */
+.pf-empty {
+  text-align: center; padding: 60px 20px;
+  color: var(--pf-text-muted);
+}
+.pf-empty svg { width: 180px; max-width: 60vw; margin: 0 auto 16px; display: block; }
+.pf-empty .title { font-size: 18px; font-weight: 700; color: var(--pf-text); margin-bottom: 6px; }
+
+/* ─── Comments ─── */
+.pf-comments { margin-top: 32px; }
+.pf-comment {
+  display: flex; gap: 12px; padding: 14px 0;
+  border-bottom: 1px solid var(--pf-border);
+}
+.pf-comment .avatar {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: linear-gradient(135deg, #756EF5, #D75CA7);
+  color: white; display: flex; align-items: center; justify-content: center;
+  font-weight: 700; flex-shrink: 0; font-size: 16px;
+}
+.pf-comment .body { flex: 1; min-width: 0; }
+.pf-comment .meta {
+  font-size: 12px; color: var(--pf-text-muted); margin-bottom: 4px;
+}
+.pf-comment .text { font-size: 14px; line-height: 1.6; word-wrap: break-word; }
+
+/* ─── Web Stories ─── */
+.pf-stories {
+  display: flex; gap: 14px; overflow-x: auto;
+  padding: 16px 4px; scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+.pf-stories::-webkit-scrollbar { display: none; }
+.pf-story {
+  flex: 0 0 auto; width: 240px; height: 380px;
+  border-radius: 22px; overflow: hidden; position: relative;
+  scroll-snap-align: start;
+  background: #000; box-shadow: var(--pf-shadow-md);
+  transition: transform .25s;
+}
+.pf-story:hover { transform: scale(1.03); }
+.pf-story img {
+  width: 100%; height: 100%; object-fit: cover;
+}
+.pf-story .pf-story-caption {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  padding: 18px 16px;
+  background: linear-gradient(to top, rgba(0,0,0,.85), transparent);
+  color: white; font-weight: 600; font-size: 14px;
+}
+.pf-story .pf-story-tag {
+  position: absolute; top: 12px; left: 12px;
+  background: rgba(255,255,255,.92); color: #1f2937;
+  font-size: 11px; font-weight: 700;
+  padding: 4px 10px; border-radius: 100px;
+}
+
+/* ─── Leaderboard ─── */
+.pf-rank-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 18px; border-radius: 14px;
+  background: var(--pf-surface); margin-bottom: 8px;
+  box-shadow: var(--pf-shadow-sm); transition: transform .2s;
+}
+.pf-rank-row:hover { transform: translateX(4px); }
+.pf-rank-num {
+  font-size: 22px; font-weight: 800; width: 36px;
+  text-align: center; color: var(--pf-text-muted);
+}
+.pf-rank-row.top1 .pf-rank-num { color: #f59e0b; }
+.pf-rank-row.top2 .pf-rank-num { color: #94a3b8; }
+.pf-rank-row.top3 .pf-rank-num { color: #b45309; }
+
+/* ─── Native share button (sleek pill) ─── */
+.pf-share-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border-radius: 100px;
+  background: linear-gradient(135deg, #756EF5, #D75CA7);
+  color: white; border: none; cursor: pointer;
+  font-weight: 700; font-size: 13px; font-family: inherit;
+  box-shadow: 0 4px 14px rgba(215,92,167,.3);
+  transition: transform .15s;
+}
+.pf-share-btn:hover { transform: translateY(-1px); }
+
+/* ─── Pull-to-refresh indicator ─── */
+.pf-ptr {
+  position: fixed; top: 0; left: 50%;
+  transform: translate(-50%, -100%);
+  background: var(--pf-primary); color: white;
+  padding: 8px 18px; border-radius: 0 0 18px 18px;
+  font-size: 13px; font-weight: 700; z-index: 99996;
+  transition: transform .25s;
+}
+.pf-ptr.show { transform: translate(-50%, 0); }
+.pf-ptr.spin::before {
+  content: '↻'; display: inline-block; margin-right: 6px;
+  animation: pf-spin 1s linear infinite;
+}
+@keyframes pf-spin { to { transform: rotate(360deg); } }
+
+/* ─── Color swatches (extracted palette) ─── */
+.pf-palette { display: inline-flex; gap: 6px; }
+.pf-palette span {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,.15);
+}

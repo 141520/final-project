@@ -150,7 +150,10 @@
 <div class="cards-wrap">
   <div class="cards-grid">
     {% for post in posts %}
-      <a href="{% url 'pet_detail' post.id %}" class="pet-card" style="animation-delay: {{ forloop.counter0|add:0 }}0ms">
+      <a href="{% url 'pet_detail' post.id %}" class="pet-card pf-tilt"
+         data-reveal data-reveal-delay="{% cycle '1' '2' '3' '0' %}"
+         {% if post.latitude and post.longitude %}data-lat="{{ post.latitude }}" data-lng="{{ post.longitude }}"{% endif %}
+         style="animation-delay: {{ forloop.counter0|add:0 }}0ms">
         {% if post.status == 'resolved' %}
           <div class="resolved-ribbon">✅ ส่งคืนเจ้าของแล้ว</div>
         {% else %}
@@ -159,7 +162,7 @@
 
         <div class="card-img-wrap">
           {% if post.image %}
-            <img src="{{ post.supabase_image_url }}" alt="{{ post.name }}" loading="lazy"
+            <img src="{{ post.thumb_url }}" alt="{{ post.name }}" loading="lazy" decoding="async"
                  onerror="this.parentElement.innerHTML='<span style=&quot;font-size:52px&quot;>🐾</span>'">
           {% else %}
             🐾

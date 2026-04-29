@@ -261,7 +261,7 @@ def analyze_image(img_or_path) -> dict:
 # ─────────────────────────────────────────────
 def compress_image(file_obj, max_dim: int = 1600, quality: int = 82) -> io.BytesIO:
     """
-    รับ Django UploadedFile → คืน BytesIO ของ JPEG ที่ resize + compress แล้ว
+    รับ Django UploadedFile → คืน BytesIO ของ JPEG ที่ resize + compress + (optionally WebP) แล้ว
     """
     try:
         file_obj.seek(0)
@@ -286,3 +286,26 @@ def compress_image(file_obj, max_dim: int = 1600, quality: int = 82) -> io.Bytes
     img.save(buf, format='JPEG', quality=quality, optimize=True, progressive=True)
     buf.seek(0)
     return buf
+
+
+# ─────────────────────────────────────────────
+# 7) Color palette extraction — สีหลัก 5 สีจากรูป
+# ─────────────────────────────────────────────
+def extract_palette(img_or_path, n_colors: int = 5) -> list[str]:
+    """
+    สกัดสีหลัก n สีจากรูป (median cut quantization) → คืน list ['#rrggbb', ...]
+    ใช้แสดงเป็น swatch บน UI
+    """
+    try:
+        img = _open_image(img_or_path)
+        img.thumbnail((180, 180))
+        # ใช้ palette quantize → fast & ดี
+        pal_img = img.convert('RGB').quantize(colors=max(2, n_colors), method=Image.Quantize.MEDIANCUT)
+        palette = pal_img.getpalette()[: n_colors * 3]
+        return [
+            '#{:02x}{:02x}{:02x}'.format(palette[i], palette[i+1], palette[i+2])
+            for i in range(0, n_colors * 3, 3)
+        ]
+    except Exception as e:
+        print(f"[AI] extract_palette failed: {e}")
+        return []

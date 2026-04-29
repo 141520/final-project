@@ -53,6 +53,14 @@
 
     {% load static %}
     <link rel="stylesheet" href="{% static 'css/app.css' %}">
+    <link rel="stylesheet" href="{% static 'css/pro.css' %}">
+
+    {# No-flash dark mode init — runs before paint #}
+    <script>
+    (function(){try{var t=localStorage.getItem('pf-theme');
+      if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
+      document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+    </script>
 
     {# ─── Structured data (Schema.org WebSite + Organization) ─── #}
     <script type="application/ld+json">
@@ -332,8 +340,13 @@
             <a href="{% url 'found_pet_list' %}" class="nav-link {% if request.resolver_match.url_name == 'found_pet_list' %}active{% endif %}">ประกาศสัตว์พบ</a>
             <a href="{% url 'map_view' %}" class="nav-link {% if request.resolver_match.url_name == 'map_view' %}active{% endif %}">🗺️ แผนที่</a>
             <a href="{% url 'search_pet' %}" class="nav-link {% if request.resolver_match.url_name == 'search_pet' %}active{% endif %}">🔍 AI ค้นหา</a>
+            <a href="{% url 'stories' %}" class="nav-link {% if request.resolver_match.url_name == 'stories' %}active{% endif %}">🎉 ความสำเร็จ</a>
             <a href="{% url 'product_list' %}" class="nav-link {% if request.resolver_match.url_name == 'product_list' %}active{% endif %}">สินค้า</a>
             <a href="{% url 'blog_list' %}" class="nav-link {% if request.resolver_match.url_name == 'blog_list' %}active{% endif %}">บทความ</a>
+
+            <button class="pf-theme-toggle pf-ripple" aria-label="สลับธีม" title="สลับ Light/Dark">
+                <span class="sun">☀️</span><span class="moon">🌙</span>
+            </button>
 
             {% if user.is_authenticated %}
                 <div class="nav-profile-wrap">
@@ -389,6 +402,9 @@
             </div>
             <div class="ft-col">
                 <h4>ชุมชน</h4>
+                <a href="{% url 'stories' %}">🎉 ความสำเร็จ</a>
+                <a href="{% url 'leaderboard' %}">🏆 อันดับฮีโร่</a>
+                <a href="{% url 'feed' %}">📱 Feed</a>
                 <a href="{% url 'blog_list' %}">บทความ</a>
                 <a href="{% url 'product_list' %}">สินค้าแนะนำ</a>
                 {% if user.is_authenticated %}
@@ -496,6 +512,7 @@
 </script>
 {# ─── Pro UX layer: top loading bar, toasts, scroll reveal, PWA install ─── #}
 <script src="{% static 'js/app.js' %}" defer></script>
+<script src="{% static 'js/pro.js' %}" defer></script>
 {% block extra_js %}{% endblock %}
 </body>
 </html>
