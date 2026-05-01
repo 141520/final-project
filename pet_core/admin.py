@@ -1,7 +1,7 @@
 from django.contrib import admin, messages
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
-from .models import PetPost, PetImage, Product, BlogPost
+from .models import PetPost, PetImage, Product, ProductImage, BlogPost
 
 
 # ==========================================================
@@ -131,13 +131,34 @@ class PetImageAdmin(admin.ModelAdmin):
 
 
 # ==========================================================
+# ProductImage (inline — รูปเสริม สูงสุด 9 รูป รวม main = 10)
+# ==========================================================
+class ProductImageInline(admin.TabularInline):
+    model = ProductImage
+    extra = 1
+    max_num = 9   # 9 + main image (1) = 10 รูปสูงสุด
+    fields = ('thumbnail', 'image', 'sort_order')
+    readonly_fields = ('thumbnail',)
+
+    def thumbnail(self, obj):
+        if obj.image:
+            return format_html(
+                '<img src="{}" style="max-height:80px;max-width:80px;object-fit:cover;border-radius:6px;"/>',
+                obj.image_url,
+            )
+        return "—"
+    thumbnail.short_description = "ตัวอย่าง"
+
+
+# ==========================================================
 # Product — สินค้าโปรโมท
 # ==========================================================
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
+    inlines = [ProductImageInline]
     list_display = (
         'thumb', 'name', 'category', 'price_display', 'scraped_price_display',
-        'promotion_status', 'is_active', 'sort_order',
+        'promotion_status', 'image_count', 'is_active', 'sort_order',
     )
     list_editable = ('is_active', 'sort_order')
     list_filter = ('is_active', 'category', 'promotion_start', 'promotion_end')
@@ -147,6 +168,12 @@ class ProductAdmin(admin.ModelAdmin):
     readonly_fields = ('created_at', 'updated_at', 'image_preview',
                        'promotion_status_detail', 'days_remaining_display',
                        'last_scraped_at')
+
+    def image_count(self, obj):
+        n = (1 if obj.image else 0) + obj.extra_images.count()
+        color = '#2ECC71' if n >= 1 else '#bbb'
+        return format_html('<span style="color:{};font-weight:700;">{} / 10</span>', color, n)
+    image_count.short_description = "จำนวนรูป"
 
     fieldsets = (
         ('🛒 ข้อมูลสินค้า', {

@@ -97,18 +97,11 @@ class PetPost(models.Model):
         return f"[{self.get_post_type_display()}] {self.name} - สถานะ: {self.get_status_display()}"
 
     def thumb_url(self, width=400, quality=72):
-        """Supabase Image Transform — render-on-the-fly resize/WebP at the edge.
-        Returns smaller image for list cards. Original URL still works for detail view."""
-        if not self.image:
-            return "https://placehold.co/400x400?text=No+Image"
-        path = str(self.image)
-        if path.startswith('http'):
-            return path
-        path = path.lstrip('/').removeprefix('media/')
-        from django.conf import settings
-        return (f"{settings.SUPABASE_URL}/storage/v1/render/image/public/"
-                f"{settings.AWS_STORAGE_BUCKET_NAME}/{path}"
-                f"?width={width}&quality={quality}&resize=cover")
+        """คืน URL รูป — ใช้ Supabase public object endpoint (ฟรี).
+        หมายเหตุ: Image Transform (resize/WebP at edge) ต้อง Supabase Pro plan
+        ถ้าอนาคต upgrade ค่อยเปลี่ยน path เป็น /storage/v1/render/image/public/
+        """
+        return self.supabase_image_url
 
     @property
     def supabase_image_url(self):
@@ -265,6 +258,49 @@ class Product(models.Model):
             from django.conf import settings
             return f"{settings.SUPABASE_URL}/storage/v1/object/public/{settings.AWS_STORAGE_BUCKET_NAME}/{path}"
         return "https://placehold.co/300x300?text=No+Image"
+
+    @property
+    def all_image_urls(self):
+        """รวมรูปทั้งหมด: main image (ถ้ามี) + extra images — สำหรับ swipeable gallery"""
+        urls = []
+        if self.image:
+            urls.append(self.display_image_url)
+        for ex in self.extra_images.all().order_by('sort_order', 'id'):
+            url = ex.image_url
+            if url and url not in urls:
+                urls.append(url)
+        return urls or ["https://placehold.co/600x600?text=No+Image"]
+
+
+# =========================================================
+# 3b. ProductImage — รูปเสริมของสินค้า (admin อัปโหลดได้สูงสุด 9 รูปนอกจาก main)
+# =========================================================
+class ProductImage(models.Model):
+    product = models.ForeignKey(
+        Product, related_name='extra_images', on_delete=models.CASCADE
+    )
+    image = models.ImageField(upload_to='products/', verbose_name="รูปสินค้า")
+    sort_order = models.PositiveIntegerField(default=0, verbose_name="ลำดับ (น้อย→มาก่อน)")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'pet_core_productimage'
+        ordering = ['sort_order', 'id']
+        verbose_name = "รูปสินค้า (เสริม)"
+        verbose_name_plural = "รูปสินค้า (เสริม)"
+
+    def __str__(self):
+        return f"Image #{self.id} of {self.product_id}"
+
+    @property
+    def image_url(self):
+        if self.image:
+            path = str(self.image)
+            if path.startswith('http'):
+                return path
+            from django.conf import settings
+            return f"{settings.SUPABASE_URL}/storage/v1/object/public/{settings.AWS_STORAGE_BUCKET_NAME}/{path}"
+        return ""
 
 
 # =========================================================
