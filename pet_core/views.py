@@ -652,16 +652,21 @@ def product_go(request, product_id):
     if not url.startswith(('http://', 'https://')):
         url = 'https://' + url
 
-    # ── 1) แปลง Shopee URL → canonical format (ไม่มีปัญหา encoding) ──
-    # Shopee URL มี pattern: i.{shop_id}.{item_id} ท้าย path
-    # แปลงเป็น shopee.co.th/product/{shop_id}/{item_id} ซึ่งทำงานเสมอ
     import re
-    shopee_match = re.search(r'i\.(\d+)\.(\d+)', url)
-    if shopee_match and 'shopee.co.th' in url:
-        shop_id, item_id = shopee_match.group(1), shopee_match.group(2)
+    from urllib.parse import urlparse, urlencode, parse_qsl, unquote, quote
+
+    # ── 1) Shopee: แปลงทุก format → canonical /product/{shop}/{item} ──
+    # รองรับ: shopee.co.th, shopee.com, th.shp.ee (short link)
+    is_shopee = any(d in url for d in ('shopee.co.th', 'shopee.com', 'shp.ee'))
+    shopee_match = re.search(r'[._/](\d{6,})[._](\d{6,})', url)  # i.799934388.22758121851
+    if not shopee_match:
+        shopee_match = re.search(r'i\.(\d+)\.(\d+)', url)
+    if is_shopee and shopee_match:
+        shop_id = shopee_match.group(1)
+        item_id = shopee_match.group(2)
         url = f'https://shopee.co.th/product/{shop_id}/{item_id}'
     else:
-        # ── 2) ตัด tracking params สำหรับ platform อื่น ────────────
+        # ── 2) platform อื่น: ตัด tracking params + decode path ─────
         _STRIP_PARAMS = {
             'sp_atk', 'xptdk', 'extraParams', 'sp_ref', 'from',
             'sp_ref_sec', 'sp_ref_mkt', 'sp_ref_prefix',
