@@ -50,6 +50,44 @@
 
     .map-container { width: 100%; height: 280px; border: 1px solid #C8CDD0; border-radius: 10px; margin-bottom: 8px; z-index: 1; }
 
+    /* Location search */
+    .loc-search-wrap { position: relative; margin-bottom: 8px; }
+    .loc-search-input {
+        width: 100%; padding: 10px 40px 10px 14px;
+        border-radius: 10px; border: 1.5px solid #C8CDD0;
+        font-size: 14px; font-family: inherit; outline: none;
+        transition: .2s; background: white;
+    }
+    .loc-search-input:focus { border-color: #021F74; box-shadow: 0 0 0 3px rgba(2,31,116,.1); }
+    .loc-search-icon {
+        position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+        font-size: 16px; pointer-events: none; color: #888;
+    }
+    .loc-search-loading {
+        position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+        display: none;
+        width: 16px; height: 16px;
+        border: 2px solid #ddd; border-top-color: #021F74;
+        border-radius: 50%; animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: translateY(-50%) rotate(360deg); } }
+    .loc-dropdown {
+        position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+        background: white; border: 1.5px solid #C8CDD0; border-radius: 10px;
+        box-shadow: 0 8px 24px rgba(0,0,0,.12); z-index: 9999;
+        max-height: 220px; overflow-y: auto; display: none;
+    }
+    .loc-dropdown.open { display: block; }
+    .loc-option {
+        padding: 10px 14px; cursor: pointer; font-size: 13px; line-height: 1.4;
+        border-bottom: 1px solid #f5f5f5; display: flex; align-items: flex-start; gap: 8px;
+    }
+    .loc-option:last-child { border-bottom: none; }
+    .loc-option:hover { background: #f0f4ff; }
+    .loc-option-pin { flex-shrink: 0; margin-top: 1px; }
+    .loc-option-name { font-weight: 600; color: #111; }
+    .loc-option-sub { color: #888; font-size: 12px; }
+
     .social-link-item { display: flex; gap: 8px; margin-bottom: 8px; }
     .social-link-item input { flex: 1; }
     .btn-remove-social { background: #FF2323; color: white; border: none; border-radius: 8px; padding: 0 14px; cursor: pointer; font-weight: bold; }
@@ -253,10 +291,18 @@
             <div>
                 <h2 class="section-title">สถานที่และเวลาที่หาย</h2>
                 <div class="field">
-                    <label>คลิกปักหมุดบนแผนที่เพื่อระบุตำแหน่งที่หาย <span class="required">*</span></label>
+                    <label>ค้นหาหรือคลิกปักหมุดบนแผนที่ <span class="required">*</span></label>
+                    <div class="loc-search-wrap">
+                        <input type="text" id="locSearchInput" class="loc-search-input"
+                               placeholder="🔍 พิมพ์ชื่อสถานที่ เช่น ลาดพร้าว 71, Central World...">
+                        <span class="loc-search-icon" id="locSearchIcon">🔍</span>
+                        <div class="loc-search-loading" id="locSearchLoading"></div>
+                        <div class="loc-dropdown" id="locDropdown"></div>
+                    </div>
                     <div id="map" class="map-container"></div>
                     <input type="hidden" name="latitude" id="latitude" required>
                     <input type="hidden" name="longitude" id="longitude" required>
+                    <div id="pinHint" style="font-size:12px;color:#888;margin-top:4px;">📍 ยังไม่ได้ระบุตำแหน่ง — ค้นหาหรือคลิกบนแผนที่</div>
                 </div>
                 <div class="field">
                     <label for="location_name">รายละเอียดสถานที่ สั้นๆ <span class="required">*</span></label>
@@ -401,13 +447,90 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => map.invalidateSize(), 200);
 
     let marker;
-    map.on('click', function(e) {
+    function placePin(lat, lng, label) {
         if (marker) map.removeLayer(marker);
-        marker = L.marker([e.latlng.lat, e.latlng.lng]).addTo(map);
-        document.getElementById('latitude').value = e.latlng.lat.toFixed(6);
-        document.getElementById('longitude').value = e.latlng.lng.toFixed(6);
+        marker = L.marker([lat, lng]).addTo(map);
+        if (label) marker.bindPopup(label).openPopup();
+        document.getElementById('latitude').value = lat.toFixed(6);
+        document.getElementById('longitude').value = lng.toFixed(6);
+        document.getElementById('pinHint').textContent = `📍 ตำแหน่งที่เลือก: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        document.getElementById('pinHint').style.color = '#1a7a4a';
         checkFormValid();
+    }
+
+    map.on('click', function(e) {
+        placePin(e.latlng.lat, e.latlng.lng, '');
     });
+
+    // ── Location Search (Nominatim) ──
+    const searchInput  = document.getElementById('locSearchInput');
+    const dropdown     = document.getElementById('locDropdown');
+    const loadingSpinner = document.getElementById('locSearchLoading');
+    const searchIcon   = document.getElementById('locSearchIcon');
+    let searchTimer;
+
+    searchInput.addEventListener('input', function() {
+        const q = this.value.trim();
+        clearTimeout(searchTimer);
+        dropdown.classList.remove('open');
+        if (q.length < 2) return;
+        searchTimer = setTimeout(() => searchLocation(q), 500);
+    });
+
+    searchInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') dropdown.classList.remove('open');
+    });
+
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.loc-search-wrap')) dropdown.classList.remove('open');
+    });
+
+    async function searchLocation(q) {
+        loadingSpinner.style.display = 'block';
+        searchIcon.style.display = 'none';
+        try {
+            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&countrycodes=th&limit=6&addressdetails=1`;
+            const res = await fetch(url, { headers: { 'Accept-Language': 'th,en' } });
+            const data = await res.json();
+            renderDropdown(data);
+        } catch(err) {
+            dropdown.innerHTML = '<div class="loc-option"><span class="loc-option-name" style="color:#dc2626;">ค้นหาไม่สำเร็จ ลองใหม่</span></div>';
+            dropdown.classList.add('open');
+        } finally {
+            loadingSpinner.style.display = 'none';
+            searchIcon.style.display = 'block';
+        }
+    }
+
+    function renderDropdown(results) {
+        if (!results.length) {
+            dropdown.innerHTML = '<div class="loc-option"><span class="loc-option-name" style="color:#888;">ไม่พบสถานที่ ลองพิมพ์ใหม่</span></div>';
+            dropdown.classList.add('open');
+            return;
+        }
+        dropdown.innerHTML = '';
+        results.forEach(r => {
+            const main = r.namedetails?.name || r.name || r.display_name.split(',')[0];
+            const sub  = r.display_name.split(',').slice(1, 3).join(',').trim();
+            const div  = document.createElement('div');
+            div.className = 'loc-option';
+            div.innerHTML = `<span class="loc-option-pin">📍</span><div><div class="loc-option-name">${main}</div><div class="loc-option-sub">${sub}</div></div>`;
+            div.addEventListener('click', () => {
+                const lat = parseFloat(r.lat);
+                const lng = parseFloat(r.lon);
+                placePin(lat, lng, main);
+                map.setView([lat, lng], 16);
+                // เติมช่องรายละเอียดถ้ายังว่าง
+                const locName = document.getElementById('location_name');
+                if (!locName.value) locName.value = main;
+                searchInput.value = main;
+                dropdown.classList.remove('open');
+                checkFormValid();
+            });
+            dropdown.appendChild(div);
+        });
+        dropdown.classList.add('open');
+    }
 
     let uploadedFiles = [];
     const maxFiles = 5;
