@@ -635,12 +635,12 @@ def product_list(request):
 
 
 def product_go(request, product_id):
-    """Redirect ไปยัง external_link ของสินค้า
-    — ตัด tracking tokens (Shopee sp_atk, Lazada spm ฯลฯ) ออกอัตโนมัติ
-    เพื่อป้องกัน 400 จาก expired session tokens
+    """นำทางไปร้านค้าภายนอก
+    — ใช้ HTML page + no-referrer แทน HTTP redirect
+      เพื่อป้องกัน Shopee/Lazada บล็อก Referer จากเว็บเรา
+    — ตัด tracking tokens (sp_atk, utm_* ฯลฯ) อัตโนมัติ
     """
-    from django.http import HttpResponseRedirect
-    from urllib.parse import urlparse, urlencode, parse_qsl
+    from urllib.parse import urlparse, urlencode, parse_qsl, unquote
 
     product = get_object_or_404(Product, id=product_id, is_active=True)
     url = (product.external_link or '').strip()
@@ -652,34 +652,29 @@ def product_go(request, product_id):
     if not url.startswith(('http://', 'https://')):
         url = 'https://' + url
 
-    # ── ตัด tracking params ที่หมดอายุได้ ──────────────────────────
-    # Shopee: sp_atk, xptdk, extraParams, sp_ref, from, ...
-    # Lazada: spm, scm, abbucket, clickTrackInfo, ...
-    # Facebook: fbclid  /  Google: utm_* / gclid / gclsrc
+    # ── ตัด tracking params ──────────────────────────────────────────
     _STRIP_PARAMS = {
-        # Shopee
         'sp_atk', 'xptdk', 'extraParams', 'sp_ref', 'from',
         'sp_ref_sec', 'sp_ref_mkt', 'sp_ref_prefix',
-        # Lazada
         'spm', 'scm', 'abbucket', 'clickTrackInfo', 'pos',
         'algArgs', 'acm', 'recoSign',
-        # General UTM / ads
         'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
         'fbclid', 'gclid', 'gclsrc', 'msclkid', '_ga',
     }
     try:
-        from urllib.parse import unquote
         parsed = urlparse(url)
-        # decode path → Thai chars แทน %E0%B8%81... (Shopee ต้องการแบบนี้)
-        decoded_path = unquote(parsed.path)
         clean_qs = urlencode(
             [(k, v) for k, v in parse_qsl(parsed.query) if k not in _STRIP_PARAMS]
         )
-        url = parsed._replace(path=decoded_path, query=clean_qs).geturl()
+        url = parsed._replace(query=clean_qs).geturl()
     except Exception:
-        pass  # ถ้า parse ไม่ได้ใช้ URL เดิม
+        pass
 
-    return HttpResponseRedirect(url)
+    # ── render HTML page (ไม่ส่ง Referer ไปให้ร้านค้า) ──────────────
+    return render(request, 'pet_core/product_redirect.html', {
+        'product': product,
+        'shop_url': url,
+    })
 
 
 def product_detail(request, product_id):
