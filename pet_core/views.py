@@ -413,29 +413,34 @@ def search_pet(request):
             ai_pet_type = ai_detection.get('pet_type')
             ai_conf = ai_detection.get('confidence', 0)
 
-            # AI suggest แสดงเป็นข้อความ — แต่ไม่ filter เข้ม (เป็น soft boost ตอน scoring)
             # __any__ = ผู้ใช้เลือก "อื่นๆ/ทั้งหมด" → ไม่ filter ประเภทเลย
             any_type = (selected_pet_type == '__any__')
             user_picked_type = bool(selected_pet_type) and not any_type
-            if not selected_pet_type and ai_pet_type and ai_conf > 0.30:
-                selected_pet_type = ai_pet_type  # โชว์ที่ UI เฉยๆ
+
+            # "AI ตรวจให้" (ไม่ได้เลือก): ถ้า AI มั่นใจ ≥40% → auto filter ด้วย AI type
+            auto_filter_type = None
+            if not selected_pet_type and ai_pet_type and ai_conf >= 0.40:
+                selected_pet_type = ai_pet_type   # โชว์ที่ UI
+                auto_filter_type = ai_pet_type    # ใช้ filter ด้วย
                 auto_detected = True
 
             if query_vector is not None:
                 qs = PetImage.objects.filter(
                     feature_vector__isnull=False,
-                    pet_post__status='active',  # ❗ ไม่ค้นเจอโพสต์ที่ปิดแล้ว
+                    pet_post__status='active',
                 ).select_related('pet_post')
 
-                # Hard filter เฉพาะตอนผู้ใช้เลือกประเภทแบบเฉพาะเจาะจง
-                # ('อื่นๆ/ทั้งหมด' หรือ auto-detect → ไม่ filter, ให้ AI หาทุกประเภท)
-                if user_picked_type:
-                    qs = qs.filter(pet_post__pet_type__iexact=selected_pet_type)
+                # Hard filter ประเภทสัตว์
+                # - user เลือกเอง → filter ตามที่เลือก
+                # - AI detect มั่นใจ ≥40% → filter ตาม AI
+                # - "อื่นๆ/ทั้งหมด" หรือ AI ไม่มั่นใจ → ไม่ filter
+                filter_type = selected_pet_type if user_picked_type else auto_filter_type
+                if filter_type:
+                    qs = qs.filter(pet_post__pet_type__iexact=filter_type)
                 if selected_post_type in ('lost', 'found'):
                     qs = qs.filter(pet_post__post_type=selected_post_type)
 
-                # ดึงทั้งหมดมาเทียบ (ไม่มี threshold) → re-rank → ตัดเหลือ 24
-                # ผ่อนสุดทางเพื่อให้แสดงผลเยอะที่สุด — เรียงลำดับโดย similarity ดี-แย่
+                # ดึงมาเทียบ → re-rank → ตัดเหลือ 24
                 similar = qs.annotate(
                     distance=CosineDistance('feature_vector', query_vector)
                 ).order_by('distance')[:200]

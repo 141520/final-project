@@ -258,11 +258,11 @@
       <div class="filter-row">
         <span class="filter-label">ประเภทสัตว์:</span>
         <button type="button" class="chip pet-type-chip {% if not selected_pet_type %}active{% endif %}" data-value="">AI ตรวจให้</button>
-        <button type="button" class="chip pet-type-chip {% if selected_pet_type == 'สุนัข' %}active{% endif %}" data-value="สุนัข">🐶 สุนัข</button>
-        <button type="button" class="chip pet-type-chip {% if selected_pet_type == 'แมว' %}active{% endif %}" data-value="แมว">🐱 แมว</button>
-        <button type="button" class="chip pet-type-chip {% if selected_pet_type == 'นก' %}active{% endif %}" data-value="นก">🐦 นก</button>
-        <button type="button" class="chip pet-type-chip {% if selected_pet_type == 'กระต่าย' %}active{% endif %}" data-value="กระต่าย">🐰 กระต่าย</button>
-        <button type="button" class="chip pet-type-chip {% if selected_pet_type == 'เต่า' %}active{% endif %}" data-value="เต่า">🐢 เต่า</button>
+        <button type="button" class="chip pet-type-chip {% if selected_pet_type == 'Dog' %}active{% endif %}" data-value="Dog">🐶 สุนัข</button>
+        <button type="button" class="chip pet-type-chip {% if selected_pet_type == 'Cat' %}active{% endif %}" data-value="Cat">🐱 แมว</button>
+        <button type="button" class="chip pet-type-chip {% if selected_pet_type == 'Bird' %}active{% endif %}" data-value="Bird">🐦 นก</button>
+        <button type="button" class="chip pet-type-chip {% if selected_pet_type == 'Rabbit' %}active{% endif %}" data-value="Rabbit">🐰 กระต่าย</button>
+        <button type="button" class="chip pet-type-chip {% if selected_pet_type == 'Reptile' %}active{% endif %}" data-value="Reptile">🐢 เต่า/สัตว์เลื้อยคลาน</button>
         <button type="button" class="chip pet-type-chip {% if selected_pet_type == '__any__' %}active{% endif %}" data-value="__any__">✨ อื่นๆ / ทั้งหมด</button>
         <input type="hidden" name="pet_type" id="pet_type_hidden" value="{{ selected_pet_type }}">
       </div>
