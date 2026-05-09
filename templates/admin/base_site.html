@@ -5,142 +5,276 @@
 
 {% block branding %}
 <h1 id="site-name">
-  <a href="{% url 'admin:index' %}">
-    🐾 TarmRoy Admin
-  </a>
+  <a href="{% url 'admin:index' %}">🐾 TarmRoy Admin</a>
 </h1>
 {% endblock %}
 
 {% block extrastyle %}
 {{ block.super }}
 <style>
-  /* ===== ฟอนต์ ===== */
-  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai+Looped:wght@400;600;700&display=swap');
-  #site-name, body, .module, .form-row, td, th, input, select, textarea, button, .submit-row {
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai+Looped:wght@400;500;600;700&display=swap');
+
+  /* ── ฟอนต์ทั้งเว็บ ── */
+  *, body, td, th, input, select, textarea, button, .module, .form-row, .submit-row {
     font-family: 'IBM Plex Sans Thai Looped', 'Segoe UI', sans-serif !important;
   }
 
-  /* ===== Header ===== */
+  /* ── พื้นหลังทั้งหน้า ── */
+  html, body { background: #F4F6FB !important; }
+
+  /* ════════════════════════════════
+     HEADER  — ฟ้าอ่อน สว่าง
+  ════════════════════════════════ */
   #header {
-    background: linear-gradient(135deg, #021F74 0%, #0a3a9e 100%) !important;
-    box-shadow: 0 2px 12px rgba(2,31,116,.3);
+    background: #fff !important;
+    border-bottom: 2px solid #E2E8F8 !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,.06) !important;
+    padding: 12px 20px !important;
   }
-  #header a, #header a:visited { color: #fff; }
-  #site-name a { font-size: 22px; font-weight: 700; letter-spacing: -.3px; }
-
-  /* ===== Breadcrumb ===== */
-  div.breadcrumbs {
-    background: #e8edf8 !important;
-    color: #021F74 !important;
-    border-bottom: 1px solid #c8d3ef;
-  }
-  div.breadcrumbs a { color: #021F74 !important; }
-
-  /* ===== Nav bar links ===== */
-  #user-tools { font-size: 13px; }
-  #user-tools a { color: #cdd8ff !important; }
-  #user-tools a:hover { color: #fff !important; }
-
-  /* ===== Module headers (section titles) ===== */
-  .module caption, .module h2, .module > h2 {
-    background: #021F74 !important;
-    color: white !important;
+  #site-name a {
+    color: #1A3A8F !important;
+    font-size: 20px;
     font-weight: 700;
-    border-radius: 6px 6px 0 0;
+    letter-spacing: -.3px;
+  }
+  #user-tools { font-size: 13px; }
+  #user-tools a, #user-tools a:visited { color: #4A6FA5 !important; font-weight: 600; }
+  #user-tools a:hover { color: #1A3A8F !important; }
+
+  /* ════════════════════════════════
+     BREADCRUMB
+  ════════════════════════════════ */
+  div.breadcrumbs {
+    background: #EEF2FB !important;
+    color: #4A6FA5 !important;
+    border-bottom: 1px solid #D8E1F5 !important;
+    font-size: 13px;
+    padding: 8px 20px !important;
+  }
+  div.breadcrumbs a { color: #1A3A8F !important; text-decoration: none; }
+  div.breadcrumbs a:hover { text-decoration: underline; }
+
+  /* ════════════════════════════════
+     CONTENT AREA
+  ════════════════════════════════ */
+  #content { background: #F4F6FB !important; }
+  #content-main { background: transparent !important; }
+
+  /* ════════════════════════════════
+     MODULE / SECTION HEADERS
+  ════════════════════════════════ */
+  .module { background: #fff !important; border-radius: 12px !important; box-shadow: 0 1px 6px rgba(0,0,0,.07) !important; border: 1px solid #E2E8F8 !important; overflow: hidden; margin-bottom: 18px !important; }
+  .module caption, .module h2, .module > h2 {
+    background: #EEF2FB !important;
+    color: #1A3A8F !important;
+    font-weight: 700 !important;
+    font-size: 14px !important;
+    border-bottom: 2px solid #D8E1F5 !important;
+    padding: 10px 16px !important;
+    border-radius: 0 !important;
   }
 
-  /* ===== App section headers on index ===== */
-  #content-main .app-pet_core .section h2,
-  #content-main .app-auth .section h2,
-  .app-pet_core > caption,
-  .app-auth > caption {
-    background: #021F74 !important;
-    color: white !important;
+  /* ════════════════════════════════
+     TABLE (list view)
+  ════════════════════════════════ */
+  #result_list { border-collapse: collapse; width: 100%; }
+  #result_list thead th {
+    background: #EEF2FB !important;
+    color: #1A3A8F !important;
+    font-weight: 700 !important;
+    font-size: 13px;
+    border-bottom: 2px solid #D8E1F5 !important;
+    padding: 10px 12px !important;
   }
+  #result_list thead th a { color: #1A3A8F !important; }
+  #result_list tr { border-bottom: 1px solid #EEF2FB; }
+  #result_list tr:nth-child(even) { background: #F9FAFE !important; }
+  #result_list tr:hover { background: #EEF2FB !important; }
+  #result_list td { padding: 9px 12px !important; font-size: 13.5px; vertical-align: middle; }
+  .paginator { color: #4A6FA5; font-size: 13px; padding: 8px 0; }
 
-  /* ===== Buttons ===== */
-  .button, input[type=submit], .submit-row input {
-    background: #021F74 !important;
-    border-color: #021F74 !important;
+  /* ════════════════════════════════
+     BUTTONS
+  ════════════════════════════════ */
+  .button, input[type=submit], .submit-row input, .submit-row a.deletelink {
     border-radius: 8px !important;
     font-weight: 600 !important;
+    font-size: 13px !important;
+    padding: 8px 18px !important;
+    border: none !important;
+    cursor: pointer;
+    transition: opacity .15s, box-shadow .15s;
   }
-  .button:hover, input[type=submit]:hover { background: #0a3a9e !important; }
-  .button.default { background: #E74C3C !important; border-color: #E74C3C !important; }
-  .button.default:hover { background: #c0392b !important; }
+  .button, input[type=submit], .submit-row input[type=submit] {
+    background: #1A3A8F !important;
+    color: #fff !important;
+  }
+  .button:hover, input[type=submit]:hover { opacity: .88; }
+  .button.default { background: #2ECC71 !important; }
+  .submit-row a.deletelink { background: #E74C3C !important; color: #fff !important; }
+  .submit-row a.deletelink:hover { opacity: .85; }
 
-  /* ===== Links ===== */
-  a:link, a:visited { color: #021F74; }
+  /* inline add row */
+  .add-row a { color: #1A3A8F !important; font-weight: 600; }
 
-  /* ===== List rows ===== */
-  #result_list tr:nth-child(odd) { background: #f7f9ff; }
-  #result_list tr:hover { background: #eef2ff !important; }
-  thead th { background: #021F74 !important; color: white !important; }
+  /* ════════════════════════════════
+     LINKS
+  ════════════════════════════════ */
+  a:link, a:visited { color: #1A3A8F; }
+  a:hover { color: #2D5EC7; }
 
-  /* ===== Sidebar ===== */
+  /* ════════════════════════════════
+     SIDEBAR / FILTER
+  ════════════════════════════════ */
+  #changelist-filter {
+    background: #fff !important;
+    border: 1px solid #E2E8F8 !important;
+    border-radius: 12px !important;
+    overflow: hidden;
+  }
   #changelist-filter h2 {
-    background: #DEAD6F !important;
-    color: #41403E !important;
+    background: #EEF2FB !important;
+    color: #1A3A8F !important;
     font-weight: 700;
+    font-size: 13px;
+    border-bottom: 1px solid #D8E1F5;
+    padding: 10px 14px;
   }
-  #changelist-filter h3 { font-weight: 700; color: #021F74; }
-  #changelist-filter li.selected a { color: #021F74; font-weight: 700; }
+  #changelist-filter h3 { color: #1A3A8F; font-size: 12px; padding: 8px 14px 4px; }
+  #changelist-filter ul { margin: 0; padding: 0 0 8px; }
+  #changelist-filter li { list-style: none; padding: 3px 14px; font-size: 13px; }
+  #changelist-filter li.selected a { color: #1A3A8F !important; font-weight: 700; }
+  #changelist-filter a { color: #4A6FA5; text-decoration: none; }
+  #changelist-filter a:hover { color: #1A3A8F; }
 
-  /* ===== Dashboard cards ===== */
+  /* ════════════════════════════════
+     FORMS
+  ════════════════════════════════ */
+  .form-row { border-bottom: 1px solid #EEF2FB !important; padding: 10px 14px !important; }
+  fieldset { background: #fff !important; border: 1px solid #E2E8F8 !important; border-radius: 10px !important; padding: 0 0 10px !important; margin-bottom: 16px !important; }
+  fieldset h2 { background: #EEF2FB !important; color: #1A3A8F !important; border-radius: 8px 8px 0 0 !important; border-bottom: 1px solid #D8E1F5 !important; font-size: 13px !important; padding: 10px 14px !important; margin-bottom: 0 !important; }
+  fieldset.collapse-closed { border-color: #E2E8F8 !important; }
+
+  input[type=text], input[type=url], input[type=email], input[type=number],
+  input[type=password], textarea, select {
+    border: 1.5px solid #D0D8EE !important;
+    border-radius: 7px !important;
+    padding: 7px 10px !important;
+    font-size: 14px !important;
+    background: #FAFBFF !important;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  input:focus, textarea:focus, select:focus {
+    border-color: #1A3A8F !important;
+    box-shadow: 0 0 0 3px rgba(26,58,143,.1) !important;
+    outline: none !important;
+  }
+  label { font-size: 13px; color: #374151; font-weight: 600; }
+  .help { font-size: 12px !important; color: #6B7280 !important; margin-top: 4px; }
+
+  /* ════════════════════════════════
+     MESSAGES / ALERTS
+  ════════════════════════════════ */
+  .messagelist { padding: 0 20px; }
+  .messagelist li {
+    border-radius: 8px; padding: 10px 16px; margin-bottom: 8px;
+    font-size: 13.5px; font-weight: 500;
+    border-left: 4px solid transparent;
+  }
+  .messagelist li.success { background: #DCFCE7; color: #166534; border-color: #22C55E; }
+  .messagelist li.warning { background: #FEF9C3; color: #854D0E; border-color: #EAB308; }
+  .messagelist li.error   { background: #FEE2E2; color: #991B1B; border-color: #EF4444; }
+
+  /* ════════════════════════════════
+     ACTION BAR
+  ════════════════════════════════ */
+  .actions { background: #EEF2FB !important; border: 1px solid #D8E1F5 !important; border-radius: 8px; padding: 8px 12px !important; margin-bottom: 12px; }
+  select#action-select { border-radius: 6px !important; border-color: #D0D8EE !important; background: #fff !important; }
+  .action-counter { color: #1A3A8F; font-weight: 700; }
+
+  /* ════════════════════════════════
+     SUBMIT ROW
+  ════════════════════════════════ */
+  .submit-row {
+    background: #EEF2FB !important;
+    border-top: 1px solid #D8E1F5 !important;
+    border-radius: 0 0 10px 10px;
+    padding: 12px 16px !important;
+  }
+
+  /* ════════════════════════════════
+     INLINE TABLES
+  ════════════════════════════════ */
+  .inline-group { background: #fff !important; border: 1px solid #E2E8F8 !important; border-radius: 10px !important; overflow: hidden; margin-bottom: 16px; }
+  .inline-group h2 { background: #EEF2FB !important; color: #1A3A8F !important; border-bottom: 1px solid #D8E1F5 !important; font-size: 13px !important; padding: 10px 14px !important; }
+  .inline-related { border-bottom: 1px solid #EEF2FB !important; }
+
+  /* ════════════════════════════════
+     DASHBOARD STAT CARDS
+  ════════════════════════════════ */
   .tarmroy-stats {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 14px;
-    margin-bottom: 24px;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
   }
   .tarmroy-stat {
-    background: linear-gradient(135deg, #021F74, #0a3a9e);
-    color: white;
+    background: #fff;
+    border: 1.5px solid #E2E8F8;
     border-radius: 12px;
-    padding: 16px 20px;
+    padding: 16px 14px;
     text-align: center;
-    box-shadow: 0 4px 12px rgba(2,31,116,.2);
+    box-shadow: 0 1px 4px rgba(0,0,0,.05);
+    transition: box-shadow .2s;
   }
-  .tarmroy-stat .num { font-size: 32px; font-weight: 700; line-height: 1.1; }
-  .tarmroy-stat .lbl { font-size: 12px; opacity: .85; margin-top: 4px; }
-  .tarmroy-stat.gold { background: linear-gradient(135deg, #DEAD6F, #f0c040); color: #41403E; }
-  .tarmroy-stat.red  { background: linear-gradient(135deg, #E74C3C, #c0392b); }
+  .tarmroy-stat:hover { box-shadow: 0 4px 14px rgba(26,58,143,.1); }
+  .tarmroy-stat .num { font-size: 30px; font-weight: 700; line-height: 1.1; color: #1A3A8F; }
+  .tarmroy-stat .lbl { font-size: 12px; color: #6B7280; margin-top: 5px; }
+  .tarmroy-stat.blue  { border-top: 3px solid #3B82F6; }
+  .tarmroy-stat.red   { border-top: 3px solid #EF4444; } .tarmroy-stat.red .num   { color: #DC2626; }
+  .tarmroy-stat.green { border-top: 3px solid #22C55E; } .tarmroy-stat.green .num { color: #16A34A; }
+  .tarmroy-stat.gold  { border-top: 3px solid #F59E0B; } .tarmroy-stat.gold .num  { color: #D97706; }
+  .tarmroy-stat.purple{ border-top: 3px solid #A855F7; } .tarmroy-stat.purple .num{ color: #9333EA; }
 
-  /* ===== Description text in fieldsets ===== */
-  .help, .field-help {
+  /* ════════════════════════════════
+     DATE HIERARCHY
+  ════════════════════════════════ */
+  #changelist .xfull { font-size: 13px; color: #4A6FA5; }
+
+  /* ════════════════════════════════
+     OBJECT TOOLS (ปุ่มมุมขวาบน)
+  ════════════════════════════════ */
+  .object-tools a {
+    background: #1A3A8F !important;
+    color: #fff !important;
+    border-radius: 8px !important;
     font-size: 12px !important;
-    color: #667479 !important;
+    padding: 6px 14px !important;
+    font-weight: 600 !important;
   }
-  fieldset.collapse { border: 1px solid #e0e4ef !important; }
+  .object-tools a:hover { opacity: .85; }
+  .object-tools a.addlink { background: #2ECC71 !important; }
+  .object-tools a.deletelink { background: #EF4444 !important; }
 
-  /* ===== Form inputs ===== */
-  input[type=text], input[type=url], input[type=email], input[type=number],
-  textarea, select {
-    border-radius: 6px !important;
-    border-color: #c5ceea !important;
+  /* ════════════════════════════════
+     FOOTER
+  ════════════════════════════════ */
+  #footer {
+    background: #fff !important;
+    border-top: 1px solid #E2E8F8 !important;
+    color: #9CA3AF;
+    font-size: 12px;
+    padding: 10px 20px;
+    text-align: center;
   }
-  input[type=text]:focus, input[type=url]:focus, textarea:focus {
-    border-color: #021F74 !important;
-    outline: 2px solid rgba(2,31,116,.15) !important;
-  }
-
-  /* ===== Alert/message ===== */
-  .messagelist li.success { background: #d4edda; color: #155724; border-radius: 8px; }
-  .messagelist li.warning { background: #fff3cd; color: #856404; border-radius: 8px; }
-  .messagelist li.error   { background: #f8d7da; color: #721c24; border-radius: 8px; }
-
-  /* ===== Action bar ===== */
-  .action-counter { color: #021F74; font-weight: 700; }
-  select#action-select { border-radius: 6px; border-color: #c5ceea; }
-
-  /* ===== Footer ===== */
-  #footer { background: #f0f2fa; border-top: 1px solid #dde2f0; color: #908F8D; font-size: 12px; padding: 10px 20px; }
+  #footer a { color: #1A3A8F; }
 </style>
 {% endblock %}
 
 {% block footer %}
 <div id="footer">
-  🐾 TarmRoy Admin · <a href="/" target="_blank" style="color:#021F74;">เปิดหน้าเว็บ ↗</a> ·
-  <span style="color:#908F8D;">ระบบจัดการ TarmRoy สำหรับ Admin เท่านั้น</span>
+  🐾 TarmRoy Admin &nbsp;·&nbsp;
+  <a href="/" target="_blank">เปิดหน้าเว็บ ↗</a> &nbsp;·&nbsp;
+  <span>ระบบจัดการสำหรับ Admin เท่านั้น</span>
 </div>
 {% endblock %}
