@@ -230,6 +230,10 @@
                 <a href="{% url 'found_pet_list' %}" class="btn-solid">ดูประกาศสัตว์ที่พบ</a>
                 <a href="{% url 'search_pet' %}" class="btn-outline">🤖 ค้นหาด้วย AI</a>
             </div>
+            <div class="hero-btns" style="margin-top:10px;">
+                <a href="{% url 'report_lost' %}" class="btn-solid" style="background:#E74C3C;border-color:#E74C3C;">🐾 ลงประกาศสัตว์หาย</a>
+                <a href="{% url 'report_found' %}" class="btn-solid" style="background:#27AE60;border-color:#27AE60;">🐾 ลงประกาศสัตว์ที่พบ</a>
+            </div>
         </div>
         <div class="hero-img">
             <img src="{% static 'images/woman-corgi-is.png' %}" alt="น้องหายไปเหรอ? เราจะช่วยคุณหาเอง!"

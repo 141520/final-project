@@ -292,7 +292,12 @@ def _build_post_from_form(request, post_type):
     if p_type == 'Other':
         p_type = request.POST.get('pet_type_other', '').strip()
 
-    final_age = f"{request.POST.get('age_num', '').strip()} {request.POST.get('age_unit', '').strip()}".strip()
+    age_year  = request.POST.get('age_year', '').strip()
+    age_month = request.POST.get('age_month', '').strip()
+    age_parts = []
+    if age_year:  age_parts.append(f"{age_year} ปี")
+    if age_month: age_parts.append(f"{age_month} เดือน")
+    final_age = ' '.join(age_parts)
 
     data = dict(
         post_type=post_type,
