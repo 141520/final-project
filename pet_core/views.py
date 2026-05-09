@@ -638,8 +638,10 @@ def product_go(request, product_id):
     """นำทางไปร้านค้าภายนอก
     — ใช้ HTML page + no-referrer แทน HTTP redirect
       เพื่อป้องกัน Shopee/Lazada บล็อก Referer จากเว็บเรา
-    — ตัด tracking tokens (sp_atk, utm_* ฯลฯ) อัตโนมัติ
+    — Shopee: แปลง → canonical /product/{shop}/{item} (ไม่มีภาษาไทย/tracking)
+    — อื่นๆ: decode percent-encoded path + ตัด tracking params
     """
+    import re
     from urllib.parse import urlparse, urlencode, parse_qsl, unquote
 
     product = get_object_or_404(Product, id=product_id, is_active=True)
@@ -652,39 +654,59 @@ def product_go(request, product_id):
     if not url.startswith(('http://', 'https://')):
         url = 'https://' + url
 
-    import re
-    from urllib.parse import urlparse, urlencode, parse_qsl, unquote, quote
-
-    # ── 1) Shopee: แปลงทุก format → canonical /product/{shop}/{item} ──
-    # รองรับ: shopee.co.th, shopee.com, th.shp.ee (short link)
     is_shopee = any(d in url for d in ('shopee.co.th', 'shopee.com', 'shp.ee'))
-    shopee_match = re.search(r'[._/](\d{6,})[._](\d{6,})', url)  # i.799934388.22758121851
-    if not shopee_match:
-        shopee_match = re.search(r'i\.(\d+)\.(\d+)', url)
-    if is_shopee and shopee_match:
-        shop_id = shopee_match.group(1)
-        item_id = shopee_match.group(2)
-        url = f'https://shopee.co.th/product/{shop_id}/{item_id}'
+
+    if is_shopee:
+        # ── ขั้น 1: decode percent-encoded Thai ก่อน ──────────────────────
+        decoded = unquote(url)
+
+        # ── ขั้น 2: ค้นหา -i.SHOPID.ITEMID เฉพาะใน PATH (ก่อน ?) ──────
+        # แยก path ออกก่อน — ป้องกัน match เลขใน extraParams/sp_atk ผิดพลาด
+        path_only = decoded.split('?')[0]
+        match = re.search(r'-i\.(\d+)\.(\d+)', path_only)   # รูปแบบมาตรฐาน
+        if not match:
+            match = re.search(r'i\.(\d+)\.(\d+)', path_only)  # fallback
+
+        if match:
+            # ── ขั้น 3a: canonical URL — ไม่มีภาษาไทย ไม่มี tracking ────
+            url = f'https://shopee.co.th/product/{match.group(1)}/{match.group(2)}'
+        else:
+            # ── ขั้น 3b: ไม่เจอ ID — ใช้ decoded path + ตัด tracking ───
+            # สร้าง URL ใหม่แบบ manual (ไม่ผ่าน geturl() เพราะจะ re-encode Thai)
+            _STRIP = {
+                'sp_atk', 'xptdk', 'extraParams', 'sp_ref', 'from',
+                'sp_ref_sec', 'sp_ref_mkt', 'sp_ref_prefix',
+                'spm', 'scm', 'abbucket', 'clickTrackInfo', 'pos',
+                'algArgs', 'acm', 'recoSign',
+                'utm_source', 'utm_medium', 'utm_campaign', 'utm_term',
+                'utm_content', 'fbclid', 'gclid', 'gclsrc', 'msclkid', '_ga',
+            }
+            try:
+                parsed = urlparse(decoded)
+                clean_qs = urlencode(
+                    [(k, v) for k, v in parse_qsl(parsed.query) if k not in _STRIP]
+                )
+                # ต่อ URL แบบ manual — path เป็น Thai (decoded) ไม่ถูก encode ซ้ำ
+                base = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
+                url = f"{base}?{clean_qs}" if clean_qs else base
+            except Exception:
+                url = path_only  # worst-case: ใช้แค่ path ที่ decode แล้ว
+
     else:
-        # ── 2) platform อื่น: ตัด tracking params + decode path ─────
-        _STRIP_PARAMS = {
-            'sp_atk', 'xptdk', 'extraParams', 'sp_ref', 'from',
-            'sp_ref_sec', 'sp_ref_mkt', 'sp_ref_prefix',
-            'spm', 'scm', 'abbucket', 'clickTrackInfo', 'pos',
-            'algArgs', 'acm', 'recoSign',
+        # ── platform อื่น: ตัด tracking params ────────────────────────────
+        _STRIP = {
             'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
             'fbclid', 'gclid', 'gclsrc', 'msclkid', '_ga',
         }
         try:
             parsed = urlparse(url)
             clean_qs = urlencode(
-                [(k, v) for k, v in parse_qsl(parsed.query) if k not in _STRIP_PARAMS]
+                [(k, v) for k, v in parse_qsl(parsed.query) if k not in _STRIP]
             )
             url = parsed._replace(query=clean_qs).geturl()
         except Exception:
             pass
 
-    # ── 3) render HTML page (ไม่ส่ง Referer ไปให้ร้านค้า) ────────────
     return render(request, 'pet_core/product_redirect.html', {
         'product': product,
         'shop_url': url,
