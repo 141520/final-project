@@ -261,14 +261,19 @@ class Product(models.Model):
 
     @property
     def all_image_urls(self):
-        """รวมรูปทั้งหมด: main image (ถ้ามี) + extra images — สำหรับ swipeable gallery"""
+        """รวมรูปทั้งหมด: main image (ถ้ามี) + extra images — สำหรับ swipeable gallery
+        ถ้า table pet_core_productimage ยังไม่ถูก migrate จะ fallback ได้ปลอดภัย
+        """
         urls = []
         if self.image:
             urls.append(self.display_image_url)
-        for ex in self.extra_images.all().order_by('sort_order', 'id'):
-            url = ex.image_url
-            if url and url not in urls:
-                urls.append(url)
+        try:
+            for ex in self.extra_images.all().order_by('sort_order', 'id'):
+                url = ex.image_url
+                if url and url not in urls:
+                    urls.append(url)
+        except Exception:
+            pass  # table ยังไม่ถูก migrate / DB error — แสดงแค่ main image ไปก่อน
         return urls or ["https://placehold.co/600x600?text=No+Image"]
 
 

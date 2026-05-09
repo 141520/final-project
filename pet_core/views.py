@@ -636,9 +636,13 @@ def product_list(request):
 
 def product_detail(request, product_id):
     product = get_object_or_404(Product, id=product_id, is_active=True)
+    try:
+        image_urls = product.all_image_urls
+    except Exception:
+        image_urls = [product.display_image_url] if product.image else ["https://placehold.co/600x600?text=No+Image"]
     return render(request, 'pet_core/product_detail.html', {
         'product': product,
-        'image_urls': product.all_image_urls,
+        'image_urls': image_urls,
     })
 
 
