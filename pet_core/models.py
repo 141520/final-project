@@ -225,6 +225,20 @@ class Product(models.Model):
     def __str__(self):
         return f"{self.name} (฿{self.price})"
 
+    def clean(self):
+        """แปลง Shopee URL เป็น canonical format ก่อนบันทึก
+        เช่น shopee.co.th/สินค้า-i.123456.789 → shopee.co.th/product/123456/789
+        """
+        import re
+        url = (self.external_link or '').strip()
+        if url and any(d in url for d in ('shopee.co.th', 'shopee.com', 'shp.ee')):
+            # รูปแบบ i.{shop_id}.{item_id} ที่ Shopee ใช้ทั่วไป
+            match = re.search(r'[iI]\.(\d{6,})\.(\d{6,})', url)
+            if match:
+                self.external_link = (
+                    f'https://shopee.co.th/product/{match.group(1)}/{match.group(2)}'
+                )
+
     def save(self, *args, **kwargs):
         # คำนวณ promotion_end อัตโนมัติ
         from datetime import timedelta, date
