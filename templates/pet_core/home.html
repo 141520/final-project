@@ -337,42 +337,35 @@
     </div>
 </section>
 
+{% if home_products %}
 <section class="block">
     <div class="section-header">
         <div>
             <h2 class="section-title-lg">🛍️ สินค้าสำหรับสัตว์เลี้ยง</h2>
-            <p class="section-label">อุปกรณ์น่าใช้สำหรับน้องๆ</p>
+            <p class="section-label">สินค้าแนะนำสำหรับน้องๆ</p>
         </div>
-        <a href="{% url 'product_list' %}" class="link-more">ดูเพิ่มเติม</a>
+        <a href="{% url 'product_list' %}" class="link-more">ดูทั้งหมด →</a>
     </div>
     <div class="product-grid">
-        <div class="product-card">
-            <img src="https://placehold.co/264x264?text=SmartTag" alt="Samsung Galaxy SmartTag 2">
+        {% for product in home_products %}
+        <a href="{% url 'product_detail' product.id %}" class="product-card" style="text-decoration:none;">
+            <img src="{{ product.display_image_url }}" alt="{{ product.name }}"
+                 onerror="this.src='https://placehold.co/264x264?text=No+Image';">
             <div class="product-card-body">
-                <div class="product-title">Samsung Galaxy SmartTag 2</div>
-                <p class="product-desc">อุปกรณ์ติดตามสัตว์เลี้ยง รุ่นแนะนำ ไม่ต้องใช้อินเตอร์เน็ต</p>
-                <a href="{% url 'product_list' %}" class="buy-btn">🛍️ ซื้อสินค้า</a>
+                <div class="product-title">{{ product.name }}</div>
+                <p class="product-desc">{{ product.description|truncatechars:60 }}</p>
+                {% if product.price and product.price > 0 %}
+                  <div style="font-size:15px;font-weight:700;color:#021F74;">฿{{ product.price|floatformat:0 }}</div>
+                {% endif %}
+                <span class="buy-btn">🛍️ ดูสินค้า</span>
             </div>
-        </div>
-        <div class="product-card">
-            <img src="https://placehold.co/264x264?text=Name+Tag" alt="ป้ายชื่อ">
-            <div class="product-card-body">
-                <div class="product-title">ป้ายชื่อกันน้องหมาน้องแมวหาย</div>
-                <p class="product-desc">ใส่ชื่อได้พร้อมเบอร์โทร น่ารัก สวยดูดี ไม่ซ้ำใคร</p>
-                <a href="{% url 'product_list' %}" class="buy-btn">🛍️ ซื้อสินค้า</a>
-            </div>
-        </div>
-        <div class="product-card">
-            <img src="https://placehold.co/264x264?text=Trackky" alt="ปลอกคอ TRACKKY">
-            <div class="product-card-body">
-                <div class="product-title">ปลอกคอ TRACKKY</div>
-                <p class="product-desc">บลูทูธ สแกนหาแมว กันหาย ปลอกคอแมว มีพิกัด GPS</p>
-                <a href="{% url 'product_list' %}" class="buy-btn">🛍️ ซื้อสินค้า</a>
-            </div>
-        </div>
+        </a>
+        {% endfor %}
     </div>
 </section>
+{% endif %}
 
+{% if home_blogs %}
 <section class="block">
     <div class="section-header">
         <div>
@@ -382,33 +375,18 @@
         <a href="{% url 'blog_list' %}" class="link-more">ดูบทความทั้งหมด →</a>
     </div>
     <div class="article-grid">
-        <a href="{% url 'blog_list' %}" class="article-card" style="text-decoration:none;">
-            <img src="{% static 'images/image 3.png' %}" alt="บทความ"
+        {% for blog in home_blogs %}
+        <a href="{% url 'blog_detail' blog.id %}" class="article-card" style="text-decoration:none;">
+            <img src="{{ blog.display_cover_url }}" alt="{{ blog.title }}"
                  onerror="this.src='https://placehold.co/300x180?text=Article';">
             <div class="article-card-body">
                 <span class="badge-knowledge">Pet knowledge</span>
-                <h3 class="article-title">พลังงานเหลือล้น! ทำความเข้าใจความต้องการออกกำลังกายของสุนัขสายพันธุ์เล็ก</h3>
-                <p class="article-desc">สุนัขขนาดเล็กอาจดูเหมือนไม่ต้องการการออกกำลังกายมากนัก แต่นั่นเป็นความเข้าใจที่ผิด!</p>
+                <h3 class="article-title">{{ blog.title }}</h3>
+                <p class="article-desc">{{ blog.summary|default:blog.title|truncatechars:80 }}</p>
             </div>
         </a>
-        <a href="{% url 'blog_list' %}" class="article-card" style="text-decoration:none;">
-            <img src="{% static 'images/image 3-1.png' %}" alt="บทความ"
-                 onerror="this.src='https://placehold.co/300x180?text=Article';">
-            <div class="article-card-body">
-                <span class="badge-knowledge">Pet knowledge</span>
-                <h3 class="article-title">โภชนาการระดับพรีเมียม: วิธีจัดตารางอาหารที่สมดุลสำหรับสุนัข</h3>
-                <p class="article-desc">อาหารของเพื่อนรักของเรานั้นสำคัญกว่าที่คิด! บทความนี้จะวิเคราะห์ความสำคัญของโปรตีน...</p>
-            </div>
-        </a>
-        <a href="{% url 'blog_list' %}" class="article-card" style="text-decoration:none;">
-            <img src="{% static 'images/image 3-2.png' %}" alt="บทความ"
-                 onerror="this.src='https://placehold.co/300x180?text=Article';">
-            <div class="article-card-body">
-                <span class="badge-knowledge">Pet knowledge</span>
-                <h3 class="article-title">เมื่อความเครียดนำไปสู่การทำลายล้าง: การวินิจฉัยและแก้ไข</h3>
-                <p class="article-desc">โซฟาที่ถูกทำลายยับเยินอาจทำให้เจ้าของหัวเสีย แต่สิ่งสำคัญกว่าคือการทำความเข้าใจสาเหตุ...</p>
-            </div>
-        </a>
+        {% endfor %}
     </div>
 </section>
+{% endif %}
 {% endblock %}

@@ -25,9 +25,8 @@ logger = logging.getLogger(__name__)
 # ---- หน้าหลัก ----
 def home(request):
     """Home — แคช 60 วิ (ผ่าน DB-level cache, render ใหม่ทุกครั้งเพื่อให้ nav แสดง user ปัจจุบัน)"""
-    cached = cache.get('home_data_v2')
+    cached = cache.get('home_data_v3')
     if cached is None:
-        # 1 query for stats (4 counts → 1 aggregate)
         from django.contrib.auth import get_user_model
         User = get_user_model()
         agg = PetPost.objects.aggregate(
@@ -45,6 +44,25 @@ def home(request):
             .only('id', 'name', 'pet_type', 'breed', 'location_name', 'image', 'created_at')
             .order_by('-created_at')[:4]
         )
+
+        # สินค้าโปรโมท: is_active + อยู่ในช่วงโปรโมท (หรือยังไม่ตั้งช่วง) สูงสุด 3 อัน
+        today = date.today()
+        home_products = []
+        for p in Product.objects.filter(is_active=True).order_by('sort_order', '-created_at'):
+            if not p.promotion_start or not p.promotion_end:
+                home_products.append(p)
+            elif p.promotion_start <= today <= p.promotion_end:
+                home_products.append(p)
+            if len(home_products) >= 3:
+                break
+
+        # บทความล่าสุด 3 อัน
+        home_blogs = list(
+            BlogPost.objects.filter(is_published=True)
+            .only('id', 'title', 'summary', 'cover_image', 'published_at', 'author_name')
+            .order_by('-published_at', '-created_at')[:3]
+        )
+
         cached = {
             'recent_lost_pets': recent_lost,
             'recent_found_pets': recent_found,
@@ -52,8 +70,10 @@ def home(request):
             'total_users': User.objects.count(),
             'active_posts': agg['active_posts'],
             'resolved_posts': agg['resolved_posts'],
+            'home_products': home_products,
+            'home_blogs': home_blogs,
         }
-        cache.set('home_data_v2', cached, 60)
+        cache.set('home_data_v3', cached, 60)
 
     return render(request, 'pet_core/home.html', cached)
 
