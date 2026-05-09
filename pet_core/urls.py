@@ -32,6 +32,7 @@ urlpatterns = [
     # สินค้า
     path('products/', views.product_list, name='product_list'),
     path('product/<int:product_id>/', views.product_detail, name='product_detail'),
+    path('go/<int:product_id>/', views.product_go, name='product_go'),  # safe redirect to shop
 
     # บทความ/เคล็ดลับ
     path('blog/', views.blog_list, name='blog_list'),

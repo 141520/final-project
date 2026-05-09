@@ -61,8 +61,11 @@ def manifest(_request):
         return HttpResponse('{}', content_type='application/manifest+json')
 
 
+from pet_core.views import admin_stats_api
+
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('admin/stats/', admin_stats_api, name='admin_stats_api'),
     path('favicon.ico', favicon),
     path('robots.txt', robots_txt),
     path('sw.js', service_worker),

@@ -153,7 +153,7 @@
     {% endif %}
 
     {% if product.external_link %}
-      <a href="{{ product.external_link }}" target="_blank" rel="noopener" class="pd-buy">🛒 ไปที่ร้านค้า ↗</a>
+      <a href="{% url 'product_go' product.id %}" rel="noopener noreferrer" class="pd-buy">🛒 ไปที่ร้านค้า ↗</a>
     {% endif %}
     <a href="{% url 'product_list' %}" class="pd-back">← กลับไปรายการสินค้า</a>
   </div>

@@ -634,6 +634,20 @@ def product_list(request):
     })
 
 
+def product_go(request, product_id):
+    """Redirect ไปยัง external_link ของสินค้า (ปลอดภัยกว่าใส่ URL ตรงในหน้า)"""
+    from django.http import HttpResponseRedirect
+    product = get_object_or_404(Product, id=product_id, is_active=True)
+    url = (product.external_link or '').strip()
+    # ป้องกัน URL ว่าง หรือไม่ใช่ http
+    if not url:
+        messages.warning(request, "สินค้านี้ยังไม่มีลิงก์ร้านค้า")
+        return redirect('product_detail', product_id=product_id)
+    if not url.startswith(('http://', 'https://')):
+        url = 'https://' + url
+    return HttpResponseRedirect(url)
+
+
 def product_detail(request, product_id):
     product = get_object_or_404(Product, id=product_id, is_active=True)
     try:
@@ -792,6 +806,29 @@ def custom_404(request, exception=None):
 
 def custom_500(request):
     return render(request, '500.html', status=500)
+
+
+@require_GET
+def admin_stats_api(request):
+    """Stats JSON สำหรับ admin dashboard — เฉพาะ staff เท่านั้น"""
+    if not request.user.is_staff:
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    from django.db.models import Count, Q
+    agg = PetPost.objects.aggregate(
+        posts=Count('id'),
+        active=Count('id', filter=Q(status='active')),
+        resolved=Count('id', filter=Q(status='resolved')),
+    )
+    return JsonResponse({
+        'posts':    agg['posts'],
+        'active':   agg['active'],
+        'resolved': agg['resolved'],
+        'products': Product.objects.filter(is_active=True).count(),
+        'blogs':    BlogPost.objects.filter(is_published=True).count(),
+        'users':    User.objects.count(),
+    })
 
 
 @login_required

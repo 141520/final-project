@@ -1,0 +1,146 @@
+{% extends "admin/base_site.html" %}
+{% load i18n log %}
+
+{% block content %}
+{% get_admin_log 5 as admin_log for_user user %}
+
+<!-- ===== Quick Stats ===== -->
+<div style="margin-bottom:20px;">
+  <h2 style="font-family:'IBM Plex Sans Thai Looped',sans-serif;color:#021F74;margin-bottom:14px;font-size:18px;">
+    📊 ภาพรวมระบบ
+  </h2>
+  <div class="tarmroy-stats" id="statsGrid">
+    <!-- Stats จะถูกโหลดโดย JS -->
+    <div class="tarmroy-stat">
+      <div class="num" id="s-posts">—</div>
+      <div class="lbl">ประกาศทั้งหมด</div>
+    </div>
+    <div class="tarmroy-stat red">
+      <div class="num" id="s-active">—</div>
+      <div class="lbl">ยังตามหาอยู่</div>
+    </div>
+    <div class="tarmroy-stat gold">
+      <div class="num" id="s-resolved">—</div>
+      <div class="lbl">พบแล้ว/ส่งคืนแล้ว</div>
+    </div>
+    <div class="tarmroy-stat">
+      <div class="num" id="s-products">—</div>
+      <div class="lbl">สินค้าโปรโมท</div>
+    </div>
+    <div class="tarmroy-stat gold">
+      <div class="num" id="s-blogs">—</div>
+      <div class="lbl">บทความ</div>
+    </div>
+    <div class="tarmroy-stat">
+      <div class="num" id="s-users">—</div>
+      <div class="lbl">ผู้ใช้ทั้งหมด</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== คำแนะนำ ===== -->
+<div style="background:#fff8e8;border:1px solid #DEAD6F;border-radius:12px;padding:16px 20px;margin-bottom:20px;">
+  <h3 style="color:#021F74;margin:0 0 10px;font-size:15px;">💡 เมนูจัดการหลัก</h3>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;font-size:14px;">
+    <a href="/admin/pet_core/petpost/" style="background:#021F74;color:white;padding:10px 14px;border-radius:8px;text-decoration:none;font-weight:600;">
+      🐾 ประกาศสัตว์เลี้ยง
+    </a>
+    <a href="/admin/pet_core/product/" style="background:#E74C3C;color:white;padding:10px 14px;border-radius:8px;text-decoration:none;font-weight:600;">
+      🛒 สินค้าโปรโมท
+    </a>
+    <a href="/admin/pet_core/blogpost/" style="background:#DEAD6F;color:#41403E;padding:10px 14px;border-radius:8px;text-decoration:none;font-weight:600;">
+      📝 บทความ/เคล็ดลับ
+    </a>
+    <a href="/admin/auth/user/" style="background:#27AE60;color:white;padding:10px 14px;border-radius:8px;text-decoration:none;font-weight:600;">
+      👤 จัดการผู้ใช้
+    </a>
+    <a href="/" target="_blank" style="background:#667479;color:white;padding:10px 14px;border-radius:8px;text-decoration:none;font-weight:600;">
+      🌐 เปิดหน้าเว็บ ↗
+    </a>
+  </div>
+</div>
+
+<!-- ===== App List (default Django) ===== -->
+{% if app_list %}
+  {% for app in app_list %}
+  <div class="module" style="margin-bottom:16px;">
+    <table style="width:100%;border-collapse:collapse;">
+      <caption style="background:#021F74;color:white;padding:10px 14px;text-align:left;font-weight:700;border-radius:8px 8px 0 0;">
+        {{ app.name }}
+      </caption>
+      {% for model in app.models %}
+      <tr style="border-bottom:1px solid #eef0f8;">
+        <td style="padding:10px 14px;">
+          {% if model.admin_url %}
+            <a href="{{ model.admin_url }}" style="font-weight:600;color:#021F74;">{{ model.name }}</a>
+          {% else %}
+            <span style="color:#908F8D;">{{ model.name }}</span>
+          {% endif %}
+        </td>
+        <td style="padding:10px 14px;text-align:right;">
+          {% if model.add_url %}
+            <a href="{{ model.add_url }}" style="background:#021F74;color:white;padding:4px 12px;border-radius:6px;font-size:12px;font-weight:700;text-decoration:none;">+ เพิ่ม</a>
+          {% endif %}
+          {% if model.admin_url %}
+            <a href="{{ model.admin_url }}" style="background:#e8edf8;color:#021F74;padding:4px 12px;border-radius:6px;font-size:12px;font-weight:700;text-decoration:none;margin-left:4px;">ดูทั้งหมด</a>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% endfor %}
+{% else %}
+  <p>{% trans "You don't have permission to view or edit anything." %}</p>
+{% endif %}
+
+<!-- ===== Recent Actions ===== -->
+{% if admin_log %}
+<div class="module" style="margin-top:24px;">
+  <table style="width:100%;border-collapse:collapse;">
+    <caption style="background:#667479;color:white;padding:10px 14px;text-align:left;font-weight:700;border-radius:8px 8px 0 0;">
+      🕐 การกระทำล่าสุด (5 รายการ)
+    </caption>
+    {% for entry in admin_log %}
+    <tr style="border-bottom:1px solid #eef0f8;">
+      <td style="padding:8px 14px;font-size:13px;">
+        {% if entry.is_addition %}🟢{% elif entry.is_change %}🔵{% else %}🔴{% endif %}
+        {% if entry.get_admin_url %}
+          <a href="{{ entry.get_admin_url }}" style="color:#021F74;">{{ entry.object_repr }}</a>
+        {% else %}
+          <span style="color:#908F8D;text-decoration:line-through;">{{ entry.object_repr }}</span>
+        {% endif %}
+        <span style="color:#908F8D;font-size:12px;margin-left:6px;">— {{ entry.content_type }}</span>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %}
+
+<script>
+// โหลด stats แบบ async (ไม่ต้องรอ)
+fetch('/admin/pet_core/petpost/?_count=1', {headers: {'X-Requested-With': 'XMLHttpRequest'}})
+  .catch(() => {});
+
+// แสดง stats จาก URL params / local storage ถ้ามี
+// (สมมุติค่า — ในอนาคตสามารถเรียก API ได้)
+fetch('/admin/stats/', {credentials: 'include'})
+  .then(r => r.ok ? r.json() : null)
+  .then(d => {
+    if (!d) return;
+    if (d.posts    !== undefined) document.getElementById('s-posts').textContent    = d.posts;
+    if (d.active   !== undefined) document.getElementById('s-active').textContent   = d.active;
+    if (d.resolved !== undefined) document.getElementById('s-resolved').textContent = d.resolved;
+    if (d.products !== undefined) document.getElementById('s-products').textContent = d.products;
+    if (d.blogs    !== undefined) document.getElementById('s-blogs').textContent    = d.blogs;
+    if (d.users    !== undefined) document.getElementById('s-users').textContent    = d.users;
+  })
+  .catch(() => {
+    // ถ้า stats API ไม่มี ให้ซ่อนส่วน —
+    document.querySelectorAll('.tarmroy-stat .num').forEach(el => {
+      if (el.textContent === '—') el.textContent = '...';
+    });
+  });
+</script>
+{% endblock %}

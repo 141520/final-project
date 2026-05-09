@@ -1,15 +1,46 @@
 from django.contrib import admin, messages
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.contrib.auth.models import User, Group
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 from .models import PetPost, PetImage, Product, ProductImage, BlogPost
 
 
 # ==========================================================
-# Customize Admin Site — เปลี่ยนหัว-ท้าย
+# Customize Admin Site — หัว-ท้าย + ลบ Group (ไม่ได้ใช้)
 # ==========================================================
 admin.site.site_header = "🐾 TarmRoy Admin"
 admin.site.site_title = "TarmRoy Admin"
-admin.site.index_title = "จัดการข้อมูลเว็บ TarmRoy"
+admin.site.index_title = "ยินดีต้อนรับสู่ระบบจัดการ TarmRoy"
+
+# ลบ Group ออก — เว็บนี้ไม่ได้ใช้ระบบกลุ่มผู้ใช้
+admin.site.unregister(Group)
+
+# ==========================================================
+# ปรับ User Admin ให้เรียบง่ายขึ้น (แสดงแค่ที่จำเป็น)
+# ==========================================================
+admin.site.unregister(User)
+
+@admin.register(User)
+class SimpleUserAdmin(BaseUserAdmin):
+    list_display = ('username', 'email', 'first_name', 'last_name', 'is_staff', 'date_joined')
+    list_filter = ('is_staff', 'is_superuser', 'is_active')
+    search_fields = ('username', 'email', 'first_name', 'last_name')
+    ordering = ('-date_joined',)
+    list_per_page = 25
+    # ซ่อน fieldsets ที่ซับซ้อน
+    fieldsets = (
+        ('🔐 ข้อมูลเข้าสู่ระบบ', {'fields': ('username', 'password')}),
+        ('👤 ข้อมูลส่วนตัว', {'fields': ('first_name', 'last_name', 'email')}),
+        ('🔑 สิทธิ์การใช้งาน', {
+            'fields': ('is_active', 'is_staff', 'is_superuser'),
+            'description': (
+                '⚠️ <b>is_staff</b> = เข้า Admin ได้ · '
+                '<b>is_superuser</b> = มีสิทธิ์ทุกอย่าง (ระวัง!)'
+            ),
+        }),
+        ('📅 วันที่', {'fields': ('last_login', 'date_joined'), 'classes': ('collapse',)}),
+    )
 
 
 # ==========================================================
@@ -316,6 +347,14 @@ class BlogPostAdmin(admin.ModelAdmin):
         }),
         ('👤 ผู้เขียนและการเผยแพร่', {
             'fields': ('author_name', 'published_at', 'is_published')
+        }),
+        ('📚 แหล่งที่มา / อ้างอิง', {
+            'fields': ('source_name', 'source_url'),
+            'description': (
+                '💡 ระบุแหล่งที่มาของบทความ (ถ้ามี) เพื่อความน่าเชื่อถือ<br>'
+                '<b>source_name</b> = ชื่อแหล่งที่มา เช่น "สัตวแพทย์หญิง ดร.นภา" หรือ "petmd.com"<br>'
+                '<b>source_url</b> = ลิงก์เว็บต้นฉบับ (ถ้าอ้างอิงจากเว็บอื่น)'
+            ),
         }),
         ('🕐 Meta', {
             'fields': ('created_at', 'updated_at'),

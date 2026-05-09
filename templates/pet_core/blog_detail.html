@@ -52,6 +52,21 @@
     {% if post.author_name %} · โดย {{ post.author_name }}{% endif %}
   </div>
   <div class="bd-body">{{ post.body|safe }}</div>
+
+  {% if post.source_name or post.source_url %}
+  <div style="margin-top:32px;padding:14px 18px;background:#f8f4ee;border-left:4px solid #DEAD6F;border-radius:0 10px 10px 0;font-size:14px;color:#667479;">
+    <strong style="color:#41403E;">📚 แหล่งที่มา / อ้างอิง:</strong><br>
+    {% if post.source_url %}
+      <a href="{{ post.source_url }}" target="_blank" rel="noopener noreferrer"
+         style="color:#021F74;font-weight:600;text-decoration:underline;word-break:break-all;">
+        {{ post.source_name|default:post.source_url }}
+      </a>
+    {% else %}
+      {{ post.source_name }}
+    {% endif %}
+  </div>
+  {% endif %}
+
   <a href="{% url 'blog_list' %}" class="bd-back">← กลับไปบทความทั้งหมด</a>
 </article>
 

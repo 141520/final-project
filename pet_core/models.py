@@ -321,6 +321,18 @@ class BlogPost(models.Model):
     published_at = models.DateField(null=True, blank=True, verbose_name="วันที่เผยแพร่")
     is_published = models.BooleanField(default=True, verbose_name="เผยแพร่บนเว็บ")
 
+    # แหล่งที่มา / อ้างอิง
+    source_name = models.CharField(
+        max_length=200, blank=True,
+        verbose_name="แหล่งที่มา (ชื่อ)",
+        help_text="เช่น: สัตวแพทย์ ดร.สมชาย / เว็บไซต์ petmd.com / วารสารสัตวแพทย์ไทย"
+    )
+    source_url = models.URLField(
+        max_length=500, blank=True,
+        verbose_name="ลิงก์แหล่งที่มา",
+        help_text="URL ของเว็บไซต์ต้นฉบับ (ถ้ามี)"
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

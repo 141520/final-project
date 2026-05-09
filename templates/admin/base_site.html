@@ -1,0 +1,146 @@
+{% extends "admin/base.html" %}
+{% load i18n %}
+
+{% block title %}{{ title }} | TarmRoy Admin{% endblock %}
+
+{% block branding %}
+<h1 id="site-name">
+  <a href="{% url 'admin:index' %}">
+    🐾 TarmRoy Admin
+  </a>
+</h1>
+{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+  /* ===== ฟอนต์ ===== */
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai+Looped:wght@400;600;700&display=swap');
+  #site-name, body, .module, .form-row, td, th, input, select, textarea, button, .submit-row {
+    font-family: 'IBM Plex Sans Thai Looped', 'Segoe UI', sans-serif !important;
+  }
+
+  /* ===== Header ===== */
+  #header {
+    background: linear-gradient(135deg, #021F74 0%, #0a3a9e 100%) !important;
+    box-shadow: 0 2px 12px rgba(2,31,116,.3);
+  }
+  #header a, #header a:visited { color: #fff; }
+  #site-name a { font-size: 22px; font-weight: 700; letter-spacing: -.3px; }
+
+  /* ===== Breadcrumb ===== */
+  div.breadcrumbs {
+    background: #e8edf8 !important;
+    color: #021F74 !important;
+    border-bottom: 1px solid #c8d3ef;
+  }
+  div.breadcrumbs a { color: #021F74 !important; }
+
+  /* ===== Nav bar links ===== */
+  #user-tools { font-size: 13px; }
+  #user-tools a { color: #cdd8ff !important; }
+  #user-tools a:hover { color: #fff !important; }
+
+  /* ===== Module headers (section titles) ===== */
+  .module caption, .module h2, .module > h2 {
+    background: #021F74 !important;
+    color: white !important;
+    font-weight: 700;
+    border-radius: 6px 6px 0 0;
+  }
+
+  /* ===== App section headers on index ===== */
+  #content-main .app-pet_core .section h2,
+  #content-main .app-auth .section h2,
+  .app-pet_core > caption,
+  .app-auth > caption {
+    background: #021F74 !important;
+    color: white !important;
+  }
+
+  /* ===== Buttons ===== */
+  .button, input[type=submit], .submit-row input {
+    background: #021F74 !important;
+    border-color: #021F74 !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+  }
+  .button:hover, input[type=submit]:hover { background: #0a3a9e !important; }
+  .button.default { background: #E74C3C !important; border-color: #E74C3C !important; }
+  .button.default:hover { background: #c0392b !important; }
+
+  /* ===== Links ===== */
+  a:link, a:visited { color: #021F74; }
+
+  /* ===== List rows ===== */
+  #result_list tr:nth-child(odd) { background: #f7f9ff; }
+  #result_list tr:hover { background: #eef2ff !important; }
+  thead th { background: #021F74 !important; color: white !important; }
+
+  /* ===== Sidebar ===== */
+  #changelist-filter h2 {
+    background: #DEAD6F !important;
+    color: #41403E !important;
+    font-weight: 700;
+  }
+  #changelist-filter h3 { font-weight: 700; color: #021F74; }
+  #changelist-filter li.selected a { color: #021F74; font-weight: 700; }
+
+  /* ===== Dashboard cards ===== */
+  .tarmroy-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  .tarmroy-stat {
+    background: linear-gradient(135deg, #021F74, #0a3a9e);
+    color: white;
+    border-radius: 12px;
+    padding: 16px 20px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(2,31,116,.2);
+  }
+  .tarmroy-stat .num { font-size: 32px; font-weight: 700; line-height: 1.1; }
+  .tarmroy-stat .lbl { font-size: 12px; opacity: .85; margin-top: 4px; }
+  .tarmroy-stat.gold { background: linear-gradient(135deg, #DEAD6F, #f0c040); color: #41403E; }
+  .tarmroy-stat.red  { background: linear-gradient(135deg, #E74C3C, #c0392b); }
+
+  /* ===== Description text in fieldsets ===== */
+  .help, .field-help {
+    font-size: 12px !important;
+    color: #667479 !important;
+  }
+  fieldset.collapse { border: 1px solid #e0e4ef !important; }
+
+  /* ===== Form inputs ===== */
+  input[type=text], input[type=url], input[type=email], input[type=number],
+  textarea, select {
+    border-radius: 6px !important;
+    border-color: #c5ceea !important;
+  }
+  input[type=text]:focus, input[type=url]:focus, textarea:focus {
+    border-color: #021F74 !important;
+    outline: 2px solid rgba(2,31,116,.15) !important;
+  }
+
+  /* ===== Alert/message ===== */
+  .messagelist li.success { background: #d4edda; color: #155724; border-radius: 8px; }
+  .messagelist li.warning { background: #fff3cd; color: #856404; border-radius: 8px; }
+  .messagelist li.error   { background: #f8d7da; color: #721c24; border-radius: 8px; }
+
+  /* ===== Action bar ===== */
+  .action-counter { color: #021F74; font-weight: 700; }
+  select#action-select { border-radius: 6px; border-color: #c5ceea; }
+
+  /* ===== Footer ===== */
+  #footer { background: #f0f2fa; border-top: 1px solid #dde2f0; color: #908F8D; font-size: 12px; padding: 10px 20px; }
+</style>
+{% endblock %}
+
+{% block footer %}
+<div id="footer">
+  🐾 TarmRoy Admin · <a href="/" target="_blank" style="color:#021F74;">เปิดหน้าเว็บ ↗</a> ·
+  <span style="color:#908F8D;">ระบบจัดการ TarmRoy สำหรับ Admin เท่านั้น</span>
+</div>
+{% endblock %}
