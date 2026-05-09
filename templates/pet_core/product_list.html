@@ -182,10 +182,7 @@
         <div class="product-body">
           <div class="product-name">{{ product.name }}</div>
           <div class="product-desc">{{ product.description|truncatechars:60 }}</div>
-          {% if product.scraped_price and product.scraped_price > 0 %}
-            <div class="product-price">฿{{ product.scraped_price|floatformat:0 }}</div>
-            <div class="product-price-sub live">🔄 ราคาจากหน้าร้าน</div>
-          {% elif product.price and product.price > 0 %}
+          {% if product.price and product.price > 0 %}
             <div class="product-price">฿{{ product.price|floatformat:0 }}</div>
             {% if product.external_link %}
               <div class="product-price-sub">ราคาอาจเปลี่ยนที่หน้าร้าน</div>

@@ -188,14 +188,6 @@ class Product(models.Model):
             "ตัวอย่าง Shopee: <code>https://shopee.co.th/product-name-i.123456.789</code>"
         )
     )
-    # ราคาที่ดึงจากหน้าร้านอัตโนมัติ (optional)
-    scraped_price = models.DecimalField(
-        max_digits=10, decimal_places=2, null=True, blank=True,
-        verbose_name="ราคาจากหน้าร้าน (sync อัตโนมัติ)",
-        help_text="ราคานี้จะถูก sync จาก external_link เมื่อกดปุ่ม 'Sync ราคา' — ถ้ามีจะโชว์แทน price"
-    )
-    last_scraped_at = models.DateTimeField(null=True, blank=True, verbose_name="sync ราคาล่าสุด")
-
     # ข้อมูลผู้ลงโปรโมท
     promoter_name = models.CharField(max_length=200, blank=True, verbose_name="ชื่อลูกค้า/ร้านค้า")
     promoter_contact = models.CharField(max_length=200, blank=True, verbose_name="ช่องทางติดต่อ")
@@ -261,11 +253,6 @@ class Product(models.Model):
         if not self.promotion_end:
             return None
         return max((self.promotion_end - date.today()).days, 0)
-
-    @property
-    def display_price(self):
-        """ถ้ามี scraped_price ให้ใช้ก่อน (ราคาจริงจากหน้าร้าน) — ไม่มีก็ใช้ราคา manual"""
-        return self.scraped_price if self.scraped_price else self.price
 
     @property
     def display_image_url(self):

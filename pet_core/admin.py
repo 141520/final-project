@@ -188,7 +188,7 @@ class ProductImageInline(admin.TabularInline):
 class ProductAdmin(admin.ModelAdmin):
     inlines = [ProductImageInline]
     list_display = (
-        'thumb', 'name', 'category', 'price_display', 'scraped_price_display',
+        'thumb', 'name', 'category', 'price_display',
         'promotion_status', 'image_count', 'is_active', 'sort_order',
     )
     list_editable = ('is_active', 'sort_order')
@@ -197,8 +197,7 @@ class ProductAdmin(admin.ModelAdmin):
     list_per_page = 30
     ordering = ('sort_order', '-created_at')
     readonly_fields = ('created_at', 'updated_at', 'image_preview',
-                       'promotion_status_detail', 'days_remaining_display',
-                       'last_scraped_at')
+                       'promotion_status_detail', 'days_remaining_display')
 
     def image_count(self, obj):
         n = (1 if obj.image else 0) + obj.extra_images.count()
@@ -209,13 +208,11 @@ class ProductAdmin(admin.ModelAdmin):
     fieldsets = (
         ('🛒 ข้อมูลสินค้า', {
             'fields': ('name', 'description', 'category', 'price',
-                       'image_preview', 'image', 'external_link',
-                       'scraped_price', 'last_scraped_at'),
+                       'image_preview', 'image', 'external_link'),
             'description': (
                 '💡 <b>external_link</b> = ลิงก์ไปร้านค้า (Shopee/Lazada/เว็บร้าน) — '
                 'ผู้ใช้กดปุ่ม "ดูสินค้า" จะไปที่ลิงก์นี้<br>'
-                '💰 <b>scraped_price</b> = ราคาจริงจากหน้าร้าน — กด action "🔄 Sync ราคา" '
-                'ในหน้ารายการเพื่อให้ระบบดึงมาอัตโนมัติ (ถ้ามี จะแสดงแทน price)'
+                '💡 วาง Shopee URL ได้เลย ระบบแปลงเป็น canonical URL ให้อัตโนมัติ'
             ),
         }),
         ('⏰ ระยะเวลาโปรโมท', {
@@ -251,12 +248,6 @@ class ProductAdmin(admin.ModelAdmin):
         return f"฿{obj.price:,.0f}"
     price_display.short_description = "ราคาตั้ง"
 
-    def scraped_price_display(self, obj):
-        if obj.scraped_price is None:
-            return format_html('<span style="color:#bbb;">—</span>')
-        return format_html('<b style="color:#2980B9;">฿{}</b>', f"{obj.scraped_price:,.0f}")
-    scraped_price_display.short_description = "ราคาจากร้าน"
-
     def promotion_status(self, obj):
         if not obj.promotion_start:
             return format_html('<span style="color:#888;">ยังไม่เริ่ม</span>')
@@ -291,31 +282,7 @@ class ProductAdmin(admin.ModelAdmin):
         return f"{obj.days_remaining} วัน"
     days_remaining_display.short_description = "วันที่เหลือ"
 
-    actions = ['mark_active', 'mark_inactive', 'sync_prices']
-
-    @admin.action(description="🔄 Sync ราคาจาก external_link")
-    def sync_prices(self, request, queryset):
-        from .price_scraper import scrape_price
-        from django.utils import timezone
-        ok, fail = 0, 0
-        msgs = []
-        for p in queryset:
-            if not p.external_link:
-                msgs.append(f"⏭️ {p.name}: ไม่มี external_link")
-                fail += 1
-                continue
-            price, note = scrape_price(p.external_link)
-            if price is not None:
-                p.scraped_price = price
-                p.last_scraped_at = timezone.now()
-                p.save(update_fields=['scraped_price', 'last_scraped_at'])
-                msgs.append(f"✅ {p.name}: ฿{price:,.0f} ({note})")
-                ok += 1
-            else:
-                msgs.append(f"❌ {p.name}: {note}")
-                fail += 1
-        level = messages.SUCCESS if ok else messages.WARNING
-        self.message_user(request, f"Sync เสร็จ: สำเร็จ {ok} / ล้มเหลว {fail}  |  " + " · ".join(msgs[:8]), level=level)
+    actions = ['mark_active', 'mark_inactive']
 
     @admin.action(description="✅ เปิดแสดงบนเว็บ")
     def mark_active(self, request, queryset):
