@@ -754,7 +754,23 @@ def blog_list(request):
 def blog_detail(request, post_id):
     post = get_object_or_404(BlogPost, id=post_id, is_published=True)
     related = BlogPost.objects.filter(is_published=True).exclude(id=post.id)[:3]
-    return render(request, 'pet_core/blog_detail.html', {'post': post, 'related': related})
+
+    # สินค้าโปรโมทสำหรับแสดงล่างบทความ (max 3 อัน)
+    today = date.today()
+    promo_products = []
+    for p in Product.objects.filter(is_active=True).order_by('sort_order', '-created_at'):
+        if not p.promotion_start or not p.promotion_end:
+            promo_products.append(p)
+        elif p.promotion_start <= today <= p.promotion_end:
+            promo_products.append(p)
+        if len(promo_products) >= 3:
+            break
+
+    return render(request, 'pet_core/blog_detail.html', {
+        'post': post,
+        'related': related,
+        'promo_products': promo_products,
+    })
 
 
 # ---- ระบบ Auth ของ FoundPet ----
