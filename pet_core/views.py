@@ -668,11 +668,14 @@ def product_go(request, product_id):
         'fbclid', 'gclid', 'gclsrc', 'msclkid', '_ga',
     }
     try:
+        from urllib.parse import unquote
         parsed = urlparse(url)
+        # decode path → Thai chars แทน %E0%B8%81... (Shopee ต้องการแบบนี้)
+        decoded_path = unquote(parsed.path)
         clean_qs = urlencode(
             [(k, v) for k, v in parse_qsl(parsed.query) if k not in _STRIP_PARAMS]
         )
-        url = parsed._replace(query=clean_qs).geturl()
+        url = parsed._replace(path=decoded_path, query=clean_qs).geturl()
     except Exception:
         pass  # ถ้า parse ไม่ได้ใช้ URL เดิม
 
