@@ -635,16 +635,47 @@ def product_list(request):
 
 
 def product_go(request, product_id):
-    """Redirect ไปยัง external_link ของสินค้า (ปลอดภัยกว่าใส่ URL ตรงในหน้า)"""
+    """Redirect ไปยัง external_link ของสินค้า
+    — ตัด tracking tokens (Shopee sp_atk, Lazada spm ฯลฯ) ออกอัตโนมัติ
+    เพื่อป้องกัน 400 จาก expired session tokens
+    """
     from django.http import HttpResponseRedirect
+    from urllib.parse import urlparse, urlencode, parse_qsl
+
     product = get_object_or_404(Product, id=product_id, is_active=True)
     url = (product.external_link or '').strip()
-    # ป้องกัน URL ว่าง หรือไม่ใช่ http
+
     if not url:
         messages.warning(request, "สินค้านี้ยังไม่มีลิงก์ร้านค้า")
         return redirect('product_detail', product_id=product_id)
+
     if not url.startswith(('http://', 'https://')):
         url = 'https://' + url
+
+    # ── ตัด tracking params ที่หมดอายุได้ ──────────────────────────
+    # Shopee: sp_atk, xptdk, extraParams, sp_ref, from, ...
+    # Lazada: spm, scm, abbucket, clickTrackInfo, ...
+    # Facebook: fbclid  /  Google: utm_* / gclid / gclsrc
+    _STRIP_PARAMS = {
+        # Shopee
+        'sp_atk', 'xptdk', 'extraParams', 'sp_ref', 'from',
+        'sp_ref_sec', 'sp_ref_mkt', 'sp_ref_prefix',
+        # Lazada
+        'spm', 'scm', 'abbucket', 'clickTrackInfo', 'pos',
+        'algArgs', 'acm', 'recoSign',
+        # General UTM / ads
+        'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
+        'fbclid', 'gclid', 'gclsrc', 'msclkid', '_ga',
+    }
+    try:
+        parsed = urlparse(url)
+        clean_qs = urlencode(
+            [(k, v) for k, v in parse_qsl(parsed.query) if k not in _STRIP_PARAMS]
+        )
+        url = parsed._replace(query=clean_qs).geturl()
+    except Exception:
+        pass  # ถ้า parse ไม่ได้ใช้ URL เดิม
+
     return HttpResponseRedirect(url)
 
 

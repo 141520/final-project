@@ -182,7 +182,11 @@ class Product(models.Model):
     external_link = models.URLField(
         max_length=500, blank=True,
         verbose_name="ลิงก์ไปร้านค้า",
-        help_text="วางลิงก์สินค้าจาก Shopee / Lazada / Facebook ฯลฯ ผู้ใช้จะกด 'ดูสินค้า' แล้วไปที่ลิงก์นี้"
+        help_text=(
+            "วางลิงก์สินค้าจาก Shopee / Lazada / Facebook ฯลฯ<br>"
+            "✅ <b>ใส่ได้เลยทุกแบบ</b> — ระบบจะตัด tracking token (sp_atk, utm_* ฯลฯ) ออกให้อัตโนมัติ<br>"
+            "ตัวอย่าง Shopee: <code>https://shopee.co.th/product-name-i.123456.789</code>"
+        )
     )
     # ราคาที่ดึงจากหน้าร้านอัตโนมัติ (optional)
     scraped_price = models.DecimalField(
