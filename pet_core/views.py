@@ -480,6 +480,20 @@ def search_pet(request):
                 scored.sort(key=lambda x: -x[0])
                 top = scored[:24]
 
+                # ── Deduplicate โพสที่ชื่อเดียวกัน + similarity ≥ 95%
+                # (กรณีเจ้าของโพสสัตว์ตัวเดิมหลายครั้ง)
+                seen_name = {}
+                deduped = []
+                for item in top:
+                    _, base_sim, _, img_obj = item
+                    name_key = (img_obj.pet_post.name or '').strip().lower()
+                    if base_sim >= 0.95 and name_key:
+                        if name_key in seen_name:
+                            continue  # ข้ามโพสซ้ำ
+                        seen_name[name_key] = True
+                    deduped.append(item)
+                top = deduped
+
                 for final_score, base_sim, n_match, img_obj in top:
                     # แสดง similarity ที่เห็นในการ์ดเป็น base_sim (ไม่ใช่ score รวม)
                     # เพื่อไม่ให้ผู้ใช้เข้าใจผิดว่า >100%
