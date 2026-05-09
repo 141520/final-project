@@ -652,25 +652,34 @@ def product_go(request, product_id):
     if not url.startswith(('http://', 'https://')):
         url = 'https://' + url
 
-    # ── ตัด tracking params ──────────────────────────────────────────
-    _STRIP_PARAMS = {
-        'sp_atk', 'xptdk', 'extraParams', 'sp_ref', 'from',
-        'sp_ref_sec', 'sp_ref_mkt', 'sp_ref_prefix',
-        'spm', 'scm', 'abbucket', 'clickTrackInfo', 'pos',
-        'algArgs', 'acm', 'recoSign',
-        'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
-        'fbclid', 'gclid', 'gclsrc', 'msclkid', '_ga',
-    }
-    try:
-        parsed = urlparse(url)
-        clean_qs = urlencode(
-            [(k, v) for k, v in parse_qsl(parsed.query) if k not in _STRIP_PARAMS]
-        )
-        url = parsed._replace(query=clean_qs).geturl()
-    except Exception:
-        pass
+    # ── 1) แปลง Shopee URL → canonical format (ไม่มีปัญหา encoding) ──
+    # Shopee URL มี pattern: i.{shop_id}.{item_id} ท้าย path
+    # แปลงเป็น shopee.co.th/product/{shop_id}/{item_id} ซึ่งทำงานเสมอ
+    import re
+    shopee_match = re.search(r'i\.(\d+)\.(\d+)', url)
+    if shopee_match and 'shopee.co.th' in url:
+        shop_id, item_id = shopee_match.group(1), shopee_match.group(2)
+        url = f'https://shopee.co.th/product/{shop_id}/{item_id}'
+    else:
+        # ── 2) ตัด tracking params สำหรับ platform อื่น ────────────
+        _STRIP_PARAMS = {
+            'sp_atk', 'xptdk', 'extraParams', 'sp_ref', 'from',
+            'sp_ref_sec', 'sp_ref_mkt', 'sp_ref_prefix',
+            'spm', 'scm', 'abbucket', 'clickTrackInfo', 'pos',
+            'algArgs', 'acm', 'recoSign',
+            'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
+            'fbclid', 'gclid', 'gclsrc', 'msclkid', '_ga',
+        }
+        try:
+            parsed = urlparse(url)
+            clean_qs = urlencode(
+                [(k, v) for k, v in parse_qsl(parsed.query) if k not in _STRIP_PARAMS]
+            )
+            url = parsed._replace(query=clean_qs).geturl()
+        except Exception:
+            pass
 
-    # ── render HTML page (ไม่ส่ง Referer ไปให้ร้านค้า) ──────────────
+    # ── 3) render HTML page (ไม่ส่ง Referer ไปให้ร้านค้า) ────────────
     return render(request, 'pet_core/product_redirect.html', {
         'product': product,
         'shop_url': url,
