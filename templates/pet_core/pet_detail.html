@@ -21,6 +21,7 @@
 {% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
 :root {
   --navy:#003459; --navy-dark:#002A48;
@@ -148,6 +149,40 @@
   transition: all .2s;
 }
 .btn-call:hover { background: var(--navy-dark); transform: translateY(-2px); }
+
+/* Mini map */
+#miniMap {
+  width: 100%; height: 200px; border-radius: 14px; overflow: hidden;
+  margin-bottom: 16px; border: 1px solid #e2e8f0;
+}
+
+/* Login-gate contact box */
+.contact-gate {
+  background: #f8faff; border: 1.5px dashed #b8c8f4;
+  border-radius: 14px; padding: 16px 18px; margin-bottom: 16px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.contact-gate-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.contact-gate-name { font-size: 15px; color: #111; font-weight: 700; }
+.contact-gate-phone {
+  font-size: 20px; font-weight: 800; letter-spacing: 2px;
+  color: #aaa; font-family: 'Montserrat', sans-serif;
+}
+.contact-gate-hint { font-size: 13px; color: #667479; }
+.btn-login-gate {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: #021F74; color: white; padding: 9px 18px;
+  border-radius: 20px; text-decoration: none; font-weight: 700; font-size: 13px;
+  white-space: nowrap; transition: background .2s;
+}
+.btn-login-gate:hover { background: #003459; }
+
+/* Contact warning (logged-in) */
+.contact-warning {
+  background: #fff8e1; border: 1px solid #f59e0b;
+  border-radius: 10px; padding: 8px 14px;
+  font-size: 12px; color: #92400e; margin-bottom: 12px;
+}
 
 /* Action buttons */
 .pd-actions { display: flex; flex-direction: column; gap: 10px; }
@@ -325,27 +360,62 @@
 
       <hr class="pd-divider">
 
-      <div class="contact-row">
-        <div class="contact-info">
-          ติดต่อ: <strong>{{ pet.contact_name|default:"ไม่ระบุ" }}</strong>
-          {% if pet.contact_email %}<br>{{ pet.contact_email }}{% endif %}
+      {% if request.user.is_authenticated %}
+        {# ── ล็อกอินแล้ว: แสดงข้อมูลเต็ม ── #}
+        <div class="contact-warning">⚠️ ใช้ข้อมูลติดต่อเพื่อช่วยเหลือเคสนี้เท่านั้น กรุณาอย่าเผยแพร่ต่อ</div>
+        <div class="contact-row">
+          <div class="contact-info">
+            ติดต่อ: <strong>{{ pet.contact_name|default:"ไม่ระบุ" }}</strong>
+            {% if pet.contact_email %}<br><span style="font-size:13px;">{{ pet.contact_email }}</span>{% endif %}
+          </div>
+          {% if pet.contact_phone %}
+            <a href="tel:{{ pet.contact_phone }}" class="btn-call">📞 {{ pet.contact_phone }}</a>
+          {% endif %}
         </div>
-        {% if pet.contact_phone %}
-          <a href="tel:{{ pet.contact_phone }}" class="btn-call">📞 {{ pet.contact_phone }}</a>
+        {% if pet.social_link %}
+          <div style="margin-bottom:16px;font-size:14px;">
+            🔗 <a href="{{ pet.social_link }}" target="_blank" rel="noopener" style="color:var(--navy);font-weight:700;">ดูโพสต์โซเชียล ↗</a>
+          </div>
         {% endif %}
-      </div>
-
-      {% if pet.social_link %}
-        <div style="margin-bottom:16px;font-size:14px;">
-          🔗 <a href="{{ pet.social_link }}" target="_blank" rel="noopener" style="color:var(--navy);font-weight:700;">ดูโพสต์โซเชียล</a>
+      {% else %}
+        {# ── ยังไม่ล็อกอิน: ซ่อนข้อมูล ── #}
+        <div class="contact-gate">
+          <div class="contact-gate-row">
+            <div>
+              <div class="contact-gate-hint">ติดต่อผู้โพส</div>
+              <div class="contact-gate-name">
+                {% if pet.contact_name %}
+                  {% with parts=pet.contact_name.split %}
+                    {{ parts.0 }}{% if parts|length > 1 %} {{ parts.1|slice:":1" }}.{% endif %}
+                  {% endwith %}
+                {% else %}ไม่ระบุชื่อ{% endif %}
+              </div>
+            </div>
+            {% if pet.contact_phone %}
+              <div class="contact-gate-phone">
+                {{ pet.contact_phone|slice:":3" }}xxx{{ pet.contact_phone|slice:"-3:" }}
+              </div>
+            {% endif %}
+          </div>
+          {% if pet.social_link %}
+            <div class="contact-gate-hint">🔗 มีลิงก์โซเชียล (ล็อกอินเพื่อดู)</div>
+          {% endif %}
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <span class="contact-gate-hint">🔒 ล็อกอินเพื่อดูข้อมูลติดต่อเต็ม</span>
+            <a href="{% url 'login' %}?next={{ request.path }}" class="btn-login-gate">เข้าสู่ระบบ →</a>
+          </div>
         </div>
+      {% endif %}
+
+      {% if pet.latitude and pet.longitude %}
+        <div id="miniMap"></div>
       {% endif %}
 
       <div class="pd-actions">
         {% if pet.latitude and pet.longitude %}
           <a href="https://maps.google.com/?q={{ pet.latitude }},{{ pet.longitude }}"
              target="_blank" rel="noopener" class="btn-action btn-map">
-            📍 ดูแผนที่จุดเกิดเหตุ
+            📍 ดูแผนที่ใน Google Maps ↗
           </a>
         {% endif %}
 
@@ -511,6 +581,39 @@
     }, {passive: true});
   }
 })();
+
+/* ========== Mini Map (Leaflet) ========== */
+{% if pet.latitude and pet.longitude %}
+(function(){
+  const mapEl = document.getElementById('miniMap');
+  if (!mapEl) return;
+  // โหลด Leaflet JS แบบ dynamic เพื่อไม่บล็อก render
+  const scr = document.createElement('script');
+  scr.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+  scr.integrity = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV/XN/WPtI=';
+  scr.crossOrigin = '';
+  scr.onload = function() {
+    const lat = {{ pet.latitude }};
+    const lng = {{ pet.longitude }};
+    const map = L.map('miniMap', {
+      center: [lat, lng], zoom: 15,
+      zoomControl: true, scrollWheelZoom: false,
+      dragging: !L.Browser.mobile,
+    });
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OSM</a> © <a href="https://carto.com/">CARTO</a>',
+      maxZoom: 19, subdomains: 'abcd',
+    }).addTo(map);
+    const icon = L.divIcon({
+      html: '<div style="font-size:28px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.35));">📍</div>',
+      iconSize: [28, 28], iconAnchor: [14, 28], className: ''
+    });
+    L.marker([lat, lng], {icon}).addTo(map)
+      .bindPopup('<b>{{ pet.location_name|default:"จุดเกิดเหตุ"|escapejs }}</b>').openPopup();
+  };
+  document.head.appendChild(scr);
+})();
+{% endif %}
 
 /* ========== Comments (AJAX submit) ========== */
 (function(){
