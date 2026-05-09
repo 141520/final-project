@@ -590,15 +590,14 @@
   // โหลด Leaflet JS แบบ dynamic เพื่อไม่บล็อก render
   const scr = document.createElement('script');
   scr.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-  scr.integrity = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV/XN/WPtI=';
-  scr.crossOrigin = '';
   scr.onload = function() {
     const lat = {{ pet.latitude }};
     const lng = {{ pet.longitude }};
+    const isMobile = window.matchMedia('(pointer:coarse)').matches;
     const map = L.map('miniMap', {
       center: [lat, lng], zoom: 15,
       zoomControl: true, scrollWheelZoom: false,
-      dragging: !L.Browser.mobile,
+      dragging: !isMobile,
     });
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
       attribution: '© <a href="https://www.openstreetmap.org/copyright">OSM</a> © <a href="https://carto.com/">CARTO</a>',

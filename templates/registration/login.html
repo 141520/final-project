@@ -123,8 +123,17 @@
                     <div class="form-group" style="position:relative;">
                         <input type="password" id="password" class="form-input" placeholder="รหัสผ่าน" required autocomplete="current-password" style="padding-right:52px;">
                         <button type="button" id="togglePwd" onclick="togglePassword()"
-                            style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:20px;color:#888;padding:4px;line-height:1;"
-                            title="แสดง/ซ่อนรหัสผ่าน">👁️</button>
+                            style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:4px;line-height:1;display:flex;align-items:center;"
+                            title="แสดง/ซ่อนรหัสผ่าน">
+                            <!-- eye-on -->
+                            <svg id="iconEyeOn" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="#888">
+                              <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zm0 12.5a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/>
+                            </svg>
+                            <!-- eye-off -->
+                            <svg id="iconEyeOff" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="#888" style="display:none;">
+                              <path d="M12 7a5 5 0 0 1 5 5c0 .64-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75C21.27 7.61 17 4.5 12 4.5c-1.26 0-2.47.2-3.61.57l2.17 2.17C11.12 7.09 11.55 7 12 7zM2 4.27l2.28 2.28.46.46A11.8 11.8 0 0 0 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65a3 3 0 0 0 3 3c.22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53a5 5 0 0 1-5-5c0-.79.2-1.53.53-2.2zm4.31-.78 3.15 3.15.02-.16A3 3 0 0 0 12 9l-.16.02z"/>
+                            </svg>
+                        </button>
                     </div>
                     <div class="row-between">
                         <span></span>
@@ -162,13 +171,16 @@
     <script>
     function togglePassword() {
         var inp = document.getElementById('password');
-        var btn = document.getElementById('togglePwd');
+        var on  = document.getElementById('iconEyeOn');
+        var off = document.getElementById('iconEyeOff');
         if (inp.type === 'password') {
             inp.type = 'text';
-            btn.textContent = '🙈';
+            on.style.display  = 'none';
+            off.style.display = 'block';
         } else {
             inp.type = 'password';
-            btn.textContent = '👁️';
+            on.style.display  = 'block';
+            off.style.display = 'none';
         }
     }
     </script>
