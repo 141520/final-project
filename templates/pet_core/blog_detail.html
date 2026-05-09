@@ -7,8 +7,16 @@
   .bd-cover { width: 100%; max-height: 420px; object-fit: cover; border-radius: 16px; margin-bottom: 24px; }
   .bd-title { font-family: 'Chilanka', sans-serif; color: #41403E; font-size: 36px; margin-bottom: 10px; }
   .bd-meta { font-family: 'Crimson Text', serif; color: #DEAD6F; font-size: 15px; margin-bottom: 24px; }
-  .bd-body { font-family: 'IBM Plex Sans Thai Looped', sans-serif; color: #41403E; font-size: 17px; line-height: 1.8; }
-  .bd-body p { margin-bottom: 1em; }
+  .bd-body { font-family: 'IBM Plex Sans Thai Looped', sans-serif; color: #41403E; font-size: 17px; line-height: 1.9; }
+  .bd-body p { margin-bottom: 1.2em; }
+  .bd-body h2 { font-size: 22px; font-weight: 700; color: #021F74; margin: 1.6em 0 .6em; }
+  .bd-body h3 { font-size: 19px; font-weight: 700; color: #021F74; margin: 1.4em 0 .5em; }
+  .bd-body ul, .bd-body ol { padding-left: 1.5em; margin-bottom: 1.2em; }
+  .bd-body li { margin-bottom: .4em; }
+  .bd-body strong { color: #021F74; }
+  .bd-body blockquote { border-left: 4px solid #DEAD6F; margin: 1.2em 0; padding: .6em 1em; background: #fff8e8; border-radius: 0 8px 8px 0; color: #667479; font-style: italic; }
+  .bd-body hr { border: none; border-top: 2px solid #eee; margin: 2em 0; }
+  .bd-body a { color: #021F74; text-decoration: underline; }
   .bd-back { display: inline-block; margin-top: 30px; padding: 10px 20px; background: #021F74; color: #fff; border-radius: 10px; text-decoration: none; font-family: 'Montserrat', sans-serif; }
 
   .related { max-width: 1200px; margin: 30px auto 60px; padding: 0 20px; }
@@ -51,7 +59,7 @@
     {% if post.published_at %}{{ post.published_at|date:"j M Y" }}{% endif %}
     {% if post.author_name %} · โดย {{ post.author_name }}{% endif %}
   </div>
-  <div class="bd-body">{{ post.body|safe }}</div>
+  <div class="bd-body">{{ post.body|linebreaks }}</div>
 
   {% if post.source_name or post.source_url %}
   <div style="margin-top:32px;padding:14px 18px;background:#f8f4ee;border-left:4px solid #DEAD6F;border-radius:0 10px 10px 0;font-size:14px;color:#667479;">

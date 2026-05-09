@@ -320,7 +320,10 @@ class BlogPost(models.Model):
     title = models.CharField(max_length=300, verbose_name="หัวข้อบทความ")
     summary = models.CharField(max_length=500, blank=True, verbose_name="สรุปสั้น (แสดงใต้ title)")
     cover_image = models.ImageField(upload_to='blog/', null=True, blank=True, verbose_name="รูปปก")
-    body = models.TextField(verbose_name="เนื้อหา (รองรับ HTML)")
+    body = models.TextField(
+        verbose_name="เนื้อหา",
+        help_text="กด Enter 1 ครั้ง = ขึ้นบรรทัดใหม่ · กด Enter 2 ครั้ง = ย่อหน้าใหม่"
+    )
 
     author_name = models.CharField(max_length=100, blank=True, verbose_name="ผู้เขียน")
     published_at = models.DateField(null=True, blank=True, verbose_name="วันที่เผยแพร่")
