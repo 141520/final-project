@@ -124,6 +124,62 @@
     }
     .btn-logout:hover { background: #e60000; transform: translateY(-2px); }
 
+    /* ===== Delete account ===== */
+    .btn-delete-account {
+        background: none; border: 1.5px solid #FF4D4D;
+        color: #FF4D4D; border-radius: 30px; padding: 10px 28px;
+        font-size: 14px; font-weight: 600; cursor: pointer;
+        margin-top: 14px;
+        transition: all .2s ease;
+        font-family: 'IBM Plex Sans Thai Looped', sans-serif;
+    }
+    .btn-delete-account:hover { background: #fff0f0; }
+
+    /* ===== Modal overlay ===== */
+    .modal-overlay {
+        display: none; position: fixed; inset: 0;
+        background: rgba(0,0,0,.45); z-index: 9999;
+        align-items: center; justify-content: center;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal-box {
+        background: #fff; border-radius: 24px;
+        padding: 36px 32px; max-width: 420px; width: 90%;
+        box-shadow: 0 20px 60px rgba(0,0,0,.2);
+        text-align: center;
+    }
+    .modal-icon { font-size: 48px; margin-bottom: 10px; }
+    .modal-title {
+        color: #D00000; font-size: 22px; font-weight: 700;
+        margin-bottom: 10px;
+        font-family: 'IBM Plex Sans Thai Looped', sans-serif;
+    }
+    .modal-desc {
+        color: #555; font-size: 14px; line-height: 1.7;
+        margin-bottom: 24px;
+        font-family: 'IBM Plex Sans Thai Looped', sans-serif;
+    }
+    .modal-desc strong { color: #D00000; }
+    .modal-actions { display: flex; gap: 12px; justify-content: center; }
+    .btn-modal-cancel {
+        background: #F0F0F0; color: #444; border: none;
+        border-radius: 30px; padding: 12px 28px;
+        font-size: 15px; font-weight: 600; cursor: pointer;
+        transition: background .2s;
+        font-family: 'IBM Plex Sans Thai Looped', sans-serif;
+    }
+    .btn-modal-cancel:hover { background: #ddd; }
+    .btn-modal-confirm {
+        background: #D00000; color: #fff; border: none;
+        border-radius: 30px; padding: 12px 28px;
+        font-size: 15px; font-weight: 700; cursor: pointer;
+        box-shadow: 0 6px 16px rgba(208,0,0,.35);
+        transition: all .2s;
+        font-family: 'IBM Plex Sans Thai Looped', sans-serif;
+    }
+    .btn-modal-confirm:hover { background: #a80000; }
+    .btn-modal-confirm:disabled { background: #e88; cursor: not-allowed; box-shadow: none; }
+
     @media (max-width: 540px) {
         .stats-grid { grid-template-columns: repeat(2, 1fr); }
         .bg-shape-right { display: none; }
@@ -207,6 +263,25 @@
 
         <div class="logout-wrap">
             <button class="btn-logout" id="logoutBtn">🚪 ออกจากระบบ</button>
+            <br>
+            <button class="btn-delete-account" id="openDeleteModal">🗑️ ลบบัญชีของฉัน</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== Delete account modal ===== -->
+<div class="modal-overlay" id="deleteModal">
+    <div class="modal-box">
+        <div class="modal-icon">⚠️</div>
+        <div class="modal-title">ลบบัญชีถาวร</div>
+        <div class="modal-desc">
+            การลบบัญชีจะ<strong>ลบข้อมูลทั้งหมด</strong>ของคุณออกจากระบบอย่างถาวร<br>
+            รวมถึงประกาศ รูปภาพ และข้อมูลทุกอย่าง<br><br>
+            <strong>ไม่สามารถกู้คืนได้</strong> คุณแน่ใจหรือไม่?
+        </div>
+        <div class="modal-actions">
+            <button class="btn-modal-cancel" id="cancelDeleteBtn">ยกเลิก</button>
+            <button class="btn-modal-confirm" id="confirmDeleteBtn">ลบบัญชีถาวร</button>
         </div>
     </div>
 </div>
@@ -228,6 +303,47 @@
     document.getElementById('logoutBtn').addEventListener('click', () => {
         if (typeof window.doLogout === 'function') {
             window.doLogout();
+        }
+    });
+
+    // ===== Delete account modal =====
+    const deleteModal  = document.getElementById('deleteModal');
+    const confirmBtn   = document.getElementById('confirmDeleteBtn');
+
+    document.getElementById('openDeleteModal').addEventListener('click', () => {
+        deleteModal.classList.add('active');
+    });
+    document.getElementById('cancelDeleteBtn').addEventListener('click', () => {
+        deleteModal.classList.remove('active');
+    });
+    // ปิด modal เมื่อคลิก overlay ด้านนอก
+    deleteModal.addEventListener('click', (e) => {
+        if (e.target === deleteModal) deleteModal.classList.remove('active');
+    });
+
+    confirmBtn.addEventListener('click', async () => {
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = 'กำลังลบ...';
+        try {
+            // 1. ลบข้อมูลใน Django DB + logout session
+            const resp = await fetch('{% url "delete_account" %}', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+            });
+            const json = await resp.json();
+            if (!json.ok) throw new Error(json.error || 'server error');
+
+            // 2. ลบ Supabase Auth account (sign out ก็เพียงพอถ้าไม่มี admin key)
+            try {
+                await window.mySupabaseClient.auth.signOut();
+            } catch (_) {}
+
+            // 3. redirect ไปหน้าแรก
+            window.location.href = '/';
+        } catch (err) {
+            alert('เกิดข้อผิดพลาด: ' + err.message);
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = 'ลบบัญชีถาวร';
         }
     });
 </script>

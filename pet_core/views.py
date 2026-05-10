@@ -981,6 +981,22 @@ def profile_view(request):
 
 
 @login_required
+@require_POST
+def delete_account(request):
+    """ลบบัญชีผู้ใช้ + ข้อมูลทั้งหมดในระบบ (POST only)"""
+    user = request.user
+    try:
+        # ลบโพสต์ทั้งหมด (PetImage / Comment cascade อัตโนมัติ)
+        PetPost.objects.filter(owner=user).delete()
+        # ลบ Django user (และ session)
+        django_logout(request)
+        user.delete()
+        return JsonResponse({'ok': True})
+    except Exception as exc:
+        return JsonResponse({'ok': False, 'error': str(exc)}, status=500)
+
+
+@login_required
 def my_posts_view(request):
     posts = PetPost.objects.filter(owner=request.user).order_by('-created_at')
     filter_type = request.GET.get('type', '')

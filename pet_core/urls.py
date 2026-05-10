@@ -49,6 +49,7 @@ urlpatterns = [
     path('reset-password/', TemplateView.as_view(template_name='registration/reset_password.html'), name='reset_password'),
     path('logout/', views.logout_view, name='logout'),
     path('profile/', views.profile_view, name='profile'),
+    path('account/delete/', views.delete_account, name='delete_account'),
 ]
 
 handler404 = 'pet_core.views.custom_404'
