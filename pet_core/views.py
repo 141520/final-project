@@ -143,7 +143,7 @@ def _list_posts(post_type: str, q: str):
     """Helper: คืน QuerySet เบาๆ (.only() ดึงเฉพาะ fields ที่ template ใช้)"""
     qs = (PetPost.objects
           .filter(post_type=post_type, status='active')
-          .only(*_LIST_FIELDS)
+          .only(*_LIST_FIELDS, 'owner_id')
           .order_by('-created_at'))
     if q:
         qs = qs.filter(
@@ -154,17 +154,28 @@ def _list_posts(post_type: str, q: str):
     return qs
 
 
+def _dedup_posts(posts):
+    """กรองโพสซ้ำ: ชื่อเดิม + เจ้าของเดิม → เก็บอันใหม่สุด (order_by -created_at แล้ว)"""
+    seen = set()
+    result = []
+    for p in posts:
+        key = (str(p.owner_id or ''), (p.name or '').strip().lower())
+        if key not in seen:
+            seen.add(key)
+            result.append(p)
+    return result
+
+
 # ---- รายการประกาศสัตว์หาย ----
 def lost_pet_list(request):
     q = request.GET.get('q', '').strip()
     if not q:
-        # Cache เฉพาะ list ที่ไม่มี search query (60s)
-        posts = cache.get('list_lost_v1')
+        posts = cache.get('list_lost_v2')
         if posts is None:
-            posts = list(_list_posts('lost', q)[:120])
-            cache.set('list_lost_v1', posts, 60)
+            posts = _dedup_posts(list(_list_posts('lost', q)[:240]))[:120]
+            cache.set('list_lost_v2', posts, 60)
     else:
-        posts = _list_posts('lost', q)[:120]
+        posts = _dedup_posts(list(_list_posts('lost', q)[:240]))[:120]
     return render(request, 'pet_core/lost_pet_list.html', {'posts': posts, 'q': q})
 
 
@@ -172,12 +183,12 @@ def lost_pet_list(request):
 def found_pet_list(request):
     q = request.GET.get('q', '').strip()
     if not q:
-        posts = cache.get('list_found_v1')
+        posts = cache.get('list_found_v2')
         if posts is None:
-            posts = list(_list_posts('found', q)[:120])
-            cache.set('list_found_v1', posts, 60)
+            posts = _dedup_posts(list(_list_posts('found', q)[:240]))[:120]
+            cache.set('list_found_v2', posts, 60)
     else:
-        posts = _list_posts('found', q)[:120]
+        posts = _dedup_posts(list(_list_posts('found', q)[:240]))[:120]
     return render(request, 'pet_core/found_pet_list.html', {'posts': posts, 'q': q})
 
 
