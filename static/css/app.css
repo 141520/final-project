@@ -8,14 +8,28 @@
    - prefers-reduced-motion respected
    ============================================================ */
 
+:root {
+  --wt-navy: #021F74;
+  --wt-navy-soft: rgba(2, 31, 116, .14);
+  --wt-cream: #FCEED5;
+  --wt-cream-soft: #FFF8EA;
+  --wt-honey: #DEAD6F;
+  --wt-mint: #DDF7EA;
+  --wt-rose: #FFE8E5;
+  --wt-shadow-sm: 0 6px 18px rgba(2, 31, 116, .08);
+  --wt-shadow-md: 0 14px 36px rgba(2, 31, 116, .13);
+  --wt-ease: cubic-bezier(.16, 1, .3, 1);
+  --wt-ease-soft: cubic-bezier(.2, .8, .2, 1);
+}
+
 /* ---------- 1. Top loading bar ---------- */
 #pf-progress {
   position: fixed; top: 0; left: 0; right: 0;
   height: 3px; z-index: 99999;
-  background: linear-gradient(90deg, #756EF5 0%, #D75CA7 50%, #F9C82F 100%);
+  background: linear-gradient(90deg, var(--wt-navy) 0%, var(--wt-honey) 55%, #63C99D 100%);
   transform: scaleX(0); transform-origin: 0 50%;
-  transition: transform .25s ease-out, opacity .35s ease;
-  box-shadow: 0 0 10px rgba(215, 92, 167, .6), 0 0 4px rgba(117, 110, 245, .8);
+  transition: transform .28s var(--wt-ease), opacity .35s var(--wt-ease);
+  box-shadow: 0 0 12px rgba(222, 173, 111, .42), 0 0 4px rgba(2, 31, 116, .34);
   opacity: 0; pointer-events: none;
 }
 #pf-progress.active { opacity: 1; }
@@ -30,22 +44,24 @@
 .pf-toast {
   pointer-events: auto;
   min-width: 280px; max-width: 380px;
-  background: white; color: #1f2937;
+  background: rgba(255, 252, 245, .96); color: #1f2937;
   padding: 14px 18px; border-radius: 14px;
-  box-shadow: 0 10px 40px rgba(0,0,0,.18), 0 2px 6px rgba(0,0,0,.06);
+  box-shadow: var(--wt-shadow-md), 0 2px 8px rgba(222, 173, 111, .12);
   display: flex; align-items: flex-start; gap: 10px;
   font-size: 14px; line-height: 1.5;
-  border-left: 4px solid #4E73F6;
-  animation: pf-toast-in .35s cubic-bezier(.21,1.02,.73,1);
+  border: 1px solid rgba(222, 173, 111, .24);
+  border-left: 4px solid var(--wt-navy);
+  animation: pf-toast-in .34s var(--wt-ease);
   position: relative; overflow: hidden;
+  backdrop-filter: blur(10px);
 }
 .pf-toast.leaving {
-  animation: pf-toast-out .25s ease-in forwards;
+  animation: pf-toast-out .24s var(--wt-ease-soft) forwards;
 }
-.pf-toast.success { border-left-color: #10b981; }
-.pf-toast.error   { border-left-color: #ef4444; }
-.pf-toast.warning { border-left-color: #f59e0b; }
-.pf-toast.info    { border-left-color: #3b82f6; }
+.pf-toast.success { border-left-color: #2FBF7B; background: linear-gradient(90deg, var(--wt-mint), rgba(255,255,255,.96)); }
+.pf-toast.error   { border-left-color: #E0594F; background: linear-gradient(90deg, var(--wt-rose), rgba(255,255,255,.96)); }
+.pf-toast.warning { border-left-color: var(--wt-honey); }
+.pf-toast.info    { border-left-color: var(--wt-navy); }
 .pf-toast .icon { font-size: 20px; line-height: 1; flex-shrink: 0; }
 .pf-toast .body { flex: 1; }
 .pf-toast .close {
@@ -63,11 +79,11 @@
 }
 
 @keyframes pf-toast-in {
-  from { opacity: 0; transform: translateX(40px) scale(.96); }
+  from { opacity: 0; transform: translateY(10px) scale(.985); }
   to   { opacity: 1; transform: translateX(0) scale(1); }
 }
 @keyframes pf-toast-out {
-  to { opacity: 0; transform: translateX(40px) scale(.96); }
+  to { opacity: 0; transform: translateY(8px) scale(.985); }
 }
 @keyframes pf-toast-progress {
   from { transform: scaleX(1); }
@@ -89,11 +105,11 @@ button,
 .cat-chip,
 .page-link {
   transition:
-    transform 140ms cubic-bezier(.16, 1, .3, 1),
-    box-shadow 180ms cubic-bezier(.16, 1, .3, 1),
-    background-color 180ms cubic-bezier(.16, 1, .3, 1),
-    border-color 180ms cubic-bezier(.16, 1, .3, 1),
-    opacity 180ms cubic-bezier(.16, 1, .3, 1);
+    transform 150ms var(--wt-ease),
+    box-shadow 220ms var(--wt-ease),
+    background-color 220ms var(--wt-ease),
+    border-color 220ms var(--wt-ease),
+    opacity 220ms var(--wt-ease);
 }
 button:not(:disabled):hover,
 .btn:hover,
@@ -104,6 +120,7 @@ button:not(:disabled):hover,
 .cat-chip:hover,
 .page-link:hover {
   transform: translateY(-1px);
+  box-shadow: var(--wt-shadow-sm);
 }
 button:not(:disabled):active,
 .btn:active,
@@ -149,6 +166,55 @@ button:disabled,
 }
 @keyframes pf-spin { to { transform: rotate(360deg); } }
 
+/* ---------- 2c. Warm Trust card/media motion ---------- */
+.pet-card,
+.post-card,
+.product-card,
+.blog-card,
+.menu-btn,
+.profile-card,
+.form-card,
+.pd-wrap {
+  transition:
+    transform 240ms var(--wt-ease),
+    box-shadow 260ms var(--wt-ease),
+    border-color 240ms var(--wt-ease),
+    background-color 240ms var(--wt-ease);
+}
+.pet-card:hover,
+.post-card:hover,
+.product-card:hover,
+.blog-card:hover,
+.menu-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--wt-shadow-md);
+}
+img {
+  transition: opacity 260ms var(--wt-ease), transform 320ms var(--wt-ease), filter 260ms var(--wt-ease);
+}
+img[data-pf-img-ready="false"] {
+  opacity: 0;
+  filter: blur(4px);
+}
+img[data-pf-img-ready="true"] {
+  opacity: 1;
+  filter: blur(0);
+}
+.product-card:hover img,
+.blog-card:hover img,
+.pet-card:hover img,
+.post-card:hover img {
+  transform: scale(1.018);
+}
+.modal-overlay,
+.pf-sheet-back {
+  transition: opacity 220ms var(--wt-ease);
+}
+.modal-box,
+.pf-sheet {
+  transition: transform 240ms var(--wt-ease), opacity 220ms var(--wt-ease);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -162,9 +228,9 @@ button:disabled,
 
 /* ---------- 3. Scroll-reveal ---------- */
 [data-reveal] {
-  opacity: 0; transform: translateY(28px);
-  transition: opacity .7s cubic-bezier(.21,1.02,.73,1),
-              transform .7s cubic-bezier(.21,1.02,.73,1);
+  opacity: 0; transform: translateY(18px);
+  transition: opacity .54s var(--wt-ease),
+              transform .54s var(--wt-ease);
   will-change: opacity, transform;
 }
 [data-reveal].in {
@@ -177,9 +243,9 @@ button:disabled,
 
 /* ---------- 4. Skeleton loader ---------- */
 .pf-skeleton {
-  background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+  background: linear-gradient(90deg, #F2E4CA 25%, #FFF8EA 50%, #F2E4CA 75%);
   background-size: 200% 100%;
-  animation: pf-skel 1.4s ease-in-out infinite;
+  animation: pf-skel 1.45s ease-in-out infinite;
   border-radius: 8px;
 }
 @keyframes pf-skel {
@@ -189,7 +255,7 @@ button:disabled,
 
 /* ---------- 5. Focus ring (a11y) ---------- */
 :focus-visible {
-  outline: 2px solid #4E73F6;
+  outline: 2px solid var(--wt-navy);
   outline-offset: 2px;
   border-radius: 6px;
 }

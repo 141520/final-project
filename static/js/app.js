@@ -173,6 +173,18 @@
     img.loading = 'lazy';
     img.decoding = 'async';
   });
+  d.querySelectorAll('img').forEach(img => {
+    if (img.complete && img.naturalWidth > 0) {
+      img.dataset.pfImgReady = 'true';
+      return;
+    }
+    img.dataset.pfImgReady = 'false';
+    img.addEventListener('load', () => { img.dataset.pfImgReady = 'true'; }, { once: true });
+    img.addEventListener('error', () => {
+      img.dataset.pfImgReady = 'true';
+      img.classList.add('pf-img-error');
+    }, { once: true });
+  });
 
   // ---------- 7. Service worker (best-effort) ----------
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
