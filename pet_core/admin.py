@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User, Group
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
-from .models import PetPost, PetImage, Product, ProductImage, BlogPost
+from .models import PetPost, PetImage, Product, ProductImage, BlogPost, Comment, AuditLog
 
 
 # ==========================================================
@@ -79,6 +79,7 @@ class PetPostAdmin(admin.ModelAdmin):
     search_fields = ('name', 'breed', 'description', 'contact_name',
                      'contact_phone', 'contact_email', 'location_name')
     list_per_page = 20
+    list_select_related = ('owner',)
     date_hierarchy = 'created_at'
     autocomplete_fields = ('owner',)
     readonly_fields = ('created_at', 'updated_at', 'main_image_preview')
@@ -146,6 +147,7 @@ class PetImageAdmin(admin.ModelAdmin):
     list_filter = ('pet_post__post_type', 'pet_post__pet_type')
     search_fields = ('pet_post__name',)
     autocomplete_fields = ('pet_post',)
+    list_select_related = ('pet_post',)
 
     def thumb(self, obj):
         if obj.image:
@@ -342,3 +344,27 @@ class BlogPostAdmin(admin.ModelAdmin):
             obj.display_cover_url,
         )
     cover_preview.short_description = "ตัวอย่างรูปปก"
+
+
+@admin.register(Comment)
+class CommentAdmin(admin.ModelAdmin):
+    list_display = ('id', 'pet_post', 'display_name', 'created_at')
+    list_filter = ('created_at',)
+    search_fields = ('text', 'author_name', 'pet_post__name')
+    list_select_related = ('pet_post', 'user')
+    readonly_fields = ('created_at',)
+
+
+@admin.register(AuditLog)
+class AuditLogAdmin(admin.ModelAdmin):
+    list_display = ('created_at', 'action', 'user', 'object_type', 'object_id', 'ip_address')
+    list_filter = ('action', 'created_at')
+    search_fields = ('user__username', 'object_type', 'object_id', 'ip_address')
+    list_select_related = ('user',)
+    readonly_fields = ('created_at', 'user', 'action', 'object_type', 'object_id', 'ip_address', 'user_agent', 'metadata')
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False

@@ -4,13 +4,17 @@ from django.contrib.auth import logout as django_logout
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden, JsonResponse
 from django.views.decorators.http import require_POST, require_GET
-from .models import PetPost, PetImage, Product, BlogPost, Comment, normalize_external_link
+from .models import PetPost, PetImage, Product, BlogPost, Comment, AuditLog, normalize_external_link
 from datetime import date
 from django.core.files.base import ContentFile
 from .utils import extract_feature_vector, classify_pet_type, compress_image, analyze_image
 from pgvector.django import CosineDistance
 from django.core.cache import cache
+from django.core.exceptions import ValidationError
+from django.core.paginator import Paginator
 from django.db.models import Count, Q
+from django.db import transaction
+from PIL import Image as PILImage
 from collections import defaultdict
 import logging
 import os
@@ -19,8 +23,67 @@ import uuid
 
 # จำกัดจำนวนรูปต่อโพสต์
 MAX_IMAGES_PER_POST = 5
+MAX_IMAGE_UPLOAD_BYTES = 8 * 1024 * 1024
+PRODUCTS_PER_PAGE = 24
+LIST_QUERY_LIMIT = 240
+LIST_DISPLAY_LIMIT = 120
+ALLOWED_IMAGE_CONTENT_TYPES = {'image/jpeg', 'image/png', 'image/webp'}
+GENERIC_SAVE_ERROR = 'เกิดข้อผิดพลาดระหว่างบันทึกข้อมูล กรุณาตรวจสอบข้อมูลแล้วลองใหม่อีกครั้ง'
 
 logger = logging.getLogger(__name__)
+
+
+def _client_ip(request):
+    forwarded = request.META.get('HTTP_X_FORWARDED_FOR', '')
+    return (forwarded.split(',')[0].strip() or request.META.get('REMOTE_ADDR') or 'unknown')
+
+
+def _audit(request, action, obj=None, metadata=None):
+    try:
+        AuditLog.objects.create(
+            user=request.user if getattr(request, 'user', None) and request.user.is_authenticated else None,
+            action=action,
+            object_type=obj.__class__.__name__ if obj is not None else '',
+            object_id=str(getattr(obj, 'pk', '') or ''),
+            ip_address=_client_ip(request),
+            user_agent=(request.META.get('HTTP_USER_AGENT') or '')[:1000],
+            metadata=metadata or {},
+        )
+    except Exception:
+        logger.exception("Audit log write failed: action=%s", action)
+
+
+def _is_rate_limited(request, action, limit, window_seconds):
+    if request.method != 'POST':
+        return False
+    key = f"rl:{action}:{getattr(request.user, 'id', None) or _client_ip(request)}"
+    count = cache.get(key, 0)
+    if count >= limit:
+        return True
+    cache.set(key, count + 1, window_seconds)
+    return False
+
+
+def _validate_image_files(image_files):
+    for uploaded_file in image_files[:MAX_IMAGES_PER_POST]:
+        if getattr(uploaded_file, 'size', 0) > MAX_IMAGE_UPLOAD_BYTES:
+            raise ValidationError('รูปภาพต้องมีขนาดไม่เกิน 8MB ต่อไฟล์')
+
+        content_type = getattr(uploaded_file, 'content_type', '')
+        if content_type and content_type not in ALLOWED_IMAGE_CONTENT_TYPES:
+            raise ValidationError('รองรับเฉพาะไฟล์รูป JPG, PNG หรือ WebP')
+
+        try:
+            uploaded_file.seek(0)
+            with PILImage.open(uploaded_file) as img:
+                img.verify()
+        except Exception as exc:
+            raise ValidationError('ไฟล์ที่อัปโหลดไม่ใช่รูปภาพที่ถูกต้อง') from exc
+        finally:
+            try:
+                uploaded_file.seek(0)
+            except Exception:
+                pass
 
 # ---- หน้าหลัก ----
 def home(request):
@@ -172,10 +235,10 @@ def lost_pet_list(request):
     if not q:
         posts = cache.get('list_lost_v2')
         if posts is None:
-            posts = _dedup_posts(list(_list_posts('lost', q)[:240]))[:120]
+            posts = _dedup_posts(list(_list_posts('lost', q)[:LIST_QUERY_LIMIT]))[:LIST_DISPLAY_LIMIT]
             cache.set('list_lost_v2', posts, 60)
     else:
-        posts = _dedup_posts(list(_list_posts('lost', q)[:240]))[:120]
+        posts = _dedup_posts(list(_list_posts('lost', q)[:LIST_QUERY_LIMIT]))[:LIST_DISPLAY_LIMIT]
     return render(request, 'pet_core/lost_pet_list.html', {'posts': posts, 'q': q})
 
 
@@ -185,10 +248,10 @@ def found_pet_list(request):
     if not q:
         posts = cache.get('list_found_v2')
         if posts is None:
-            posts = _dedup_posts(list(_list_posts('found', q)[:240]))[:120]
+            posts = _dedup_posts(list(_list_posts('found', q)[:LIST_QUERY_LIMIT]))[:LIST_DISPLAY_LIMIT]
             cache.set('list_found_v2', posts, 60)
     else:
-        posts = _dedup_posts(list(_list_posts('found', q)[:240]))[:120]
+        posts = _dedup_posts(list(_list_posts('found', q)[:LIST_QUERY_LIMIT]))[:LIST_DISPLAY_LIMIT]
     return render(request, 'pet_core/found_pet_list.html', {'posts': posts, 'q': q})
 
 
@@ -234,26 +297,32 @@ def _attach_images_to_post(post, image_files):
     - ถ้า post.pet_type ว่าง จะ auto-fill จาก AI prediction
     Returns: ai_pet_types list (ผลทำนายของแต่ละรูป)
     """
+    _validate_image_files(image_files)
     ai_predictions = []
-    saved = 0
-    for i, f in enumerate(image_files[:MAX_IMAGES_PER_POST]):
-        cfile, vec, pet_guess = _process_uploaded_image(f)
-        ai_predictions.append(pet_guess)
+    with transaction.atomic():
+        PetPost.objects.select_for_update().filter(pk=post.pk).exists()
+        existing_count = PetImage.objects.select_for_update().filter(pet_post=post).count()
+        slots_left = max(MAX_IMAGES_PER_POST - existing_count, 0)
+        if slots_left <= 0:
+            return ai_predictions
 
-        if i == 0:
-            post.image = cfile
-            post.save(update_fields=['image'])
+        for i, f in enumerate(image_files[:slots_left]):
+            cfile, vec, pet_guess = _process_uploaded_image(f)
+            ai_predictions.append(pet_guess)
 
-        # PetImage with vector — บันทึก vector ตรง (ไม่พึ่ง model.save() เพื่อหลีกเลี่ยง round-trip)
-        pi = PetImage(pet_post=post, image=cfile)
-        pi.save()
-        if vec is not None:
-            pi.feature_vector = vec
-            try:
-                PetImage.objects.filter(pk=pi.pk).update(feature_vector=vec)
-            except Exception as e:
-                logger.warning(f"save vector failed: {e}")
-        saved += 1
+            if existing_count == 0 and i == 0:
+                post.image = cfile
+                post.save(update_fields=['image'])
+
+            # PetImage with vector — บันทึก vector ตรง (ไม่พึ่ง model.save() เพื่อหลีกเลี่ยง round-trip)
+            pi = PetImage(pet_post=post, image=cfile)
+            pi.save()
+            if vec is not None:
+                pi.feature_vector = vec
+                try:
+                    PetImage.objects.filter(pk=pi.pk).update(feature_vector=vec)
+                except Exception as e:
+                    logger.warning(f"save vector failed: {e}")
 
     # Auto-fill pet_type ถ้าผู้ใช้ไม่ได้ระบุ
     if not post.pet_type:
@@ -343,16 +412,22 @@ def _build_post_from_form(request, post_type):
 @login_required
 def report_lost(request):
     if request.method == 'POST':
+        if _is_rate_limited(request, 'report_lost', limit=5, window_seconds=600):
+            messages.error(request, 'ส่งประกาศถี่เกินไป กรุณารอสักครู่แล้วลองใหม่')
+            return redirect('report_lost')
         try:
             post = _build_post_from_form(request, 'lost')
             images = request.FILES.getlist('images') or request.FILES.getlist('image')
             if images:
                 _attach_images_to_post(post, images)
+            _audit(request, 'post_create', post, {'post_type': 'lost'})
             messages.success(request, '✅ ลงประกาศสัตว์หายสำเร็จแล้ว! AI ช่วยจำแนกประเภทสัตว์ให้แล้ว')
             return redirect('pet_detail', pet_id=post.id)
-        except Exception as e:
+        except ValidationError as e:
+            messages.error(request, '; '.join(e.messages))
+        except Exception:
             logger.exception("Error saving lost post")
-            messages.error(request, f'เกิดข้อผิดพลาด: {e}')
+            messages.error(request, GENERIC_SAVE_ERROR)
     return render(request, 'pet_core/create_find_post.html', {
         'max_images': MAX_IMAGES_PER_POST,
     })
@@ -362,16 +437,22 @@ def report_lost(request):
 @login_required
 def report_found(request):
     if request.method == 'POST':
+        if _is_rate_limited(request, 'report_found', limit=5, window_seconds=600):
+            messages.error(request, 'ส่งประกาศถี่เกินไป กรุณารอสักครู่แล้วลองใหม่')
+            return redirect('report_found')
         try:
             post = _build_post_from_form(request, 'found')
             images = request.FILES.getlist('images') or request.FILES.getlist('image')
             if images:
                 _attach_images_to_post(post, images)
+            _audit(request, 'post_create', post, {'post_type': 'found'})
             messages.success(request, '✅ ลงประกาศสัตว์ที่พบสำเร็จแล้ว! AI ช่วยจำแนกประเภทสัตว์ให้แล้ว')
             return redirect('pet_detail', pet_id=post.id)
-        except Exception as e:
+        except ValidationError as e:
+            messages.error(request, '; '.join(e.messages))
+        except Exception:
             logger.exception("Error saving found post")
-            messages.error(request, f'เกิดข้อผิดพลาด: {e}')
+            messages.error(request, GENERIC_SAVE_ERROR)
     return render(request, 'pet_core/create_found_post.html', {
         'max_images': MAX_IMAGES_PER_POST,
     })
@@ -562,56 +643,60 @@ def edit_post(request, pet_id):
         return HttpResponseForbidden("❌ คุณไม่ใช่เจ้าของประกาศนี้")
 
     if request.method == 'POST':
-        # อัปเดตฟิลด์ข้อความ
-        for field in ['name', 'pet_type', 'breed', 'age', 'gender', 'color',
-                      'microchip', 'description', 'contact_name', 'contact_email',
-                      'contact_phone', 'social_link', 'location_name', 'situation',
-                      'status']:
-            val = request.POST.get(field)
-            if val is not None:
-                setattr(pet, field, val.strip())
+        try:
+            # อัปเดตฟิลด์ข้อความ
+            for field in ['name', 'pet_type', 'breed', 'age', 'gender', 'color',
+                          'microchip', 'description', 'contact_name', 'contact_email',
+                          'contact_phone', 'social_link', 'location_name', 'situation',
+                          'status']:
+                val = request.POST.get(field)
+                if val is not None:
+                    setattr(pet, field, val.strip())
 
-        if request.POST.get('latitude'):
-            pet.latitude = request.POST.get('latitude')
-        if request.POST.get('longitude'):
-            pet.longitude = request.POST.get('longitude')
+            if request.POST.get('latitude'):
+                pet.latitude = request.POST.get('latitude')
+            if request.POST.get('longitude'):
+                pet.longitude = request.POST.get('longitude')
 
-        # 🟢 รางวัล — เฉพาะประกาศ "หาย" เท่านั้น (found post จะถูกล้างเป็น None)
-        if pet.post_type == 'lost':
-            reward_val = request.POST.get('reward', '').strip()
-            pet.reward = reward_val if reward_val else None
-        else:
-            pet.reward = None
-
-        # 🟢 วันที่/เวลา หาย-พบ
-        if pet.post_type == 'lost':
-            pet.lost_date = request.POST.get('lost_date') or None
-            pet.lost_time = request.POST.get('lost_time') or None
-        else:
-            pet.found_date = request.POST.get('found_date') or None
-            pet.found_time = request.POST.get('found_time') or None
-
-        pet.save()
-
-        # 🟢 เพิ่มรูปใหม่ (ถ้ามี) — เก็บได้สูงสุด MAX_IMAGES_PER_POST รูป
-        new_images = request.FILES.getlist('images') or (
-            [request.FILES['image']] if 'image' in request.FILES else []
-        )
-        if new_images:
-            existing_count = pet.images.count()
-            slots_left = MAX_IMAGES_PER_POST - existing_count
-            if slots_left > 0:
-                _attach_images_to_post(pet, new_images[:slots_left])
+            # 🟢 รางวัล — เฉพาะประกาศ "หาย" เท่านั้น (found post จะถูกล้างเป็น None)
+            if pet.post_type == 'lost':
+                reward_val = request.POST.get('reward', '').strip()
+                pet.reward = reward_val if reward_val else None
             else:
-                messages.info(request, f'มีรูปครบ {MAX_IMAGES_PER_POST} แล้ว — กรุณาลบรูปเก่าก่อน')
+                pet.reward = None
 
-        # 🟢 ลบรูปย่อยที่ผู้ใช้เลือก
-        delete_ids = request.POST.getlist('delete_image_ids')
-        if delete_ids:
-            pet.images.filter(id__in=delete_ids).delete()
+            # 🟢 วันที่/เวลา หาย-พบ
+            if pet.post_type == 'lost':
+                pet.lost_date = request.POST.get('lost_date') or None
+                pet.lost_time = request.POST.get('lost_time') or None
+            else:
+                pet.found_date = request.POST.get('found_date') or None
+                pet.found_time = request.POST.get('found_time') or None
 
-        messages.success(request, '✅ แก้ไขประกาศเรียบร้อยแล้ว')
-        return redirect('pet_detail', pet_id=pet.id)
+            pet.save()
+
+            # 🟢 ลบรูปย่อยที่ผู้ใช้เลือกก่อนนับ slot ใหม่
+            delete_ids = request.POST.getlist('delete_image_ids')
+            if delete_ids:
+                pet.images.filter(id__in=delete_ids).delete()
+
+            # 🟢 เพิ่มรูปใหม่ (ถ้ามี) — เก็บได้สูงสุด MAX_IMAGES_PER_POST รูป
+            new_images = request.FILES.getlist('images') or (
+                [request.FILES['image']] if 'image' in request.FILES else []
+            )
+            if new_images:
+                added = _attach_images_to_post(pet, new_images)
+                if not added:
+                    messages.info(request, f'มีรูปครบ {MAX_IMAGES_PER_POST} แล้ว — กรุณาลบรูปเก่าก่อน')
+
+            _audit(request, 'post_edit', pet, {'post_type': pet.post_type})
+            messages.success(request, '✅ แก้ไขประกาศเรียบร้อยแล้ว')
+            return redirect('pet_detail', pet_id=pet.id)
+        except ValidationError as e:
+            messages.error(request, '; '.join(e.messages))
+        except Exception:
+            logger.exception("Error editing post")
+            messages.error(request, GENERIC_SAVE_ERROR)
 
     return render(request, 'pet_core/edit_post.html', {
         'pet': pet,
@@ -637,6 +722,7 @@ def mark_as_resolved(request, pet_id):
     pet.resolved_at = timezone.now()
     pet.resolved_note = (request.POST.get('resolved_note') or '').strip()[:1000]
     pet.save(update_fields=['status', 'resolved_at', 'resolved_note', 'updated_at'])
+    _audit(request, 'post_resolve', pet, {'post_type': pet.post_type})
 
     # ลบ feature_vector เพื่อไม่ให้โผล่ใน image search อีก (โพสต์ยังคงอยู่)
     pet.images.update(feature_vector=None)
@@ -655,6 +741,7 @@ def delete_post(request, pet_id):
     if pet.owner_id != request.user.id:
         return HttpResponseForbidden("❌ คุณไม่ใช่เจ้าของประกาศนี้")
     if request.method == 'POST':
+        _audit(request, 'post_delete', pet, {'post_type': pet.post_type, 'name': pet.name})
         pet.delete()
         messages.success(request, '🗑️ ลบประกาศแล้ว')
         return redirect('my_posts')
@@ -665,24 +752,25 @@ def delete_post(request, pet_id):
 def product_list(request):
     """แสดงสินค้าที่ is_active + อยู่ในช่วงโปรโมท (หรือยังไม่ตั้งช่วง)"""
     today = date.today()
-    qs = Product.objects.filter(is_active=True)
-    # เอาเฉพาะที่ยังอยู่ในช่วงโปรโมท (หรือ admin ยังไม่กำหนดช่วง)
-    products = []
-    for p in qs:
-        if not p.promotion_start or not p.promotion_end:
-            products.append(p)
-        elif p.promotion_start <= today <= p.promotion_end:
-            products.append(p)
+    products = Product.objects.filter(is_active=True).filter(
+        Q(promotion_start__isnull=True) |
+        Q(promotion_end__isnull=True) |
+        Q(promotion_start__lte=today, promotion_end__gte=today)
+    )
 
     # filter หมวดหมู่
     category = request.GET.get('category', '').strip()
     if category:
-        products = [p for p in products if p.category == category]
+        products = products.filter(category=category)
+
+    paginator = Paginator(products, PRODUCTS_PER_PAGE)
+    page_obj = paginator.get_page(request.GET.get('page'))
 
     blog_posts = BlogPost.objects.filter(is_published=True)[:3]
 
     return render(request, 'pet_core/product_list.html', {
-        'products': products,
+        'products': page_obj,
+        'page_obj': page_obj,
         'blog_posts': blog_posts,
         'category_choices': Product.CATEGORY_CHOICES,
         'selected_category': category,
@@ -830,6 +918,9 @@ def logout_view(request):
 # ---- POST: comment / reaction บนโพสต์ ----
 @require_POST
 def post_comment(request, pet_id):
+    if _is_rate_limited(request, 'comment', limit=20, window_seconds=600):
+        return JsonResponse({'ok': False, 'error': 'rate_limited'}, status=429)
+
     pet = get_object_or_404(PetPost, id=pet_id)
     text = (request.POST.get('text') or '').strip()[:1000]
     reaction = (request.POST.get('reaction') or '').strip()[:8]
@@ -846,6 +937,7 @@ def post_comment(request, pet_id):
         pet_post=pet, user=user,
         author_name=author, text=text or '👍', reaction=reaction,
     )
+    _audit(request, 'comment_create', c, {'pet_post_id': pet.id})
     if request.headers.get('x-requested-with') == 'fetch':
         return JsonResponse({
             'ok': True,
@@ -986,14 +1078,16 @@ def delete_account(request):
     """ลบบัญชีผู้ใช้ + ข้อมูลทั้งหมดในระบบ (POST only)"""
     user = request.user
     try:
+        _audit(request, 'account_delete', user, {'username': user.username})
         # ลบโพสต์ทั้งหมด (PetImage / Comment cascade อัตโนมัติ)
         PetPost.objects.filter(owner=user).delete()
         # ลบ Django user (และ session)
         django_logout(request)
         user.delete()
         return JsonResponse({'ok': True})
-    except Exception as exc:
-        return JsonResponse({'ok': False, 'error': str(exc)}, status=500)
+    except Exception:
+        logger.exception("Delete account failed for user_id=%s", user.id)
+        return JsonResponse({'ok': False, 'error': 'delete_failed'}, status=500)
 
 
 @login_required

@@ -246,7 +246,7 @@
       {% endif %}
       {% if pet.resolved_note %}
         <div style="background:white;padding:10px 14px;border-radius:10px;font-size:14px;line-height:1.6;white-space:pre-wrap;">
-          💬 {{ pet.resolved_note }}
+          💬 {{ pet.resolved_note|escape|linebreaksbr }}
         </div>
       {% endif %}
     </div>
@@ -428,7 +428,7 @@
           <a href="{% url 'edit_post' pet.id %}" class="btn-action btn-edit-post">✏️ แก้ไขประกาศ</a>
           <form method="post" action="{% url 'delete_post' pet.id %}" style="margin:0;">
             {% csrf_token %}
-            <button type="submit" class="btn-action btn-del-post" onclick="return confirm('ลบประกาศนี้?')">
+            <button type="submit" class="btn-action btn-del-post" data-loading-text="กำลังลบ..." onclick="return confirm('ลบประกาศนี้?')">
               🗑️ ลบประกาศ
             </button>
           </form>
@@ -468,7 +468,7 @@
       <textarea name="text" rows="2" maxlength="1000" placeholder="ฝากข้อความช่วยเหลือ ให้กำลังใจ หรือเบาะแส..."
         style="padding:12px 14px;border-radius:12px;border:1.5px solid var(--pf-border);background:var(--pf-surface);color:var(--pf-text);font-family:inherit;font-size:14px;resize:vertical;"></textarea>
       <div style="display:flex;justify-content:flex-end;">
-        <button type="submit" class="pf-ripple"
+        <button type="submit" class="pf-ripple" data-loading-text="กำลังส่ง..."
           style="background:#021F74;color:white;border:none;padding:10px 22px;border-radius:100px;font-weight:700;cursor:pointer;font-family:inherit;">
           ส่งความเห็น
         </button>
@@ -522,7 +522,7 @@
           style="padding:10px 20px;border-radius:12px;border:1.5px solid #ddd;background:white;font-weight:600;cursor:pointer;font-family:inherit;">
           ยกเลิก
         </button>
-        <button type="submit"
+        <button type="submit" data-loading-text="กำลังปิดประกาศ..."
           style="padding:10px 22px;border-radius:12px;border:none;background:#1a7a4a;color:white;font-weight:700;cursor:pointer;font-family:inherit;">
           ✓ ยืนยันปิดประกาศ
         </button>

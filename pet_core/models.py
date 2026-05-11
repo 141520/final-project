@@ -1,8 +1,38 @@
 import re
+from urllib.parse import urlparse
 
 from django.db import models
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from pgvector.django import VectorField
+
+
+ALLOWED_PRODUCT_LINK_DOMAINS = (
+    'shopee.co.th',
+    'shopee.com',
+    'shp.ee',
+    'lazada.co.th',
+    'lazada.com',
+    'facebook.com',
+    'fb.com',
+)
+
+
+def supabase_public_image_url(image_field, placeholder=""):
+    if not image_field:
+        return placeholder
+
+    image_path = str(image_field)
+    if image_path.startswith('http'):
+        return image_path
+
+    if image_path.startswith('/media/'):
+        image_path = image_path[7:]
+    elif image_path.startswith('media/'):
+        image_path = image_path[6:]
+
+    base_url = f"{settings.SUPABASE_URL}/storage/v1/object/public/{settings.AWS_STORAGE_BUCKET_NAME}/"
+    return f"{base_url}{image_path}"
 
 
 def normalize_external_link(url: str) -> str:
@@ -13,6 +43,19 @@ def normalize_external_link(url: str) -> str:
         if match:
             return f'https://shopee.co.th/product/{match.group(1)}/{match.group(2)}'
     return url
+
+
+def validate_product_external_link(url: str):
+    url = (url or '').strip()
+    if not url:
+        return
+    test_url = url if url.startswith(('http://', 'https://')) else f'https://{url}'
+    host = urlparse(test_url).netloc.lower()
+    if host.startswith('www.'):
+        host = host[4:]
+    if not any(host == domain or host.endswith(f'.{domain}') for domain in ALLOWED_PRODUCT_LINK_DOMAINS):
+        allowed = ', '.join(ALLOWED_PRODUCT_LINK_DOMAINS)
+        raise ValidationError(f'รองรับเฉพาะลิงก์ร้านค้าที่อนุญาต: {allowed}')
 
 # 1. คลาส PetPost
 class PetPost(models.Model):
@@ -122,23 +165,7 @@ class PetPost(models.Model):
 
     @property
     def supabase_image_url(self):
-        if self.image:
-            image_path = str(self.image)
-            if image_path.startswith('http'):
-                return image_path
-            
-            # ลบคำว่า media/ หรือ /media/ ออก
-            if image_path.startswith('/media/'):
-                image_path = image_path[7:]
-            elif image_path.startswith('media/'):
-                image_path = image_path[6:]
-                
-            from django.conf import settings
-            base_url = f"{settings.SUPABASE_URL}/storage/v1/object/public/{settings.AWS_STORAGE_BUCKET_NAME}/"
-            return f"{base_url}{image_path}"
-        
-        # ถ้ารูปไม่มี ให้แสดงรูป Placeholder
-        return "https://placehold.co/264x264?text=No+Image"
+        return supabase_public_image_url(self.image, "https://placehold.co/264x264?text=No+Image")
 
 
 # 2. คลาส PetImage
@@ -153,20 +180,7 @@ class PetImage(models.Model):
     # 👇👇👇 ส่วนที่เพิ่มเข้ามาใหม่สำหรับ PetImage 👇👇👇
     @property
     def supabase_image_url(self):
-        if self.image:
-            image_path = str(self.image)
-            if image_path.startswith('http'):
-                return image_path
-                
-            if image_path.startswith('/media/'):
-                image_path = image_path[7:]
-            elif image_path.startswith('media/'):
-                image_path = image_path[6:]
-                
-            from django.conf import settings
-            base_url = f"{settings.SUPABASE_URL}/storage/v1/object/public/{settings.AWS_STORAGE_BUCKET_NAME}/"
-            return f"{base_url}{image_path}"
-        return ""
+        return supabase_public_image_url(self.image)
 
     # NOTE: feature_vector ถูก set โดย views._attach_images_to_post() ตอน upload
     # ไม่ต้อง override save() เพื่อ download รูปจาก Supabase กลับมาประมวลผล (ช้ามาก)
@@ -239,6 +253,7 @@ class Product(models.Model):
         เช่น shopee.co.th/สินค้า-i.123456.789 → shopee.co.th/product/123456/789
         """
         self.external_link = normalize_external_link(self.external_link)
+        validate_product_external_link(self.external_link)
 
     def save(self, *args, **kwargs):
         self.clean()
@@ -266,13 +281,7 @@ class Product(models.Model):
 
     @property
     def display_image_url(self):
-        if self.image:
-            path = str(self.image)
-            if path.startswith('http'):
-                return path
-            from django.conf import settings
-            return f"{settings.SUPABASE_URL}/storage/v1/object/public/{settings.AWS_STORAGE_BUCKET_NAME}/{path}"
-        return "https://placehold.co/300x300?text=No+Image"
+        return supabase_public_image_url(self.image, "https://placehold.co/300x300?text=No+Image")
 
     @property
     def all_image_urls(self):
@@ -314,13 +323,7 @@ class ProductImage(models.Model):
 
     @property
     def image_url(self):
-        if self.image:
-            path = str(self.image)
-            if path.startswith('http'):
-                return path
-            from django.conf import settings
-            return f"{settings.SUPABASE_URL}/storage/v1/object/public/{settings.AWS_STORAGE_BUCKET_NAME}/{path}"
-        return ""
+        return supabase_public_image_url(self.image)
 
 
 # =========================================================
@@ -357,6 +360,9 @@ class BlogPost(models.Model):
     class Meta:
         db_table = 'pet_core_blogpost'
         ordering = ['-published_at', '-created_at']
+        indexes = [
+            models.Index(fields=['is_published', '-published_at'], name='blog_published_at_idx'),
+        ]
         verbose_name = "บทความ/เคล็ดลับ"
         verbose_name_plural = "บทความ/เคล็ดลับ"
 
@@ -365,13 +371,7 @@ class BlogPost(models.Model):
 
     @property
     def display_cover_url(self):
-        if self.cover_image:
-            path = str(self.cover_image)
-            if path.startswith('http'):
-                return path
-            from django.conf import settings
-            return f"{settings.SUPABASE_URL}/storage/v1/object/public/{settings.AWS_STORAGE_BUCKET_NAME}/{path}"
-        return "https://placehold.co/400x260?text=No+Image"
+        return supabase_public_image_url(self.cover_image, "https://placehold.co/400x260?text=No+Image")
 
 
 # =========================================================
@@ -408,5 +408,41 @@ class Comment(models.Model):
     def initial(self):
         n = self.display_name
         return n[0].upper() if n else '?'
+
+
+class AuditLog(models.Model):
+    ACTION_CHOICES = (
+        ('post_create', 'สร้างประกาศ'),
+        ('post_edit', 'แก้ไขประกาศ'),
+        ('post_delete', 'ลบประกาศ'),
+        ('post_resolve', 'ปิดประกาศ'),
+        ('comment_create', 'เพิ่มความคิดเห็น'),
+        ('account_delete', 'ลบบัญชี'),
+    )
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='audit_logs'
+    )
+    action = models.CharField(max_length=40, choices=ACTION_CHOICES, db_index=True)
+    object_type = models.CharField(max_length=60, blank=True)
+    object_id = models.CharField(max_length=80, blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(blank=True)
+    metadata = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        db_table = 'pet_core_auditlog'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['action', '-created_at'], name='audit_action_created_idx'),
+            models.Index(fields=['user', '-created_at'], name='audit_user_created_idx'),
+        ]
+        verbose_name = "Audit log"
+        verbose_name_plural = "Audit logs"
+
+    def __str__(self):
+        return f"{self.action} {self.object_type}:{self.object_id}"
 
 

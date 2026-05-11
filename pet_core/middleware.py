@@ -22,6 +22,26 @@ logger = logging.getLogger(__name__)
 UserModel = get_user_model()
 
 
+class SecurityHeadersMiddleware(MiddlewareMixin):
+    """Add lightweight security headers without an extra dependency."""
+
+    def process_response(self, request, response):
+        response.setdefault(
+            'Content-Security-Policy',
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; "
+            "font-src 'self' https://fonts.gstatic.com data:; "
+            "img-src 'self' data: https:; "
+            "connect-src 'self' https:; "
+            "frame-ancestors 'self'; "
+            "base-uri 'self'; "
+            "form-action 'self';"
+        )
+        response.setdefault('Permissions-Policy', 'geolocation=(self), camera=(), microphone=()')
+        return response
+
+
 class SupabaseAuthMiddleware(MiddlewareMixin):
     """Sync Supabase JWT → Django User session"""
 
@@ -63,7 +83,11 @@ class SupabaseAuthMiddleware(MiddlewareMixin):
             if resp.status_code != 200:
                 logger.warning("Supabase token verification failed: HTTP %s", resp.status_code)
                 return None
-            return jwt.decode(token, options={"verify_signature": False, "verify_aud": False})
+            user_data = resp.json()
+            return {
+                'sub': user_data.get('id'),
+                'email': user_data.get('email') or '',
+            }
         except Exception as auth_error:
             logger.warning("Supabase token verification request failed: %s", auth_error)
             return None

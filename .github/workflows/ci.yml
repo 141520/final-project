@@ -28,6 +28,13 @@ jobs:
           python-version: "3.11"
           cache: pip
 
+      - name: Guard against committed local secrets
+        run: |
+          if git ls-files --error-unmatch .env >/dev/null 2>&1; then
+            echo ".env must never be committed"
+            exit 1
+          fi
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip

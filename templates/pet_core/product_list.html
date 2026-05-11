@@ -125,6 +125,17 @@
     text-align: center; padding: 60px 20px; color: #908F8D;
     font-family: 'Montserrat', sans-serif;
   }
+  .pagination {
+    display: flex; justify-content: center; align-items: center; gap: 10px;
+    padding: 0 24px 34px;
+  }
+  .page-link {
+    min-width: 42px; height: 42px; display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 999px; border: 1px solid #E2D5BE; background: #fff; color: #021F74;
+    text-decoration: none; font-weight: 700;
+  }
+  .page-link.active { background: #021F74; color: #fff; border-color: #021F74; }
+  .page-link.disabled { opacity: .45; pointer-events: none; }
 
   @media (max-width: 960px) {
     .products-hero { padding: 30px 30px 24px; }
@@ -208,6 +219,22 @@
     </div>
   {% endfor %}
 </section>
+
+{% if page_obj.paginator.num_pages > 1 %}
+  <nav class="pagination" aria-label="Product pages">
+    {% if page_obj.has_previous %}
+      <a class="page-link" href="?category={{ selected_category }}&page={{ page_obj.previous_page_number }}">‹</a>
+    {% else %}
+      <span class="page-link disabled">‹</span>
+    {% endif %}
+    <span class="page-link active">{{ page_obj.number }}</span>
+    {% if page_obj.has_next %}
+      <a class="page-link" href="?category={{ selected_category }}&page={{ page_obj.next_page_number }}">›</a>
+    {% else %}
+      <span class="page-link disabled">›</span>
+    {% endif %}
+  </nav>
+{% endif %}
 
 <section class="blog-section">
   <h2>บทความน่ารู้</h2>

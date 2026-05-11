@@ -281,7 +281,7 @@
         </div>
         <div class="modal-actions">
             <button class="btn-modal-cancel" id="cancelDeleteBtn">ยกเลิก</button>
-            <button class="btn-modal-confirm" id="confirmDeleteBtn">ลบบัญชีถาวร</button>
+            <button class="btn-modal-confirm" id="confirmDeleteBtn" data-action-loading data-loading-text="กำลังลบบัญชี...">ลบบัญชีถาวร</button>
         </div>
     </div>
 </div>
@@ -341,8 +341,10 @@
             // 3. redirect ไปหน้าแรก
             window.location.href = '/';
         } catch (err) {
-            alert('เกิดข้อผิดพลาด: ' + err.message);
+            alert('ลบบัญชีไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
             confirmBtn.disabled = false;
+            confirmBtn.classList.remove('pf-loading');
+            confirmBtn.removeAttribute('aria-busy');
             confirmBtn.textContent = 'ลบบัญชีถาวร';
         }
     });

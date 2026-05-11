@@ -27,6 +27,7 @@ ENV/
 *.log
 db.sqlite3
 db.sqlite3-journal
+ci.sqlite3
 media/
 staticfiles/
 /static_collected/

@@ -59,6 +59,39 @@
   }, true);
   w.addEventListener('pageshow', progDone);
 
+  // ---------- 1b. Action loading state ----------
+  function setLoadingButton(btn) {
+    if (!btn || btn.classList.contains('pf-loading')) return;
+    btn.dataset.pfOriginalText = btn.textContent.trim();
+    const loadingText = btn.dataset.loadingText || 'กำลังดำเนินการ...';
+    btn.textContent = loadingText;
+    btn.classList.add('pf-loading');
+    btn.setAttribute('aria-busy', 'true');
+    if ('disabled' in btn) btn.disabled = true;
+  }
+
+  d.addEventListener('submit', (e) => {
+    const form = e.target;
+    if (!form || form.dataset.noLoading === 'true') return;
+    if (form.dataset.pfSubmitted === 'true') {
+      e.preventDefault();
+      return;
+    }
+    form.dataset.pfSubmitted = 'true';
+    const btn = form.querySelector('button[type="submit"], input[type="submit"], .js-submit');
+    setLoadingButton(btn);
+  }, true);
+
+  d.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-action-loading]');
+    if (!btn) return;
+    if (btn.dataset.confirm && !confirm(btn.dataset.confirm)) {
+      e.preventDefault();
+      return;
+    }
+    setLoadingButton(btn);
+  }, true);
+
   // ---------- 2. Toast ----------
   let toastWrap = d.getElementById('pf-toasts');
   if (!toastWrap) {

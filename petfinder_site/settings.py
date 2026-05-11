@@ -48,6 +48,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'pet_core.middleware.SecurityHeadersMiddleware',
     # 🟢 WhiteNoise — serve static files ใน production (Render)
     'whitenoise.middleware.WhiteNoiseMiddleware',
     # 🟢 GZip HTML responses (~70% smaller HTML payload)
@@ -120,7 +121,12 @@ else:
     }
 
 # 4. ตั้งค่ารหัสผ่านและภาษา
-AUTH_PASSWORD_VALIDATORS = []
+AUTH_PASSWORD_VALIDATORS = [
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator', 'OPTIONS': {'min_length': 10}},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
+]
 LANGUAGE_CODE = 'th'
 TIME_ZONE = 'Asia/Bangkok'
 USE_I18N = True
@@ -153,6 +159,8 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 X_FRAME_OPTIONS = 'SAMEORIGIN'
 SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin'
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = True
 
 if not DEBUG:
     # HTTPS-only (เปิดเฉพาะ production)

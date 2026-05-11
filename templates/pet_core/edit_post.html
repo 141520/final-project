@@ -313,7 +313,7 @@ input[type=file] {
       <div class="actions">
         <a href="{% url 'delete_post' pet.id %}" class="btn btn-delete">🗑 ลบประกาศ</a>
         <a href="{% url 'pet_detail' pet.id %}" class="btn btn-cancel">ยกเลิก</a>
-        <button type="submit" class="btn btn-save">💾 บันทึก</button>
+        <button type="submit" class="btn btn-save" data-loading-text="กำลังบันทึก...">💾 บันทึก</button>
       </div>
     </form>
   </div>
