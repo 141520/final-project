@@ -12,11 +12,11 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
-      - key: DEBUG
+      - key: DJANGO_DEBUG
         value: "False"
-      - key: SECRET_KEY
+      - key: DJANGO_SECRET_KEY
         generateValue: true
-      - key: ALLOWED_HOSTS
+      - key: DJANGO_ALLOWED_HOSTS
         value: ".onrender.com,localhost,127.0.0.1"
       # ตั้ง 4 ตัวข้างล่างเองใน Render Dashboard (Environment tab)
       # - SUPABASE_URL

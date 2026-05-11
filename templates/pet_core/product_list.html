@@ -193,7 +193,7 @@
         </div>
       </a>
       {% if product.external_link %}
-        <a href="{{ product.external_link }}" target="_blank" rel="noopener noreferrer" class="btn-view">
+        <a href="{% url 'product_go' product.id %}" rel="noopener noreferrer" class="btn-view">
           🛒 ดูสินค้าที่ร้าน <span class="ext-ico">↗</span>
         </a>
       {% else %}

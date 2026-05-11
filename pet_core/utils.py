@@ -12,39 +12,47 @@ Improvements over v1:
 Notes:
 - DB stored vectors are still 2048-dim. Cosine distance is scale-invariant, so old (un-normalized)
   vectors and new TTA-averaged-normalized query vectors are mathematically comparable.
-- Model loaded once at import; ~100MB RAM steady state.
+- Model is lazy-loaded on first AI call, so management commands and CI stay fast.
 """
 import io
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.models as tv_models
-import torchvision.transforms as transforms
 import torchvision.transforms.functional as TF
 from PIL import Image, ImageOps
 
 # ─────────────────────────────────────────────
-# 1) Load ResNet50 once
+# 1) Lazy-load ResNet50 once
 # ─────────────────────────────────────────────
-_weights = tv_models.ResNet50_Weights.IMAGENET1K_V2
-_resnet50_full = tv_models.resnet50(weights=_weights)
-_resnet50_full.eval()
+_weights = None
+_resnet50_full = None
+_feature_model = None
+_preprocess = None
+_imagenet_categories = []
 
-# Feature extractor: chop off classifier head → 2048-dim pooled features
-_feature_model = nn.Sequential(*list(_resnet50_full.children())[:-1])
-_feature_model.eval()
 
-# Use the canonical transforms shipped with the weights — guaranteed to match how
-# the model was trained (Resize(232) + CenterCrop(224) + ImageNet normalize).
-_preprocess = _weights.transforms()
+def _ensure_resnet_loaded():
+    """Load ResNet50 only when an AI feature is actually used."""
+    global _weights, _resnet50_full, _feature_model, _preprocess, _imagenet_categories
+    if _resnet50_full is not None:
+        return
+
+    _weights = tv_models.ResNet50_Weights.IMAGENET1K_V2
+    _resnet50_full = tv_models.resnet50(weights=_weights)
+    _resnet50_full.eval()
+
+    # Feature extractor: chop off classifier head → 2048-dim pooled features
+    _feature_model = nn.Sequential(*list(_resnet50_full.children())[:-1])
+    _feature_model.eval()
+
+    # Canonical transforms shipped with the weights.
+    _preprocess = _weights.transforms()
+    _imagenet_categories = _weights.meta.get("categories", [])
 
 # Backup transform for TTA crops (we already have a 224-crop tensor)
 _imagenet_mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
 _imagenet_std = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
-
-# Class labels (ImageNet 1000)
-_imagenet_categories = _weights.meta.get("categories", [])
-
 
 # ─────────────────────────────────────────────
 # 2) ImageNet class index → Thai pet type
@@ -116,6 +124,7 @@ def _tta_views(img: Image.Image) -> list[torch.Tensor]:
 
     หมายเหตุ: ใช้แค่ 2 views (ไม่ใช่ 5) เพื่อประหยัด RAM/CPU บน Render free tier
     """
+    _ensure_resnet_loaded()
     base = _preprocess(img)            # (3, 224, 224) — center crop + normalize
     flipped = TF.hflip(base)           # mirror horizontally
     return [base, flipped]
@@ -135,6 +144,7 @@ def extract_feature_vector(img_or_path, use_tta: bool = True) -> list[float] | N
     - use_tta=False: single view (สำหรับ batch upload เพื่อความเร็ว)
     """
     try:
+        _ensure_resnet_loaded()
         img = _open_image(img_or_path)
         if use_tta:
             views = _tta_views(img)
@@ -164,6 +174,7 @@ def classify_pet_type(img_or_path, top_k: int = 5) -> dict:
     → vote รวมเป็น "แมว" ด้วย confidence 70%
     """
     try:
+        _ensure_resnet_loaded()
         img = _open_image(img_or_path)
         # ใช้ TTA สำหรับ classify ด้วย → ทำนายแม่นกว่า
         views = _tta_views(img)
@@ -207,6 +218,7 @@ def analyze_image(img_or_path) -> dict:
     เหมาะกับการอัปโหลดรูปใหม่ที่ต้องทั้ง index + auto-detect pet type
     """
     try:
+        _ensure_resnet_loaded()
         img = _open_image(img_or_path)
         views = _tta_views(img)
         batch = torch.stack(views, dim=0)

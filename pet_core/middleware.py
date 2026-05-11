@@ -12,9 +12,11 @@ SupabaseAuthMiddleware
 """
 import logging
 import jwt
+import requests
 from django.conf import settings
 from django.contrib.auth import get_user_model, login
 from django.utils.deprecation import MiddlewareMixin
+from jwt import PyJWKClient
 
 logger = logging.getLogger(__name__)
 UserModel = get_user_model()
@@ -31,17 +33,39 @@ class SupabaseAuthMiddleware(MiddlewareMixin):
         # 2. Cookie (Supabase JS SDK เก็บไว้ที่คุกกี้นี้)
         return request.COOKIES.get('sb-access-token') or request.COOKIES.get('supabase-auth-token')
 
-    def _decode_token(self, token):
-        """Decode JWT โดยไม่ verify signature (dev-friendly)
-        ⚠️ Production: ควรดึง JWKS มา verify จริง
-        สำหรับโปรเจกต์เรียน — ใช้ decode อ่าน payload พอ
-        """
+    def _decode_verified_token(self, token):
+        """Verify Supabase access token and return trusted claims."""
+        issuer = settings.SUPABASE_URL.rstrip('/') + '/auth/v1'
+
         try:
+            jwks_client = PyJWKClient(issuer + '/.well-known/jwks.json')
+            signing_key = jwks_client.get_signing_key_from_jwt(token)
+            alg = jwt.get_unverified_header(token).get('alg')
             return jwt.decode(
-                token, options={"verify_signature": False, "verify_aud": False}
+                token,
+                signing_key.key,
+                algorithms=[alg] if alg else ['RS256', 'ES256'],
+                issuer=issuer,
+                options={"verify_aud": False},
             )
-        except jwt.PyJWTError as e:
-            logger.warning(f"JWT decode failed: {e}")
+        except Exception as jwks_error:
+            logger.info("JWKS token verification failed, trying Auth server: %s", jwks_error)
+
+        try:
+            resp = requests.get(
+                issuer + '/user',
+                headers={
+                    'apikey': settings.SUPABASE_ANON_KEY,
+                    'Authorization': f'Bearer {token}',
+                },
+                timeout=4,
+            )
+            if resp.status_code != 200:
+                logger.warning("Supabase token verification failed: HTTP %s", resp.status_code)
+                return None
+            return jwt.decode(token, options={"verify_signature": False, "verify_aud": False})
+        except Exception as auth_error:
+            logger.warning("Supabase token verification request failed: %s", auth_error)
             return None
 
     def process_request(self, request):
@@ -53,7 +77,7 @@ class SupabaseAuthMiddleware(MiddlewareMixin):
         if not token:
             return None
 
-        payload = self._decode_token(token)
+        payload = self._decode_verified_token(token)
         if not payload:
             return None
 

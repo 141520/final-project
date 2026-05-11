@@ -4,7 +4,7 @@ from django.contrib.auth import logout as django_logout
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden, JsonResponse
 from django.views.decorators.http import require_POST, require_GET
-from .models import PetPost, PetImage, Product, BlogPost, Comment
+from .models import PetPost, PetImage, Product, BlogPost, Comment, normalize_external_link
 from datetime import date
 from django.core.files.base import ContentFile
 from .utils import extract_feature_vector, classify_pet_type, compress_image, analyze_image
@@ -700,7 +700,7 @@ def product_go(request, product_id):
     from urllib.parse import urlparse, urlencode, parse_qsl, unquote
 
     product = get_object_or_404(Product, id=product_id, is_active=True)
-    url = (product.external_link or '').strip()
+    url = normalize_external_link(product.external_link)
 
     if not url:
         messages.warning(request, "สินค้านี้ยังไม่มีลิงก์ร้านค้า")

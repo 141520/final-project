@@ -1,6 +1,18 @@
+import re
+
 from django.db import models
 from django.conf import settings
 from pgvector.django import VectorField
+
+
+def normalize_external_link(url: str) -> str:
+    """Normalize marketplace URLs before storing or opening them."""
+    url = (url or '').strip()
+    if url and any(d in url for d in ('shopee.co.th', 'shopee.com', 'shp.ee')):
+        match = re.search(r'[iI]\.(\d{6,})\.(\d{6,})', url)
+        if match:
+            return f'https://shopee.co.th/product/{match.group(1)}/{match.group(2)}'
+    return url
 
 # 1. คลาส PetPost
 class PetPost(models.Model):
@@ -90,6 +102,11 @@ class PetPost(models.Model):
     class Meta:
         db_table = 'pet_core_petpost'
         ordering = ['-created_at'] 
+        indexes = [
+            models.Index(fields=['post_type', 'status', '-created_at'], name='pet_type_status_created_idx'),
+            models.Index(fields=['status', 'pet_type'], name='pet_status_type_idx'),
+            models.Index(fields=['status', 'latitude', 'longitude'], name='pet_status_geo_idx'),
+        ]
         verbose_name = "ประกาศสัตว์เลี้ยง"
         verbose_name_plural = "ประกาศสัตว์เลี้ยงทั้งหมด"
 
@@ -175,12 +192,12 @@ class Product(models.Model):
     price = models.DecimalField(
         max_digits=10, decimal_places=2, null=True, blank=True,
         verbose_name="ราคาตั้ง (บาท) — ไม่บังคับ",
-        help_text="ไม่ต้องใส่ก็ได้ถ้าจะใช้ 'Sync ราคา' จาก external_link แทน"
+        help_text="ไม่ต้องใส่ก็ได้ถ้าต้องการให้ผู้ใช้ไปดูราคาที่หน้าร้าน"
     )
     category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='other', verbose_name="หมวดหมู่")
     image = models.ImageField(upload_to='products/', null=True, blank=True, verbose_name="รูปสินค้า")
     external_link = models.URLField(
-        max_length=500, blank=True,
+        max_length=2000, blank=True,
         verbose_name="ลิงก์ไปร้านค้า",
         help_text=(
             "วางลิงก์สินค้าจาก Shopee / Lazada / Facebook ฯลฯ<br>"
@@ -221,17 +238,10 @@ class Product(models.Model):
         """แปลง Shopee URL เป็น canonical format ก่อนบันทึก
         เช่น shopee.co.th/สินค้า-i.123456.789 → shopee.co.th/product/123456/789
         """
-        import re
-        url = (self.external_link or '').strip()
-        if url and any(d in url for d in ('shopee.co.th', 'shopee.com', 'shp.ee')):
-            # รูปแบบ i.{shop_id}.{item_id} ที่ Shopee ใช้ทั่วไป
-            match = re.search(r'[iI]\.(\d{6,})\.(\d{6,})', url)
-            if match:
-                self.external_link = (
-                    f'https://shopee.co.th/product/{match.group(1)}/{match.group(2)}'
-                )
+        self.external_link = normalize_external_link(self.external_link)
 
     def save(self, *args, **kwargs):
+        self.clean()
         # คำนวณ promotion_end อัตโนมัติ
         from datetime import timedelta, date
         if self.promotion_start and self.promotion_days and not self.promotion_end:
@@ -383,7 +393,7 @@ class Comment(models.Model):
     class Meta:
         db_table = 'pet_core_comment'
         ordering = ['-created_at']
-        indexes = [models.Index(fields=['pet_post', '-created_at'])]
+        indexes = [models.Index(fields=['pet_post', '-created_at'], name='comment_post_created_idx')]
 
     def __str__(self):
         return f"Comment by {self.author_name or self.user_id} on post {self.pet_post_id}"
