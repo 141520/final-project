@@ -10,10 +10,24 @@
   --red:#CD0205;--orange:#f59e0b;
 }
 
-html, body { height:100%; }
-.map-page { display:flex; flex-direction:column; height:calc(100vh - 72px); min-height:600px; }
-.map-wrap { position:relative; flex:1; min-height:500px; }
-#map { position:absolute; inset:0; width:100%; height:100%; z-index:1; }
+html, body { height:100%; margin:0; padding:0; }
+.map-page {
+  display:flex; flex-direction:column;
+  /* ใช้ dvh (dynamic viewport height) แทน vh เพื่อหลีกเลี่ยงปัญหา mobile toolbar */
+  height: calc(100dvh - 72px);
+  height: calc(100vh - 72px); /* fallback */
+  min-height:600px;
+}
+.map-wrap {
+  position:relative; flex:1; overflow:hidden;
+  min-height:500px;
+}
+/* ต้องกำหนด height ให้ชัดเจน — ไม่ใช้ inset:0 เพราะ flexbox อาจคำนวณผิด */
+#map {
+  width:100%; height:100%;
+  position:relative; z-index:1;
+  background:#e8e0d4;
+}
 
 /* top bar */
 .map-topbar {
@@ -129,10 +143,30 @@ html, body { height:100%; }
 <script>
 const POSTS = {{ posts_json|safe }};
 
-// ── Init map ──
-const map = L.map('map', { zoomControl: true }).setView([13.75, 100.5], 6);
+// ── Bounding box ของประเทศไทย (กัน fitBounds กระโดดออกนอกประเทศ) ──
+const THAILAND_BOUNDS = L.latLngBounds(
+  L.latLng(5.5,  97.0),   // SW corner
+  L.latLng(20.5, 105.8)   // NE corner
+);
+const BANGKOK = [13.75, 100.5];
 
-// ── Heatmap layer (toggle ผ่านปุ่มล่าง) ──
+// ── Init map — center กรุงเทพ zoom 6, จำกัด pan ไม่ให้ออกนอก SE Asia ──
+const map = L.map('map', {
+  zoomControl: true,
+  minZoom: 5,
+  maxZoom: 19,
+}).setView(BANGKOK, 6);
+
+// ── Tile layer: CartoDB Voyager (ฟรี, ไม่ต้อง API key) ──
+// ตัดสัญลักษณ์ {r} ออก — ป้องกัน retina detection ผิดพลาดในบางเบราว์เซอร์
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', {
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>',
+  subdomains: 'abcd',
+  maxZoom: 19,
+  crossOrigin: true,
+}).addTo(map);
+
+// ── Heatmap layer ──
 const heatPoints = POSTS
   .filter(p => p.lat && p.lng)
   .map(p => [p.lat, p.lng, p.post_type === 'lost' ? 1.0 : 0.6]);
@@ -157,13 +191,6 @@ heatBtn.onAdd = () => {
 };
 heatBtn.addTo(map);
 
-// ใช้ CartoDB Voyager (ฟรี + ไม่ block referer แบบ osm.org)
-L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-  attribution: '© OpenStreetMap contributors © CARTO',
-  subdomains: 'abcd',
-  maxZoom: 19,
-}).addTo(map);
-
 // ── Custom icons ──
 function makeIcon(color) {
   return L.divIcon({
@@ -180,8 +207,8 @@ function makeIcon(color) {
   });
 }
 
-const iconLost  = makeIcon('#CD0205');
-const iconFound = makeIcon('#1a7a4a');
+const iconLost     = makeIcon('#CD0205');
+const iconFound    = makeIcon('#1a7a4a');
 const iconResolved = makeIcon('#999');
 
 // ── Markers ──
@@ -194,16 +221,18 @@ function buildPopup(p) {
     : `<div style="height:80px;background:#f5f5f5;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:32px;margin-bottom:8px;">🐾</div>`;
   const badgeClass = p.post_type === 'lost' ? 'pb-lost' : 'pb-found';
   const badgeText  = p.post_type === 'lost' ? '🔍 สัตว์หาย' : '🐾 สัตว์พบ';
-  const resolved   = p.status === 'resolved' ? '<span style="background:#888;color:#fff;border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700;">✅ ปิดประกาศแล้ว</span>' : '';
-  const reward     = p.reward ? `<div class="popup-reward">🎁 รางวัล ฿${Number(p.reward).toLocaleString()}</div>` : '';
-  const loc        = p.location_name ? `<div class="popup-loc">📍 ${p.location_name}</div>` : '';
+  const resolved   = p.status === 'resolved'
+    ? '<span style="background:#888;color:#fff;border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700;">✅ ปิดประกาศแล้ว</span>' : '';
+  const reward = p.reward
+    ? `<div class="popup-reward">🎁 รางวัล ฿${Number(p.reward).toLocaleString()}</div>` : '';
+  const loc = p.location_name
+    ? `<div class="popup-loc">📍 ${p.location_name}</div>` : '';
 
   return `<div class="popup-card">
     ${img}
     <span class="popup-badge ${badgeClass}">${badgeText}</span> ${resolved}
     <div class="popup-name">${p.name}</div>
-    ${loc}
-    ${reward}
+    ${loc}${reward}
     <a href="${p.detail_url}" class="popup-btn">ดูรายละเอียด →</a>
   </div>`;
 }
@@ -213,8 +242,10 @@ function renderMarkers(filter) {
   markers = [];
 
   POSTS.forEach(p => {
+    if (!p.lat || !p.lng) return;                            // ข้ามถ้าไม่มีพิกัด
     if (filter !== 'all' && p.post_type !== filter) return;
-    const icon = p.status === 'resolved' ? iconResolved : (p.post_type === 'lost' ? iconLost : iconFound);
+    const icon = p.status === 'resolved'
+      ? iconResolved : (p.post_type === 'lost' ? iconLost : iconFound);
     const m = L.marker([p.lat, p.lng], { icon })
       .bindPopup(buildPopup(p), { maxWidth: 240, className: 'pet-popup' });
     m.addTo(map);
@@ -224,9 +255,7 @@ function renderMarkers(filter) {
 
 function setFilter(f) {
   currentFilter = f;
-  document.querySelectorAll('.map-filter').forEach(btn => {
-    btn.className = 'map-filter';
-  });
+  document.querySelectorAll('.map-filter').forEach(btn => { btn.className = 'map-filter'; });
   const cls = f === 'all' ? 'active-all' : f === 'lost' ? 'active-lost' : 'active-found';
   document.getElementById('f-' + f).classList.add(cls);
   renderMarkers(f);
@@ -238,23 +267,43 @@ function locateMe() {
     const { latitude: lat, longitude: lng } = pos.coords;
     map.setView([lat, lng], 14);
     L.circle([lat, lng], { radius: 500, color: '#003459', fillOpacity: .15 }).addTo(map);
-    L.marker([lat, lng], {
-      icon: makeIcon('#003459')
-    }).bindPopup('📍 ตำแหน่งของคุณ').addTo(map).openPopup();
+    L.marker([lat, lng], { icon: makeIcon('#003459') })
+      .bindPopup('📍 ตำแหน่งของคุณ').addTo(map).openPopup();
   }, () => alert('ไม่สามารถดึงตำแหน่งได้'));
 }
 
-// ── Start ──
-renderMarkers('all');
+// ── Force map container to correct size BEFORE rendering tiles ──
+// ใช้ requestAnimationFrame เพื่อรอให้ CSS flex layout settle ก่อน
+function initMap() {
+  map.invalidateSize({ animate: false });
 
-// ── Fit bounds if has posts ──
-if (markers.length > 0) {
-  const group = L.featureGroup(markers);
-  map.fitBounds(group.getBounds().pad(0.2));
+  // วาด markers
+  renderMarkers('all');
+
+  // fitBounds เฉพาะถ้า markers อยู่ในไทย — ไม่กระโดดไปอินเดีย
+  if (markers.length > 0) {
+    const group = L.featureGroup(markers);
+    const bounds = group.getBounds();
+    if (THAILAND_BOUNDS.contains(bounds.getCenter())) {
+      // markers อยู่ในไทย — zoom เข้าหา
+      map.fitBounds(bounds.pad(0.15), { maxZoom: 13 });
+    } else {
+      // coordinates ผิดหรืออยู่นอกไทย — ล็อกที่กรุงเทพ
+      map.setView(BANGKOK, 6);
+    }
+  } else {
+    map.setView(BANGKOK, 6);
+  }
 }
 
-// ── Force resize หลัง layout settle (กันแผนที่โผล่ครึ่งหรือไม่ขึ้น) ──
-window.addEventListener('load', () => setTimeout(() => map.invalidateSize(), 100));
-setTimeout(() => map.invalidateSize(), 300);
+// รอให้ DOM + CSS layout เสร็จก่อน init
+if (document.readyState === 'complete') {
+  requestAnimationFrame(() => requestAnimationFrame(initMap));
+} else {
+  window.addEventListener('load', () => requestAnimationFrame(() => requestAnimationFrame(initMap)));
+}
+
+// Fallback invalidateSize หลัง 500ms (กรณี font / transition ทำให้ layout ช้า)
+setTimeout(() => map.invalidateSize({ animate: false }), 500);
 </script>
 {% endblock %}

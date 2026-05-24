@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.contrib.auth import logout as django_logout
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden, JsonResponse
-from django.views.decorators.http import require_POST, require_GET
+from django.views.decorators.http import require_POST, require_GET, require_http_methods
 from .models import PetPost, PetImage, Product, BlogPost, Comment, AuditLog, normalize_external_link
 from datetime import date
 from django.core.files.base import ContentFile
@@ -635,14 +635,15 @@ def pet_detail(request, pet_id):
     })
 
 
-# ---- แก้ไขโพสต์ (เฉพาะเจ้าของ) ----
+# ---- แก้ไขโพสต์ (เฉพาะเจ้าของ) — รับทั้ง POST และ PUT ----
 @login_required
+@require_http_methods(["GET", "POST", "PUT"])
 def edit_post(request, pet_id):
     pet = get_object_or_404(PetPost, id=pet_id)
     if pet.owner_id != request.user.id:
         return HttpResponseForbidden("❌ คุณไม่ใช่เจ้าของประกาศนี้")
 
-    if request.method == 'POST':
+    if request.method in ('POST', 'PUT'):
         try:
             # อัปเดตฟิลด์ข้อความ
             for field in ['name', 'pet_type', 'breed', 'age', 'gender', 'color',
