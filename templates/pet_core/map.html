@@ -10,23 +10,30 @@
   --red:#CD0205;--orange:#f59e0b;
 }
 
-html, body { height:100%; margin:0; padding:0; }
-.map-page {
-  display:flex; flex-direction:column;
-  /* ใช้ dvh (dynamic viewport height) แทน vh เพื่อหลีกเลี่ยงปัญหา mobile toolbar */
-  height: calc(100dvh - 72px);
-  height: calc(100vh - 72px); /* fallback */
-  min-height:600px;
-}
+/* ── Layout: ไม่ใช้ flexbox/calc — ให้ #map มี height fixed ตรงๆ ── */
+.map-page { width:100%; }
+
 .map-wrap {
-  position:relative; flex:1; overflow:hidden;
-  min-height:500px;
+  position:relative;
+  width:100%;
+  /* height แบบ fixed — กัน Leaflet คำนวณผิด */
+  height: 78vh;
+  min-height: 520px;
+  overflow:hidden;
 }
-/* ต้องกำหนด height ให้ชัดเจน — ไม่ใช้ inset:0 เพราะ flexbox อาจคำนวณผิด */
+
 #map {
-  width:100%; height:100%;
-  position:relative; z-index:1;
+  width:100%;
+  height:100%;
   background:#e8e0d4;
+}
+
+/* บังคับ leaflet-container ใช้ขนาดเต็ม + box-sizing ตรง */
+.leaflet-container {
+  width:100% !important;
+  height:100% !important;
+  background:#e8e0d4;
+  font-family: 'IBM Plex Sans Thai Looped', sans-serif;
 }
 
 /* top bar */
@@ -98,7 +105,7 @@ html, body { height:100%; margin:0; padding:0; }
 }
 
 @media (max-width: 720px) {
-  .map-page { height: calc(100vh - 60px); min-height: 480px; }
+  .map-wrap { height: 70vh; min-height: 420px; }
   .map-topbar { padding: 8px 12px; gap: 6px; }
   .map-topbar h2 { font-size: 15px; width: 100%; margin-right: 0; margin-bottom: 4px; }
   .stat-pill { padding: 4px 10px; font-size: 11px; }
@@ -150,48 +157,14 @@ const THAILAND_BOUNDS = L.latLngBounds(
 );
 const BANGKOK = [13.75, 100.5];
 
-// ── Init map — center กรุงเทพ zoom 6, จำกัด pan ไม่ให้ออกนอก SE Asia ──
-const map = L.map('map', {
-  zoomControl: true,
-  minZoom: 5,
-  maxZoom: 19,
-}).setView(BANGKOK, 6);
+// ── Init ถูก defer ใน boot() ── (ดู ด้านล่าง)
+let map = null;
+let tileLayer = null;
+let heatLayer = null;
+let iconLost = null, iconFound = null, iconResolved = null;
+let markers = [];
+let currentFilter = 'all';
 
-// ── Tile layer: CartoDB Voyager (ฟรี, ไม่ต้อง API key) ──
-// ตัดสัญลักษณ์ {r} ออก — ป้องกัน retina detection ผิดพลาดในบางเบราว์เซอร์
-L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', {
-  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>',
-  subdomains: 'abcd',
-  maxZoom: 19,
-  crossOrigin: true,
-}).addTo(map);
-
-// ── Heatmap layer ──
-const heatPoints = POSTS
-  .filter(p => p.lat && p.lng)
-  .map(p => [p.lat, p.lng, p.post_type === 'lost' ? 1.0 : 0.6]);
-const heatLayer = L.heatLayer(heatPoints, {
-  radius: 26, blur: 22, minOpacity: .35,
-  gradient: { 0.2:'#4E73F6', 0.5:'#F9C82F', 0.8:'#D75CA7', 1:'#CD0205' },
-});
-
-// ปุ่มสลับ heatmap
-const heatBtn = L.control({ position: 'topright' });
-heatBtn.onAdd = () => {
-  const b = L.DomUtil.create('button');
-  b.innerHTML = '🔥 Heatmap'; b.style.cssText =
-    'padding:8px 14px;border:none;border-radius:8px;background:white;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.15);font-family:inherit;';
-  b.onclick = (e) => {
-    e.preventDefault(); e.stopPropagation();
-    if (map.hasLayer(heatLayer)) { map.removeLayer(heatLayer); b.innerHTML = '🔥 Heatmap'; }
-    else { heatLayer.addTo(map); b.innerHTML = '✓ Heatmap เปิด'; }
-  };
-  L.DomEvent.disableClickPropagation(b);
-  return b;
-};
-heatBtn.addTo(map);
-
-// ── Custom icons ──
 function makeIcon(color) {
   return L.divIcon({
     className: '',
@@ -206,14 +179,6 @@ function makeIcon(color) {
     popupAnchor: [0, -30],
   });
 }
-
-const iconLost     = makeIcon('#CD0205');
-const iconFound    = makeIcon('#1a7a4a');
-const iconResolved = makeIcon('#999');
-
-// ── Markers ──
-let markers = [];
-let currentFilter = 'all';
 
 function buildPopup(p) {
   const img = p.image_url
@@ -242,7 +207,7 @@ function renderMarkers(filter) {
   markers = [];
 
   POSTS.forEach(p => {
-    if (!p.lat || !p.lng) return;                            // ข้ามถ้าไม่มีพิกัด
+    if (!p.lat || !p.lng) return;
     if (filter !== 'all' && p.post_type !== filter) return;
     const icon = p.status === 'resolved'
       ? iconResolved : (p.post_type === 'lost' ? iconLost : iconFound);
@@ -262,6 +227,7 @@ function setFilter(f) {
 }
 
 function locateMe() {
+  if (!map) return;
   if (!navigator.geolocation) return alert('เบราว์เซอร์ไม่รองรับ GPS');
   navigator.geolocation.getCurrentPosition(pos => {
     const { latitude: lat, longitude: lng } = pos.coords;
@@ -272,38 +238,94 @@ function locateMe() {
   }, () => alert('ไม่สามารถดึงตำแหน่งได้'));
 }
 
-// ── Force map container to correct size BEFORE rendering tiles ──
-// ใช้ requestAnimationFrame เพื่อรอให้ CSS flex layout settle ก่อน
-function initMap() {
-  map.invalidateSize({ animate: false });
+// =====================================================================
+// boot() — init map หลัง container มี size จริงแล้วเท่านั้น
+// =====================================================================
+function boot() {
+  const el = document.getElementById('map');
+  if (!el) return;
 
-  // วาด markers
+  // รอจนกว่า container จะมี height จริง (> 0)
+  const rect = el.getBoundingClientRect();
+  if (rect.width < 50 || rect.height < 50) {
+    // layout ยังไม่ settle — รออีก frame
+    return requestAnimationFrame(boot);
+  }
+
+  // ✅ ปลอดภัยแล้ว — init map
+  map = L.map(el, {
+    zoomControl: true,
+    minZoom: 5,
+    maxZoom: 19,
+    preferCanvas: false,
+  }).setView(BANGKOK, 6);
+
+  // tile layer — ใช้ OSM ตรงๆ (เสถียรที่สุด ไม่ขึ้นกับ subdomain)
+  tileLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom: 19,
+  }).addTo(map);
+
+  // icons
+  iconLost     = makeIcon('#CD0205');
+  iconFound    = makeIcon('#1a7a4a');
+  iconResolved = makeIcon('#999');
+
+  // heatmap
+  const heatPoints = POSTS
+    .filter(p => p.lat && p.lng)
+    .map(p => [p.lat, p.lng, p.post_type === 'lost' ? 1.0 : 0.6]);
+  heatLayer = L.heatLayer(heatPoints, {
+    radius: 26, blur: 22, minOpacity: .35,
+    gradient: { 0.2:'#4E73F6', 0.5:'#F9C82F', 0.8:'#D75CA7', 1:'#CD0205' },
+  });
+
+  // heatmap toggle button
+  const heatBtn = L.control({ position: 'topright' });
+  heatBtn.onAdd = () => {
+    const b = L.DomUtil.create('button');
+    b.innerHTML = '🔥 Heatmap';
+    b.style.cssText =
+      'padding:8px 14px;border:none;border-radius:8px;background:white;font-weight:700;' +
+      'cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.15);font-family:inherit;';
+    b.onclick = (e) => {
+      e.preventDefault(); e.stopPropagation();
+      if (map.hasLayer(heatLayer)) { map.removeLayer(heatLayer); b.innerHTML = '🔥 Heatmap'; }
+      else { heatLayer.addTo(map); b.innerHTML = '✓ Heatmap เปิด'; }
+    };
+    L.DomEvent.disableClickPropagation(b);
+    return b;
+  };
+  heatBtn.addTo(map);
+
+  // render markers
   renderMarkers('all');
 
-  // fitBounds เฉพาะถ้า markers อยู่ในไทย — ไม่กระโดดไปอินเดีย
+  // fitBounds เฉพาะ markers ในไทย
   if (markers.length > 0) {
     const group = L.featureGroup(markers);
     const bounds = group.getBounds();
     if (THAILAND_BOUNDS.contains(bounds.getCenter())) {
-      // markers อยู่ในไทย — zoom เข้าหา
       map.fitBounds(bounds.pad(0.15), { maxZoom: 13 });
     } else {
-      // coordinates ผิดหรืออยู่นอกไทย — ล็อกที่กรุงเทพ
       map.setView(BANGKOK, 6);
     }
-  } else {
-    map.setView(BANGKOK, 6);
   }
+
+  // re-check size after small delay (font / animation might shift layout)
+  setTimeout(() => map.invalidateSize({ animate: false }), 300);
+
+  // resize handler
+  window.addEventListener('resize', () => {
+    map.invalidateSize({ animate: false });
+  });
 }
 
-// รอให้ DOM + CSS layout เสร็จก่อน init
+// boot หลัง DOM พร้อม + รูป/font โหลดเสร็จ
 if (document.readyState === 'complete') {
-  requestAnimationFrame(() => requestAnimationFrame(initMap));
+  requestAnimationFrame(boot);
 } else {
-  window.addEventListener('load', () => requestAnimationFrame(() => requestAnimationFrame(initMap)));
+  window.addEventListener('load', () => requestAnimationFrame(boot));
 }
-
-// Fallback invalidateSize หลัง 500ms (กรณี font / transition ทำให้ layout ช้า)
-setTimeout(() => map.invalidateSize({ animate: false }), 500);
 </script>
 {% endblock %}
