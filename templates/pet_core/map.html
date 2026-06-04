@@ -10,30 +10,30 @@
   --red:#CD0205;--orange:#f59e0b;
 }
 
-/* ── Layout: ไม่ใช้ flexbox/calc — ให้ #map มี height fixed ตรงๆ ── */
+/* ── Layout ──────────────────────────────────────────────────────────
+   สาเหตุที่ height:100% ใช้ไม่ได้:
+   site-main { flex:1 } ไม่มี explicit height → 100% resolve ผิด
+   Fix: ให้ #map มี height โดยตรง ไม่ inherit จาก parent
+─────────────────────────────────────────────────────────────────── */
 .map-page { width:100%; }
 
 .map-wrap {
-  position:relative;
-  width:100%;
-  /* height แบบ fixed — กัน Leaflet คำนวณผิด */
-  height: 78vh;
-  min-height: 520px;
-  overflow:hidden;
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  /* ไม่ต้องกำหนด height ที่นี่ — ให้ #map กำหนดเอง */
 }
 
 #map {
-  width:100%;
-  height:100%;
-  background:#e8e0d4;
+  display: block;
+  width: 100%;
+  height: 78vh;        /* ตรงๆ บน element นี้ ไม่ inherit */
+  min-height: 520px;
+  background: #e8e0d4;
 }
 
-/* บังคับ leaflet-container ใช้ขนาดเต็ม + box-sizing ตรง */
-.leaflet-container {
-  width:100% !important;
-  height:100% !important;
-  background:#e8e0d4;
-  font-family: 'IBM Plex Sans Thai Looped', sans-serif;
+@media (max-width: 720px) {
+  #map { height: 70vh; min-height: 420px; }
 }
 
 /* top bar */
@@ -105,7 +105,6 @@
 }
 
 @media (max-width: 720px) {
-  .map-wrap { height: 70vh; min-height: 420px; }
   .map-topbar { padding: 8px 12px; gap: 6px; }
   .map-topbar h2 { font-size: 15px; width: 100%; margin-right: 0; margin-bottom: 4px; }
   .stat-pill { padding: 4px 10px; font-size: 11px; }
@@ -239,29 +238,39 @@ function locateMe() {
 }
 
 // =====================================================================
-// boot() — init map หลัง container มี size จริงแล้วเท่านั้น
+// boot() — init map
+// แก้ปัญหา:
+// 1. set explicit px height ก่อน L.map() — กัน offsetHeight = 0
+// 2. ลบ getBoundingClientRect() loop — ซ่อน bug แต่ไม่ได้แก้
+// 3. bootDone flag — กัน init สองครั้ง
+// 4. ลบ .leaflet-container override — conflict กับ Leaflet internal
 // =====================================================================
+let bootDone = false;
+
 function boot() {
+  if (bootDone) return;           // กัน call ซ้ำ
+  bootDone = true;
+
   const el = document.getElementById('map');
   if (!el) return;
 
-  // รอจนกว่า container จะมี height จริง (> 0)
-  const rect = el.getBoundingClientRect();
-  if (rect.width < 50 || rect.height < 50) {
-    // layout ยังไม่ settle — รออีก frame
-    return requestAnimationFrame(boot);
-  }
+  // ── Fix #1: set px height ก่อน L.map() ──────────────────────────
+  // Leaflet ใช้ el.offsetHeight ตอน init — ถ้า CSS height:100% ยัง
+  // resolve ไม่ได้ (เพราะ parent เป็น flex:1 ไม่มี explicit height)
+  // offsetHeight จะเป็น 0 → tiles render ผิด
+  // วิธีแก้: force pixel height ก่อน create map
+  const pixelH = Math.max(520, Math.floor(window.innerHeight * 0.78));
+  el.style.height = pixelH + 'px';
+  // ────────────────────────────────────────────────────────────────
 
-  // ✅ ปลอดภัยแล้ว — init map
   map = L.map(el, {
     zoomControl: true,
     minZoom: 5,
     maxZoom: 19,
-    preferCanvas: false,
   }).setView(BANGKOK, 6);
 
-  // tile layer — ใช้ OSM ตรงๆ (เสถียรที่สุด ไม่ขึ้นกับ subdomain)
-  tileLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  // tile layer — OSM (ไม่มี subdomain ให้ผิดพลาด)
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     maxZoom: 19,
   }).addTo(map);
@@ -288,7 +297,7 @@ function boot() {
     b.style.cssText =
       'padding:8px 14px;border:none;border-radius:8px;background:white;font-weight:700;' +
       'cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.15);font-family:inherit;';
-    b.onclick = (e) => {
+    b.onclick = e => {
       e.preventDefault(); e.stopPropagation();
       if (map.hasLayer(heatLayer)) { map.removeLayer(heatLayer); b.innerHTML = '🔥 Heatmap'; }
       else { heatLayer.addTo(map); b.innerHTML = '✓ Heatmap เปิด'; }
@@ -312,20 +321,20 @@ function boot() {
     }
   }
 
-  // re-check size after small delay (font / animation might shift layout)
-  setTimeout(() => map.invalidateSize({ animate: false }), 300);
+  // invalidateSize ทันที (belt) + หลัง 200ms (suspenders)
+  map.invalidateSize({ animate: false });
+  setTimeout(() => map.invalidateSize({ animate: false }), 200);
 
-  // resize handler
-  window.addEventListener('resize', () => {
-    map.invalidateSize({ animate: false });
-  });
+  window.addEventListener('resize', () => map.invalidateSize({ animate: false }));
 }
 
-// boot หลัง DOM พร้อม + รูป/font โหลดเสร็จ
+// ── Fix #4: กัน boot() call สองครั้ง ──
+// ถ้า readyState complete แล้ว → boot ทันที
+// ถ้ายังไม่ → รอ load แล้ว boot
 if (document.readyState === 'complete') {
-  requestAnimationFrame(boot);
+  boot();
 } else {
-  window.addEventListener('load', () => requestAnimationFrame(boot));
+  window.addEventListener('load', boot);
 }
 </script>
 {% endblock %}
