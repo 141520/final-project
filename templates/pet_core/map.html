@@ -36,6 +36,46 @@
   #map { height: 70vh; min-height: 420px; }
 }
 
+/* ════════════════════════════════════════════════════════════════════
+   FIX: ลบล้าง global CSS ของ base.html ที่ทำให้ tiles เลื่อนทแยง/มีช่องว่าง
+   - base.html มี *{box-sizing:border-box} → กระทบ leaflet panes
+   - base.html มี img{max-width:100%;height:auto} → กระทบ tile <img>
+   reset ทุกอย่างใต้ #map ให้กลับเป็นค่าที่ Leaflet ต้องการ
+═════════════════════════════════════════════════════════════════════ */
+#map .leaflet-pane,
+#map .leaflet-tile,
+#map .leaflet-tile-container,
+#map .leaflet-marker-icon,
+#map .leaflet-marker-shadow,
+#map .leaflet-image-layer,
+#map .leaflet-layer,
+#map .leaflet-zoom-box,
+#map .leaflet-map-pane,
+#map .leaflet-pane > * {
+  box-sizing: content-box !important;   /* ทับ border-box global */
+}
+
+/* tile <img> — บังคับ 256px เป๊ะ ไม่ให้ global img rule มายุ่ง */
+#map img.leaflet-tile,
+#map .leaflet-tile-container img,
+#map .leaflet-tile-pane img {
+  max-width: none !important;
+  max-height: none !important;
+  width: 256px !important;
+  height: 256px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  display: block;
+}
+
+/* marker / control images ไม่ต้องโดน 256px */
+#map .leaflet-marker-icon,
+#map .leaflet-control img {
+  width: auto !important;
+  height: auto !important;
+}
+
 /* top bar */
 .map-topbar {
   background:white; padding:10px 20px;
@@ -263,10 +303,17 @@ function boot() {
   el.style.height = pixelH + 'px';
   // ────────────────────────────────────────────────────────────────
 
+  // ── Fix #5: ปิด fade/zoom animation ──
+  // ถ้า global transition ของ base.html ไปจับ tiles ระหว่าง animation
+  // tiles จะค้างกลางทาง (opacity/transform ไม่เต็ม) → เห็นเป็นก้อนๆ
+  // ปิด animation = tiles ปรากฏที่ตำแหน่งถูกต้องทันที
   map = L.map(el, {
     zoomControl: true,
     minZoom: 5,
     maxZoom: 19,
+    fadeAnimation: false,
+    zoomAnimation: false,
+    markerZoomAnimation: false,
   }).setView(BANGKOK, 6);
 
   // tile layer — OSM (ไม่มี subdomain ให้ผิดพลาด)
