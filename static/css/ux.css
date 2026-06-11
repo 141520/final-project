@@ -1,0 +1,165 @@
+/* ═══════════════════════════════════════════════════════════════
+   UX Layer: skeleton loaders + top progress + button states
+   ─── โหลดท้ายสุดเพื่อ override ของเดิมได้
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─────────────────────────────────────────────
+   1. TOP PROGRESS BAR
+   ───────────────────────────────────────────── */
+#pf-topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: transparent;
+  z-index: 9999;
+  pointer-events: none;
+}
+#pf-topbar .bar {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, #4E73F6 0%, #021F74 50%, #4E73F6 100%);
+  background-size: 200% 100%;
+  border-radius: 0 99px 99px 0;
+  box-shadow: 0 0 10px rgba(78, 115, 246, .5);
+  transition: width .3s cubic-bezier(.21, 1.02, .73, 1), opacity .3s;
+  animation: pf-topbar-glow 1.5s linear infinite;
+}
+@keyframes pf-topbar-glow {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+[data-theme="dark"] #pf-topbar .bar {
+  background: linear-gradient(90deg, #5DCAA5 0%, #4E73F6 50%, #5DCAA5 100%);
+  background-size: 200% 100%;
+}
+
+/* ─────────────────────────────────────────────
+   2. SKELETON LOADER (shimmer card)
+   ───────────────────────────────────────────── */
+.skel {
+  position: relative;
+  overflow: hidden;
+  background: #eef0f3;
+  border-radius: 12px;
+}
+.skel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, .65) 50%,
+    transparent 100%
+  );
+  transform: translateX(-100%);
+  animation: pf-shimmer 1.4s infinite;
+}
+@keyframes pf-shimmer {
+  100% { transform: translateX(100%); }
+}
+[data-theme="dark"] .skel { background: #2a2d3a; }
+[data-theme="dark"] .skel::after {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, .08) 50%,
+    transparent 100%
+  );
+}
+
+/* Preset shapes */
+.skel-img    { aspect-ratio: 1 / 1; width: 100%; }
+.skel-line   { height: 12px; border-radius: 6px; margin-bottom: 8px; }
+.skel-line.sm { height: 10px; width: 60%; }
+.skel-line.lg { height: 16px; width: 80%; }
+.skel-card {
+  padding: 16px;
+  background: var(--white, #fff);
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .04);
+}
+.skel-card .skel-img { aspect-ratio: 4 / 3; margin-bottom: 12px; border-radius: 10px; }
+[data-theme="dark"] .skel-card { background: #1f2230; box-shadow: none; }
+
+/* Pet list grid placeholder — render 6 cards immediately */
+.pf-skel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+  padding: 16px 0;
+}
+
+/* ─────────────────────────────────────────────
+   3. BUTTON LOADING STATE
+   ───────────────────────────────────────────── */
+.pf-btn-loading {
+  pointer-events: none;
+  opacity: .85;
+  position: relative;
+}
+.pf-btn-loading > * {
+  visibility: hidden;
+}
+.pf-btn-loading::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-image: radial-gradient(circle, currentColor 30%, transparent 31%);
+  background-size: 8px 8px;
+  background-position: calc(50% - 14px) 50%, 50% 50%, calc(50% + 14px) 50%;
+  background-repeat: no-repeat;
+  animation: pf-btn-dots 1.2s infinite;
+}
+@keyframes pf-btn-dots {
+  0%   { background-position: calc(50% - 14px) 50%, 50% 50%, calc(50% + 14px) 50%; }
+  33%  { background-position: calc(50% - 14px) 40%, 50% 50%, calc(50% + 14px) 50%; }
+  66%  { background-position: calc(50% - 14px) 50%, 50% 40%, calc(50% + 14px) 50%; }
+  100% { background-position: calc(50% - 14px) 50%, 50% 50%, calc(50% + 14px) 40%; }
+}
+
+/* fallback ที่เรียบกว่า — ใช้ spinner เดียวกลาง */
+.pf-btn-spin::before {
+  content: '';
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  margin-right: 8px;
+  vertical-align: -2px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: pf-spin .65s linear infinite;
+}
+@keyframes pf-spin { to { transform: rotate(360deg); } }
+
+/* ─────────────────────────────────────────────
+   4. IMAGE FADE-IN (ป้องกัน flash + layout shift)
+   ───────────────────────────────────────────── */
+img[loading="lazy"] {
+  opacity: 0;
+  transition: opacity .35s ease-out;
+}
+img[loading="lazy"].is-loaded,
+img[loading="lazy"][src]:not([src=""]) {
+  opacity: 1;
+}
+
+/* ─────────────────────────────────────────────
+   5. TYPOGRAPHY FINE-TUNE สำหรับ Noto Sans Thai Looped
+   ───────────────────────────────────────────── */
+body {
+  letter-spacing: 0.005em;
+  font-feature-settings: "kern", "liga", "calt";
+}
+/* ตัวเลขใช้ Plus Jakarta Sans (อ่านง่ายกว่า Noto Thai สำหรับ digits) */
+.pf-num, .num-display, [data-num] {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}

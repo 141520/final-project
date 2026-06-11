@@ -148,6 +148,17 @@
 </div>
 
 <div class="cards-wrap">
+  <div class="cards-grid pf-skel-grid" id="pfSkel" aria-hidden="true">
+    {% for _ in "123456" %}
+    <div class="skel-card">
+      <div class="skel skel-img"></div>
+      <div class="skel skel-line lg"></div>
+      <div class="skel skel-line sm"></div>
+    </div>
+    {% endfor %}
+  </div>
+  <script>setTimeout(function(){var s=document.getElementById('pfSkel');if(s)s.style.display='none'},400)</script>
+
   <div class="cards-grid">
     {% for post in posts %}
       <a href="{% url 'pet_detail' post.id %}" class="pet-card pf-tilt"

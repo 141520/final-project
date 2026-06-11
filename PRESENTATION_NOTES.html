@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>TarmRoy — คู่มือตอบคำถามพรีเซนต์</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&family=IBM+Plex+Mono&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sarabun', sans-serif; font-size: 14px; color: #1a1a1a; background: #fff; line-height: 1.7; }
+
+  /* Cover */
+  .cover { background: linear-gradient(135deg, #003459 0%, #021F74 100%); color: white; padding: 60px 50px; min-height: 240px; }
+  .cover h1 { font-size: 36px; font-weight: 700; margin-bottom: 8px; }
+  .cover .sub { font-size: 16px; opacity: .8; margin-bottom: 24px; }
+  .cover .meta { font-size: 13px; opacity: .65; }
+
+  /* TOC */
+  .toc { background: #f8faff; border-left: 4px solid #021F74; padding: 24px 32px; margin: 32px 40px; border-radius: 0 12px 12px 0; }
+  .toc h2 { font-size: 16px; color: #021F74; margin-bottom: 12px; }
+  .toc ol { padding-left: 20px; }
+  .toc li { margin-bottom: 4px; font-size: 13px; }
+  .toc a { color: #021F74; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  /* Sections */
+  .section { padding: 28px 40px; border-bottom: 1px solid #f0f0f0; page-break-inside: avoid; }
+  .section:last-child { border-bottom: none; }
+  .section-num { display: inline-block; background: #021F74; color: white; width: 28px; height: 28px; border-radius: 50%; text-align: center; line-height: 28px; font-size: 13px; font-weight: 700; margin-right: 10px; }
+  .section h2 { display: inline; font-size: 20px; color: #021F74; vertical-align: middle; }
+  .section-divider { border: none; border-top: 2px solid #021F74; margin: 12px 0 20px; }
+
+  /* Q&A */
+  .qa { margin-bottom: 20px; }
+  .q { background: #fff8e1; border-left: 3px solid #f59e0b; padding: 10px 14px; border-radius: 0 8px 8px 0; font-weight: 700; font-size: 14px; margin-bottom: 6px; }
+  .q::before { content: "❓ "; }
+  .a { padding: 10px 14px 10px 18px; font-size: 14px; line-height: 1.8; }
+
+  /* Code block */
+  pre { background: #1e1e2e; color: #cdd6f4; padding: 16px 18px; border-radius: 10px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; overflow-x: auto; margin: 10px 0; line-height: 1.6; }
+  code { background: #f0f0f0; padding: 1px 5px; border-radius: 4px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #c0392b; }
+
+  /* Table */
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px; }
+  th { background: #021F74; color: white; padding: 8px 12px; text-align: left; }
+  td { padding: 8px 12px; border-bottom: 1px solid #e8e8e8; }
+  tr:nth-child(even) td { background: #f8f9ff; }
+
+  /* Badge */
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; margin: 2px; }
+  .badge-blue { background: #dbeafe; color: #1e40af; }
+  .badge-green { background: #dcfce7; color: #166534; }
+  .badge-red { background: #fee2e2; color: #991b1b; }
+  .badge-orange { background: #ffedd5; color: #9a3412; }
+
+  /* Tip box */
+  .tip { background: #ecfdf5; border: 1px solid #6ee7b7; border-radius: 10px; padding: 12px 16px; margin: 12px 0; font-size: 13px; }
+  .tip::before { content: "💡 "; font-weight: 700; }
+  .warn { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px; padding: 12px 16px; margin: 12px 0; font-size: 13px; }
+  .warn::before { content: "⚠️ "; font-weight: 700; }
+
+  /* File path */
+  .filepath { display: inline-block; background: #1e1e2e; color: #89dceb; padding: 2px 8px; border-radius: 6px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
+
+  /* Print */
+  @media print {
+    .cover { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .section { page-break-inside: avoid; }
+    .cover { page-break-after: always; }
+    .toc { page-break-after: always; }
+  }
+  @page { margin: 15mm 15mm; }
+</style>
+</head>
+<body>
+
+<!-- ===== COVER ===== -->
+<div class="cover">
+  <h1>🐾 TarmRoy — คู่มือตอบคำถามพรีเซนต์</h1>
+  <div class="sub">ระบบตามหาสัตว์เลี้ยงด้วย AI Image Search · โครงงาน 1</div>
+  <div class="meta">ธีรพัฒน์ สุภาโสต 65112488 · มหาวิทยาลัยธุรกิจบัณฑิตย์</div>
+</div>
+
+<!-- ===== TOC ===== -->
+<div class="toc">
+  <h2>📋 สารบัญ</h2>
+  <ol>
+    <li><a href="#s1">Tech Stack — ใช้อะไรบ้าง</a></li>
+    <li><a href="#s2">โครงสร้างโปรเจค — โค้ดอยู่ที่ไหน</a></li>
+    <li><a href="#s3">Database — เก็บข้อมูลอย่างไร</a></li>
+    <li><a href="#s4">AI Image Search — หลักการทำงาน</a></li>
+    <li><a href="#s5">Vector คืออะไร และทำงานยังไง</a></li>
+    <li><a href="#s6">AI ดูรูปกี่รูปต่อโพส</a></li>
+    <li><a href="#s7">Memory / RAM และข้อจำกัด</a></li>
+    <li><a href="#s8">ข้อจำกัดของระบบ (Limitations)</a></li>
+    <li><a href="#s9">คำถามที่อาจารย์มักถาม</a></li>
+    <li><a href="#s10">ประโยคสำคัญสำหรับพรีเซนต์</a></li>
+  </ol>
+</div>
+
+<!-- ===== SECTION 1 ===== -->
+<div class="section" id="s1">
+  <span class="section-num">1</span><h2>Tech Stack — ใช้อะไรบ้าง</h2>
+  <hr class="section-divider">
+
+  <table>
+    <tr><th>ส่วน</th><th>เทคโนโลยี</th><th>หน้าที่</th></tr>
+    <tr><td>Backend Framework</td><td><span class="badge badge-blue">Django 5.0</span></td><td>รับ request, logic, render HTML</td></tr>
+    <tr><td>ภาษาโปรแกรม</td><td><span class="badge badge-blue">Python 3.12</span></td><td>เขียน backend ทั้งหมด</td></tr>
+    <tr><td>Frontend</td><td><span class="badge badge-orange">HTML / CSS / JavaScript</span></td><td>UI ไม่ใช้ framework (Vanilla)</td></tr>
+    <tr><td>Database</td><td><span class="badge badge-green">PostgreSQL 16</span></td><td>เก็บข้อมูลโพส ผู้ใช้ สินค้า</td></tr>
+    <tr><td>Vector Search</td><td><span class="badge badge-green">pgvector</span></td><td>Extension ของ PostgreSQL สำหรับค้นหาด้วย vector</td></tr>
+    <tr><td>AI Model</td><td><span class="badge badge-blue">ResNet50 (PyTorch)</span></td><td>แปลงรูปเป็น vector 2048 มิติ</td></tr>
+    <tr><td>Database Host</td><td><span class="badge badge-green">Supabase</span></td><td>PostgreSQL cloud ฟรี + เก็บรูปภาพ</td></tr>
+    <tr><td>Server Host</td><td><span class="badge badge-orange">Render.com</span></td><td>รัน Django app ฟรี</td></tr>
+    <tr><td>Authentication</td><td><span class="badge badge-blue">Supabase Auth + Django Session</span></td><td>Login/Register</td></tr>
+    <tr><td>Map</td><td><span class="badge badge-green">Leaflet.js + CARTO tiles</span></td><td>แผนที่ฟรี ไม่ต้อง API key</td></tr>
+  </table>
+
+  <div class="tip">ทุกอย่างใช้ของฟรีหมด ไม่มีค่าใช้จ่าย เหมาะกับโปรเจคนักศึกษา</div>
+</div>
+
+<!-- ===== SECTION 2 ===== -->
+<div class="section" id="s2">
+  <span class="section-num">2</span><h2>โครงสร้างโปรเจค — โค้ดอยู่ที่ไหน</h2>
+  <hr class="section-divider">
+
+<pre>project/
+├── pet_core/
+│   ├── models.py        ← โมเดลข้อมูลทั้งหมด (PetPost, PetImage, Product ฯลฯ)
+│   ├── views.py         ← Logic ทั้งหมด (image search, โพส, หน้าต่างๆ)
+│   ├── utils.py         ← AI: ResNet50, extract_vector, classify_pet_type
+│   ├── urls.py          ← URL routing
+│   ├── admin.py         ← หน้า Admin จัดการข้อมูล
+│   └── migrations/      ← การเปลี่ยนแปลง database schema
+│
+├── templates/
+│   ├── base.html        ← Template หลัก (navbar, footer)
+│   └── pet_core/
+│       ├── home.html           ← หน้าแรก
+│       ├── search.html         ← หน้าค้นหาด้วยรูป (Image Search)
+│       ├── pet_detail.html     ← รายละเอียดโพส + แผนที่ + contact mask
+│       ├── create_find_post.html  ← แจ้งสัตว์หาย
+│       └── create_found_post.html ← แจ้งพบสัตว์
+│
+├── project/
+│   ├── settings.py      ← การตั้งค่าระบบ
+│   └── urls.py          ← URL หลัก
+│
+└── requirements.txt     ← library ที่ใช้ทั้งหมด</pre>
+
+  <div class="qa">
+    <div class="q">โค้ด AI อยู่ที่ไหน</div>
+    <div class="a">ไฟล์ <span class="filepath">pet_core/utils.py</span> — มีฟังก์ชัน <code>analyze_image()</code> ที่รับรูปแล้วคืน vector + ประเภทสัตว์</div>
+  </div>
+
+  <div class="qa">
+    <div class="q">โค้ด Image Search อยู่ที่ไหน</div>
+    <div class="a">ไฟล์ <span class="filepath">pet_core/views.py</span> ฟังก์ชัน <code>image_search()</code> ประมาณบรรทัด 393-494</div>
+  </div>
+
+  <div class="qa">
+    <div class="q">โมเดล Database อยู่ที่ไหน</div>
+    <div class="a">ไฟล์ <span class="filepath">pet_core/models.py</span> — class สำคัญคือ <code>PetPost</code> และ <code>PetImage</code></div>
+  </div>
+</div>
+
+<!-- ===== SECTION 3 ===== -->
+<div class="section" id="s3">
+  <span class="section-num">3</span><h2>Database — เก็บข้อมูลอย่างไร</h2>
+  <hr class="section-divider">
+
+  <table>
+    <tr><th>ตาราง</th><th>เก็บอะไร</th><th>สำคัญยังไง</th></tr>
+    <tr><td><code>pet_core_petpost</code></td><td>โพสสัตว์หาย/พบ ชื่อ สถานที่ ติดต่อ lat/lng</td><td>ข้อมูลหลัก</td></tr>
+    <tr><td><code>pet_core_petimage</code></td><td>รูปภาพ + <strong>feature_vector (2048 มิติ)</strong></td><td>ใช้ค้นหาด้วย AI</td></tr>
+    <tr><td><code>pet_core_product</code></td><td>สินค้าสัตว์เลี้ยง</td><td>หน้า /products/</td></tr>
+    <tr><td><code>pet_core_blogpost</code></td><td>บทความ/เคล็ดลับ</td><td>หน้า /blog/</td></tr>
+    <tr><td><code>pet_core_comment</code></td><td>ความเห็นใต้โพส</td><td>community</td></tr>
+  </table>
+
+  <div class="qa">
+    <div class="q">pgvector คืออะไร ทำไมต้องใช้</div>
+    <div class="a">
+      pgvector เป็น Extension ของ PostgreSQL ที่เพิ่มชนิดข้อมูล <code>vector</code> และฟังก์ชัน <code>CosineDistance()</code><br>
+      ทำให้ค้นหา "รูปที่คล้ายกัน" จากฐานข้อมูลได้โดยตรง ไม่ต้องโหลดรูปทุกใบมาเทียบใน Python
+    </div>
+  </div>
+
+  <div class="qa">
+    <div class="q">รูปภาพเก็บที่ไหน</div>
+    <div class="a">เก็บบน <strong>Supabase Storage</strong> (เหมือน Google Drive ของโปรเจค) — Database เก็บแค่ URL ของรูป ไม่ได้เก็บไฟล์รูปใน PostgreSQL โดยตรง</div>
+  </div>
+</div>
+
+<!-- ===== SECTION 4 ===== -->
+<div class="section" id="s4">
+  <span class="section-num">4</span><h2>AI Image Search — หลักการทำงาน</h2>
+  <hr class="section-divider">
+
+  <div class="qa">
+    <div class="q">ระบบ Image Search ทำงานยังไง อธิบายแบบง่าย</div>
+    <div class="a">
+      ระบบแปลงรูปภาพให้เป็นตัวเลขชุดหนึ่ง (vector) แล้ววัดว่า "รูปค้นหา" กับ "รูปในโพส" ห่างกันแค่ไหน รูปที่ใกล้กันที่สุด = คล้ายกันมากที่สุด
+    </div>
+  </div>
+
+  <pre>ขั้นตอนเมื่อผู้ใช้อัปโหลดรูปโพส:
+1. รับรูปจากผู้ใช้
+2. บีบอัดรูป (ลด size, JPEG 82%)
+3. ส่งเข้า ResNet50 model → ได้ vector 2048 มิติ
+4. จำแนกประเภทสัตว์ (สุนัข/แมว/นก ฯลฯ)
+5. บันทึก vector + รูป + ข้อมูลลง PostgreSQL
+
+ขั้นตอนเมื่อผู้ใช้ค้นหา:
+1. รับรูปค้นหา
+2. แปลงเป็น vector เช่นกัน
+3. ใช้ CosineDistance() เปรียบเทียบกับทุก vector ในฐานข้อมูล
+4. เรียงจากคล้ายมาก → คล้ายน้อย
+5. แสดงผล top 24 พร้อมเปอร์เซ็นต์ความคล้าย</pre>
+
+  <div class="qa">
+    <div class="q">ทำไมถึงเลือกใช้ ResNet50</div>
+    <div class="a">
+      — เป็น model มาตรฐานที่ถูกเทรนบน ImageNet (14 ล้านรูป, 1000 class)<br>
+      — มีน้ำหนัก (weights) สำเร็จรูปให้ดาวน์โหลดฟรีผ่าน torchvision<br>
+      — ขนาด ~100 MB เหมาะกับ free tier<br>
+      — vector 2048 มิติ ให้ feature ที่ละเอียดกว่า CLIP (512 มิติ)
+    </div>
+  </div>
+
+  <div class="qa">
+    <div class="q">Cosine Distance คืออะไร</div>
+    <div class="a">
+      วัดมุมระหว่าง vector 2 ตัว<br>
+      — ค่า 0 = เหมือนกัน 100%<br>
+      — ค่า 1 = ตรงข้ามกัน 0%<br>
+      ระบบแสดงเป็น % โดย <code>similarity = (1 - distance) × 100</code>
+    </div>
+  </div>
+
+  <div class="qa">
+    <div class="q">AI จำแนกประเภทสัตว์ยังไง</div>
+    <div class="a">
+      ResNet50 ทำนาย class จาก ImageNet 1000 class<br>
+      ระบบ map class index → ประเภทสัตว์ เช่น<br>
+      class 151-268 = สุนัข, class 281-285 = แมว, class 7-24 = นก<br>
+      โค้ดอยู่ใน <span class="filepath">pet_core/utils.py</span> ฟังก์ชัน <code>_idx_to_pet_type()</code>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SECTION 5 ===== -->
+<div class="section" id="s5">
+  <span class="section-num">5</span><h2>Vector คืออะไร และทำงานยังไง</h2>
+  <hr class="section-divider">
+
+  <div class="qa">
+    <div class="q">Vector คืออะไร อธิบายแบบเข้าใจง่าย</div>
+    <div class="a">
+      Vector คือการแปลงรูปภาพให้เป็น "พิกัด" ในพื้นที่ 2048 มิติ<br>
+      รูปที่หน้าตาคล้ายกัน → พิกัดอยู่ใกล้กัน<br>
+      รูปที่แตกต่างกัน → พิกัดอยู่ห่างกัน
+    </div>
+  </div>
+
+<pre>ตัวอย่าง (ย่อให้เหลือ 5 มิติเพื่อให้เข้าใจ):
+
+สุนัขดำ A:  [0.91, 0.23, -0.45, 0.67, 0.12]
+สุนัขดำ B:  [0.89, 0.25, -0.43, 0.65, 0.11]  ← ใกล้มาก → similarity สูง
+แมวขาว:    [-0.32, 0.78, 0.91, -0.12, 0.55]  ← ห่างมาก → similarity ต่ำ
+ไอโฟน:     [0.05, -0.88, 0.34, -0.71, 0.92]  ← ห่างมากที่สุด
+
+ระบบนี้ใช้ 2048 มิติ (ละเอียดกว่า 400 เท่า)</pre>
+
+  <div class="qa">
+    <div class="q">Vector เก็บที่ไหนใน Database</div>
+    <div class="a">
+      ตาราง <code>pet_core_petimage</code> คอลัมน์ <code>feature_vector</code><br>
+      ชนิดข้อมูลเป็น <code>vector(2048)</code> ซึ่งเป็น type พิเศษของ pgvector extension
+    </div>
+  </div>
+</div>
+
+<!-- ===== SECTION 6 ===== -->
+<div class="section" id="s6">
+  <span class="section-num">6</span><h2>AI ดูรูปกี่รูปต่อโพส</h2>
+  <hr class="section-divider">
+
+  <div class="qa">
+    <div class="q">AI ดูแค่รูปแรกหรือทุกรูป</div>
+    <div class="a"><strong>ดูทุกรูปครับ</strong> — แต่ละรูปถูก embed เป็น vector แยกกันทั้งหมด</div>
+  </div>
+
+<pre>ตัวอย่าง: โพสมี 3 รูป
+  รูป 1 (หน้าตรง)  → vector_1 → บันทึกลง DB
+  รูป 2 (ด้านข้าง) → vector_2 → บันทึกลง DB
+  รูป 3 (วิ่งอยู่)  → vector_3 → บันทึกลง DB
+
+ตอนค้นหา:
+  query_vector เทียบกับ vector_1, vector_2, vector_3
+  เอา "คะแนนดีที่สุด" ของโพสนั้นมาแสดง
+  ถ้าหลายรูป match → ได้ bonus score เพิ่ม</pre>
+
+  <div class="qa">
+    <div class="q">ทำไมถึงออกแบบแบบนี้ ไม่ดูแค่รูปแรก</div>
+    <div class="a">
+      เพราะคนที่เจอสัตว์หายอาจถ่ายคนละมุมกับเจ้าของ<br>
+      ถ้าดูแค่รูปแรก (หน้าตรง) แต่คนค้นส่งรูปด้านข้างมา → หาไม่เจอ<br>
+      การ embed ทุกรูปให้โอกาส match จากมุมกล้องใดก็ได้
+    </div>
+  </div>
+
+  <div class="qa">
+    <div class="q">โพสซ้ำๆ แก้ยังไง</div>
+    <div class="a">
+      ระบบ group ผลลัพธ์ตาม post_id ก่อน → เก็บแค่รูปที่ดีที่สุดต่อโพส<br>
+      ถ้าเจ้าของโพสสัตว์ตัวเดิมหลายครั้ง → ใช้ rule: ถ้าชื่อเดียวกัน + similarity ≥ 95% → แสดงแค่อันดับ 1
+    </div>
+  </div>
+</div>
+
+<!-- ===== SECTION 7 ===== -->
+<div class="section" id="s7">
+  <span class="section-num">7</span><h2>Memory / RAM และข้อจำกัด Server</h2>
+  <hr class="section-divider">
+
+  <table>
+    <tr><th>ส่วน</th><th>ใช้ RAM</th><th>หมายเหตุ</th></tr>
+    <tr><td>Django + dependencies</td><td>~80 MB</td><td>ปกติ</td></tr>
+    <tr><td>ResNet50 model</td><td>~100 MB</td><td>โหลดครั้งเดียวตอน start</td></tr>
+    <tr><td>อื่นๆ (pgvector, requests)</td><td>~20 MB</td><td></td></tr>
+    <tr><td><strong>รวม</strong></td><td><strong>~200 MB</strong></td><td></td></tr>
+    <tr><td><strong>Render Free Limit</strong></td><td><strong>512 MB</strong></td><td>เหลืออีก ~312 MB</td></tr>
+  </table>
+
+  <div class="qa">
+    <div class="q">Render กับ Supabase ต่างกันยังไง</div>
+    <div class="a">
+      <strong>Render</strong> = เซิร์ฟเวอร์ที่รัน Django code, AI model, logic ทั้งหมด → ใช้ RAM<br>
+      <strong>Supabase</strong> = ฐานข้อมูล PostgreSQL + เก็บรูปภาพ → ใช้ Storage ไม่ใช่ RAM ของ Render
+    </div>
+  </div>
+
+  <div class="qa">
+    <div class="q">CPU Limit 0.15 CPU หมายความว่าอะไร</div>
+    <div class="a">
+      Render Free ได้ shared CPU น้อยมาก → ตอน AI ประมวลผลรูปอาจช้า 3-5 วินาที<br>
+      ถ้า deploy จริงบน paid tier หรือ GPU server จะเร็วกว่านี้มาก
+    </div>
+  </div>
+
+  <div class="warn">ถ้าเว็บไม่ตอบสนอง 30-50 วินาทีแรก = Render "spin up" เพราะ free tier หยุดเองตอนไม่มีคนใช้</div>
+</div>
+
+<!-- ===== SECTION 8 ===== -->
+<div class="section" id="s8">
+  <span class="section-num">8</span><h2>ข้อจำกัดของระบบ (Limitations)</h2>
+  <hr class="section-divider">
+
+  <table>
+    <tr><th>ข้อจำกัด</th><th>สาเหตุ</th><th>แก้ได้ในอนาคต</th></tr>
+    <tr><td>ค้นรูปช้า 3-5 วินาที</td><td>CPU จำกัดบน free tier</td><td>อัปเกรด server หรือใช้ GPU</td></tr>
+    <tr><td>เว็บ spin up นาน</td><td>Render free ปิดตัวเองเมื่อไม่มีคน</td><td>paid tier ไม่มีปัญหานี้</td></tr>
+    <tr><td>ค้นหาข้ามสายพันธุ์ได้</td><td>ResNet50 ไม่ได้เทรนเฉพาะสัตว์</td><td>เปลี่ยนเป็น DINOv2 หรือ fine-tuned model</td></tr>
+    <tr><td>รูปคนหรือวัตถุอาจขึ้นผล</td><td>ไม่มี threshold ตัดต่ำกว่า 30%</td><td>เพิ่ม threshold filter</td></tr>
+    <tr><td>รองรับรูปสูงสุด 10MB</td><td>จำกัด upload size</td><td>ปรับ config ได้</td></tr>
+    <tr><td>ข้อมูลจริงในระบบยังน้อย</td><td>เพิ่งเปิดใช้งาน</td><td>เพิ่มขึ้นตามผู้ใช้</td></tr>
+  </table>
+
+  <div class="tip">การยอมรับ limitation แสดงให้เห็นว่าเข้าใจระบบจริงๆ ไม่ใช่แค่ทำตาม tutorial</div>
+</div>
+
+<!-- ===== SECTION 9 ===== -->
+<div class="section" id="s9">
+  <span class="section-num">9</span><h2>คำถามที่อาจารย์มักถาม</h2>
+  <hr class="section-divider">
+
+  <div class="qa">
+    <div class="q">ทำไมเลือกใช้ Django ไม่ใช้ FastAPI หรือ Flask</div>
+    <div class="a">
+      Django มี ORM, Admin panel, Auth system พร้อมใช้ทันที ลดเวลา development มาก<br>
+      FastAPI เหมาะถ้าต้องการ pure API, Flask เหมาะสำหรับ project เล็ก<br>
+      Django เหมาะสำหรับ full-stack web app ที่ต้องการความสมบูรณ์
+    </div>
+  </div>
+
+  <div class="qa">
+    <div class="q">ทำไมใช้ PostgreSQL ไม่ใช้ MySQL หรือ SQLite</div>
+    <div class="a">
+      เพราะต้องการ <strong>pgvector extension</strong> ซึ่งมีเฉพาะ PostgreSQL<br>
+      pgvector เพิ่มชนิดข้อมูล vector และ Cosine Distance query ที่จำเป็นสำหรับ Image Search<br>
+      MySQL และ SQLite ไม่รองรับ vector search
+    </div>
+  </div>
+
+  <div class="qa">
+    <div class="q">ถ้ามีผู้ใช้เยอะๆ ระบบจะรองรับได้ไหม</div>
+    <div class="a">
+      ปัจจุบัน: Render Free — รองรับได้ประมาณ 10-20 concurrent users<br>
+      ถ้าต้องการ scale: เพิ่ม Render instance หรือเพิ่ม index บน pgvector (HNSW index)<br>
+      Database Supabase Free รองรับ 500MB storage และ 2 concurrent connections
+    </div>
+  </div>
+
+  <div class="qa">
+    <div class="q">Image Search แม่นแค่ไหน ทดสอบยังไง</div>
+    <div class="a">
+      ทดสอบโดยใช้รูปเดียวกับที่โพสไว้ → ได้ similarity 99%+<br>
+      รูปมุมต่างออกไปของสัตว์เดิม → ได้ 60-80%<br>
+      สัตว์ต่างสายพันธุ์ → ได้ต่ำกว่า 40%<br>
+      รูปที่ไม่ใช่สัตว์ → ได้ต่ำกว่า 20-30%
+    </div>
+  </div>
+
+  <div class="qa">
+    <div class="q">ทำไมใช้ Cosine Distance ไม่ใช้ Euclidean Distance</div>
+    <div class="a">
+      Cosine วัดมุม — ไม่สนใจขนาด สนใจแค่ทิศทาง<br>
+      เหมาะกับ image feature เพราะรูปที่ถ่ายใกล้/ไกล หรือ normalize แล้ว ยังเปรียบเทียบได้ถูกต้อง<br>
+      Euclidean ไวต่อขนาด vector — ถ้า normalize ไม่ครบจะ bias ผลลัพธ์
+    </div>
+  </div>
+
+  <div class="qa">
+    <div class="q">ระบบ authentication ทำงานยังไง</div>
+    <div class="a">
+      ใช้ Supabase Auth (email/password) → Supabase ออก JWT token<br>
+      Django middleware อ่าน token จาก cookie → verify กับ Supabase → สร้าง session<br>
+      Django session ใช้สำหรับ login state ภายใน app
+    </div>
+  </div>
+
+  <div class="qa">
+    <div class="q">ข้อมูลส่วนตัวของผู้ใช้ปลอดภัยไหม</div>
+    <div class="a">
+      เบอร์โทรและ social link ถูก mask สำหรับผู้ที่ยังไม่ login<br>
+      ต้อง login ก่อนจึงจะเห็นข้อมูลติดต่อเต็ม<br>
+      รหัสผ่านเก็บโดย Supabase Auth (bcrypt hash) ไม่ได้เก็บใน database ของเราโดยตรง
+    </div>
+  </div>
+
+  <div class="qa">
+    <div class="q">ระบบนี้ต่างจาก Facebook Group หรือ Pantip ยังไง</div>
+    <div class="a">
+      <strong>จุดต่างหลัก: Image Search</strong><br>
+      Facebook/Pantip ค้นหาได้แค่ keyword เช่น "สุนัขสีดำหาย ลาดพร้าว"<br>
+      ระบบนี้ถ่ายรูปแล้วค้นได้เลย — คนที่เจอสัตว์ไม่รู้ชื่อ ไม่รู้สายพันธุ์ ก็ค้นได้<br>
+      + มีแผนที่แสดงจุด + ระบบแจ้งหา/พบในที่เดียว
+    </div>
+  </div>
+</div>
+
+<!-- ===== SECTION 10 ===== -->
+<div class="section" id="s10">
+  <span class="section-num">10</span><h2>ประโยคสำคัญสำหรับพรีเซนต์</h2>
+  <hr class="section-divider">
+
+  <div class="qa">
+    <div class="q">ประโยคเปิดตัวระบบ</div>
+    <div class="a" style="font-style:italic; background:#f0f4ff; padding:12px; border-radius:8px; border-left:3px solid #021F74;">
+      "ระบบนี้แก้ปัญหาที่ว่า คนที่เจอสัตว์หายไม่รู้ชื่อ ไม่รู้สายพันธุ์ แค่ถ่ายรูปมาค้นได้เลย ซึ่งเป็น use case ที่ text search แบบเดิมทำไม่ได้"
+    </div>
+  </div>
+
+  <div class="qa">
+    <div class="q">ประโยคอธิบาย Image Search</div>
+    <div class="a" style="font-style:italic; background:#f0f4ff; padding:12px; border-radius:8px; border-left:3px solid #021F74;">
+      "ระบบใช้ ResNet50 แปลงรูปเป็น feature vector 2048 มิติ เก็บใน PostgreSQL ด้วย pgvector extension แล้วค้นหาด้วย Cosine Distance แบบ real-time"
+    </div>
+  </div>
+
+  <div class="qa">
+    <div class="q">ประโยคตอบเรื่อง limitation</div>
+    <div class="a" style="font-style:italic; background:#f0f4ff; padding:12px; border-radius:8px; border-left:3px solid #021F74;">
+      "ข้อจำกัดหลักตอนนี้คือ CPU บน free tier ทำให้ AI ประมวลผลช้าประมาณ 3-5 วินาที ถ้า deploy บน production server จะเร็วขึ้นอย่างมีนัยสำคัญ"
+    </div>
+  </div>
+
+  <div class="qa">
+    <div class="q">ประโยคตอบถ้าอาจารย์ถาม "แม่นแค่ไหน"</div>
+    <div class="a" style="font-style:italic; background:#f0f4ff; padding:12px; border-radius:8px; border-left:3px solid #021F74;">
+      "ทดสอบด้วยรูปเดียวกับในโพส ได้ความคล้าย 99% ขึ้น รูปมุมอื่นของตัวเดิมได้ 60-80% ถือว่าเพียงพอสำหรับช่วย narrow down การค้นหา"
+    </div>
+  </div>
+
+  <div class="tip">เตรียม demo path: เปิดหน้าแรก → กด Image Search → ลากรูปสัตว์ → โชว์ผล % ความคล้าย → กดเข้าโพส → โชว์แผนที่ + contact mask</div>
+
+</div>
+
+<div style="text-align:center; padding:20px; color:#888; font-size:12px; border-top:1px solid #eee; margin-top:20px;">
+  TarmRoy · โครงงาน 1 · ธีรพัฒน์ สุภาโสต 65112488 · มหาวิทยาลัยธุรกิจบัณฑิตย์
+</div>
+
+</body>
+</html>

@@ -42,9 +42,9 @@
     <link rel="preconnect" href="{{ SUPABASE_URL }}" crossorigin>
     <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
 
-    {# Critical fonts (body + UI) — block render only briefly with display=swap #}
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai+Looped:wght@400;700&family=Caveat:wght@700&family=Poppins:wght@400;700&display=swap">
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai+Looped:wght@400;700&family=Caveat:wght@700&family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+    {# Critical fonts: Noto Sans Thai Looped (friendly + readable) + Plus Jakarta Sans (latin) #}
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai+Looped:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;700&family=Caveat:wght@700&display=swap">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai+Looped:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;700&family=Caveat:wght@700&display=swap" rel="stylesheet">
     {# Decorative fonts — load with low priority (won't block render) #}
     <link rel="stylesheet" media="print" onload="this.media='all'"
           href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700&family=Chilanka&family=Crimson+Text:wght@400&display=swap">
@@ -54,6 +54,7 @@
     {% load static %}
     <link rel="stylesheet" href="{% static 'css/app.css' %}">
     <link rel="stylesheet" href="{% static 'css/pro.css' %}">
+    <link rel="stylesheet" href="{% static 'css/ux.css' %}">
 
     {# No-flash dark mode init — runs before paint #}
     <script>
@@ -95,7 +96,10 @@
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
         body {
-            font-family: 'IBM Plex Sans Thai Looped', 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: 'Noto Sans Thai Looped', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
             background: #FDF4E3; min-height: 100vh;
             color: #1f2937;
             -webkit-font-smoothing: antialiased;
@@ -502,6 +506,7 @@
 {# ─── Pro UX layer: top loading bar, toasts, scroll reveal, PWA install ─── #}
 <script src="{% static 'js/app.js' %}" defer></script>
 <script src="{% static 'js/pro.js' %}" defer></script>
+<script src="{% static 'js/ux.js' %}" defer></script>
 {% block extra_js %}{% endblock %}
 </body>
 </html>
