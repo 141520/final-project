@@ -1,41 +1,77 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib import messages
-from django.contrib.auth import logout as django_logout
-from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseForbidden, JsonResponse
-from django.views.decorators.http import require_POST, require_GET, require_http_methods
-from .models import PetPost, PetImage, Product, BlogPost, Comment, AuditLog, normalize_external_link
-from datetime import date
-from django.core.files.base import ContentFile
-from .utils import extract_feature_vector, classify_pet_type, compress_image, analyze_image
-from pgvector.django import CosineDistance
-from django.core.cache import cache
-from django.core.exceptions import ValidationError
-from django.core.paginator import Paginator
-from django.db.models import Count, Q
-from django.db import transaction
-from PIL import Image as PILImage
-from collections import defaultdict
+from collections import Counter, defaultdict
+from datetime import date, timedelta
+import io as _io
+import json
 import logging
 import os
-import json
+import re
+import urllib.request
 import uuid
 
-# จำกัดจำนวนรูปต่อโพสต์
+from django.conf import settings as _settings
+from django.contrib import messages
+from django.contrib.auth import get_user_model, logout as django_logout
+from django.contrib.auth.decorators import login_required
+from django.core.cache import cache
+from django.core.exceptions import ValidationError
+from django.core.files.base import ContentFile
+from django.core.paginator import Paginator
+from django.db import transaction
+from django.db.models import Count, Q
+from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
+from django.shortcuts import render, redirect, get_object_or_404
+from django.utils import timezone
+from django.views.decorators.http import require_POST, require_GET, require_http_methods
+from PIL import Image as PILImage, ImageDraw, ImageFont
+
+from pgvector.django import CosineDistance
+
+from .models import PetPost, PetImage, Product, BlogPost, Comment, AuditLog, normalize_external_link
+from .utils import extract_feature_vector, classify_pet_type, compress_image, analyze_image
+
+# ─────────────────────────────────────────────
+# Constants
+# ─────────────────────────────────────────────
 MAX_IMAGES_PER_POST = 5
 MAX_IMAGE_UPLOAD_BYTES = 8 * 1024 * 1024
 PRODUCTS_PER_PAGE = 24
+BLOGS_PER_PAGE = 12
 LIST_QUERY_LIMIT = 240
 LIST_DISPLAY_LIMIT = 120
 ALLOWED_IMAGE_CONTENT_TYPES = {'image/jpeg', 'image/png', 'image/webp'}
 GENERIC_SAVE_ERROR = 'เกิดข้อผิดพลาดระหว่างบันทึกข้อมูล กรุณาตรวจสอบข้อมูลแล้วลองใหม่อีกครั้ง'
 
+# โดเมนที่อนุญาตสำหรับ social_link (ป้องกัน malicious URL)
+ALLOWED_SOCIAL_DOMAINS = (
+    'facebook.com', 'fb.com', 'fb.watch',
+    'instagram.com', 'instagr.am',
+    'twitter.com', 'x.com',
+    'tiktok.com', 'vm.tiktok.com',
+    'youtube.com', 'youtu.be',
+    'line.me', 'lin.ee',
+)
+
+# Tracking params ที่ตัดออกก่อน redirect ร้านค้า
+_TRACKING_PARAMS = frozenset({
+    'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
+    'fbclid', 'gclid', 'gclsrc', 'msclkid', '_ga',
+    'sp_atk', 'xptdk', 'extraParams', 'sp_ref', 'from',
+    'sp_ref_sec', 'sp_ref_mkt', 'sp_ref_prefix',
+    'spm', 'scm', 'abbucket', 'clickTrackInfo', 'pos',
+    'algArgs', 'acm', 'recoSign',
+})
+
 logger = logging.getLogger(__name__)
 
 
 def _client_ip(request):
+    # Render.com prepends the real client IP as the LAST entry in X-Forwarded-For.
+    # Taking the first entry is spoofable — attackers can inject arbitrary IPs.
+    # Taking the last entry gives the actual client as seen by the edge proxy.
     forwarded = request.META.get('HTTP_X_FORWARDED_FOR', '')
-    return (forwarded.split(',')[0].strip() or request.META.get('REMOTE_ADDR') or 'unknown')
+    if forwarded:
+        return forwarded.split(',')[-1].strip()
+    return request.META.get('REMOTE_ADDR') or 'unknown'
 
 
 def _audit(request, action, obj=None, metadata=None):
@@ -90,7 +126,6 @@ def home(request):
     """Home — แคช 60 วิ (ผ่าน DB-level cache, render ใหม่ทุกครั้งเพื่อให้ nav แสดง user ปัจจุบัน)"""
     cached = cache.get('home_data_v3')
     if cached is None:
-        from django.contrib.auth import get_user_model
         User = get_user_model()
         agg = PetPost.objects.aggregate(
             total_posts=Count('id'),
@@ -145,8 +180,7 @@ def home(request):
 def map_view(request):
     cached = cache.get('map_data_v1')
     if cached is None:
-        from django.conf import settings as _s
-        base_url = f"{_s.SUPABASE_URL}/storage/v1/object/public/{_s.AWS_STORAGE_BUCKET_NAME}/"
+        base_url = f"{_settings.SUPABASE_URL}/storage/v1/object/public/{_settings.AWS_STORAGE_BUCKET_NAME}/"
 
         # values() — skip model object creation, ~5x faster than .all() loop
         rows = PetPost.objects.filter(
@@ -266,7 +300,7 @@ def _process_uploaded_image(uploaded_file):
         compressed = compress_image(uploaded_file, max_dim=1600, quality=82)
         compressed_bytes = compressed.getvalue()
     except Exception as e:
-        logger.warning(f"compress_image failed, fallback to original: {e}")
+        logger.warning("compress_image failed, fallback to original: %s", e)
         try:
             uploaded_file.seek(0)
         except Exception:
@@ -282,7 +316,7 @@ def _process_uploaded_image(uploaded_file):
         vector = analysis.get('feature_vector')
         pet_type = analysis.get('pet_type')
     except Exception as e:
-        logger.warning(f"AI analyze failed: {e}")
+        logger.warning("AI analyze failed: %s", e)
 
     # ตั้งชื่อไฟล์ใหม่ unique เพื่อป้องกันชนกัน
     fname = f"{uuid.uuid4().hex}.jpg"
@@ -322,18 +356,32 @@ def _attach_images_to_post(post, image_files):
                 try:
                     PetImage.objects.filter(pk=pi.pk).update(feature_vector=vec)
                 except Exception as e:
-                    logger.warning(f"save vector failed: {e}")
+                    logger.warning("save vector failed: %s", e)
 
     # Auto-fill pet_type ถ้าผู้ใช้ไม่ได้ระบุ
     if not post.pet_type:
         # โหวตจาก predictions: pet_type ที่ปรากฏมากที่สุด
         valid = [p for p in ai_predictions if p]
         if valid:
-            from collections import Counter
             top = Counter(valid).most_common(1)[0][0]
             post.pet_type = top
             post.save(update_fields=['pet_type'])
     return ai_predictions
+
+
+def _clean_social_link(url: str) -> str:
+    """ตรวจว่า URL อยู่ใน ALLOWED_SOCIAL_DOMAINS — ถ้าไม่ผ่านคืน ''"""
+    if not url:
+        return ''
+    from urllib.parse import urlparse as _urlparse
+    try:
+        parsed = _urlparse(url if url.startswith(('http://', 'https://')) else f'https://{url}')
+        host = parsed.netloc.lower().lstrip('www.')
+        if any(host == d or host.endswith(f'.{d}') for d in ALLOWED_SOCIAL_DOMAINS):
+            return url
+    except Exception:
+        pass
+    return ''
 
 
 # ---- helper: สร้างโพสต์จาก form ----
@@ -341,7 +389,6 @@ def _build_post_from_form(request, post_type):
     time_field = 'lost_time' if post_type == 'lost' else 'found_time'
     date_field = 'lost_date' if post_type == 'lost' else 'found_date'
 
-    import re
     time_period = request.POST.get(f'{post_type}_time_period') or ''
     exact_time = request.POST.get(f'{post_type}_time_exact') or ''
 
@@ -399,7 +446,7 @@ def _build_post_from_form(request, post_type):
         latitude=request.POST.get('latitude') or 0,
         longitude=request.POST.get('longitude') or 0,
         situation=request.POST.get('situation', '').strip(),
-        social_link=request.POST.get('social_link', '').strip(),
+        social_link=_clean_social_link(request.POST.get('social_link', '').strip()),
         # reward เฉพาะประกาศ "หาย" (เจ้าของให้รางวัลคนช่วยตามหา)
         reward=(request.POST.get('reward') or None) if post_type == 'lost' else None,
     )
@@ -408,54 +455,43 @@ def _build_post_from_form(request, post_type):
     return PetPost.objects.create(**data)
 
 
-# ---- ลงประกาศสัตว์หาย (ต้องล็อกอิน) ----
+# ---- ลงประกาศ (ต้องล็อกอิน) — ใช้ร่วมกันระหว่าง lost / found ----
+def _report_pet(request, post_type: str):
+    """ฟังก์ชันกลางสำหรับ report_lost และ report_found"""
+    template = 'pet_core/create_find_post.html' if post_type == 'lost' else 'pet_core/create_found_post.html'
+    success_msg = (
+        '✅ ลงประกาศสัตว์หายสำเร็จแล้ว! AI ช่วยจำแนกประเภทสัตว์ให้แล้ว'
+        if post_type == 'lost'
+        else '✅ ลงประกาศสัตว์ที่พบสำเร็จแล้ว! AI ช่วยจำแนกประเภทสัตว์ให้แล้ว'
+    )
+    if request.method == 'POST':
+        if _is_rate_limited(request, f'report_{post_type}', limit=5, window_seconds=600):
+            messages.error(request, 'ส่งประกาศถี่เกินไป กรุณารอสักครู่แล้วลองใหม่')
+            return redirect(f'report_{post_type}')
+        try:
+            post = _build_post_from_form(request, post_type)
+            images = request.FILES.getlist('images') or request.FILES.getlist('image')
+            if images:
+                _attach_images_to_post(post, images)
+            _audit(request, 'post_create', post, {'post_type': post_type})
+            messages.success(request, success_msg)
+            return redirect('pet_detail', pet_id=post.id)
+        except ValidationError as e:
+            messages.error(request, '; '.join(e.messages))
+        except Exception:
+            logger.exception("Error saving %s post", post_type)
+            messages.error(request, GENERIC_SAVE_ERROR)
+    return render(request, template, {'max_images': MAX_IMAGES_PER_POST})
+
+
 @login_required
 def report_lost(request):
-    if request.method == 'POST':
-        if _is_rate_limited(request, 'report_lost', limit=5, window_seconds=600):
-            messages.error(request, 'ส่งประกาศถี่เกินไป กรุณารอสักครู่แล้วลองใหม่')
-            return redirect('report_lost')
-        try:
-            post = _build_post_from_form(request, 'lost')
-            images = request.FILES.getlist('images') or request.FILES.getlist('image')
-            if images:
-                _attach_images_to_post(post, images)
-            _audit(request, 'post_create', post, {'post_type': 'lost'})
-            messages.success(request, '✅ ลงประกาศสัตว์หายสำเร็จแล้ว! AI ช่วยจำแนกประเภทสัตว์ให้แล้ว')
-            return redirect('pet_detail', pet_id=post.id)
-        except ValidationError as e:
-            messages.error(request, '; '.join(e.messages))
-        except Exception:
-            logger.exception("Error saving lost post")
-            messages.error(request, GENERIC_SAVE_ERROR)
-    return render(request, 'pet_core/create_find_post.html', {
-        'max_images': MAX_IMAGES_PER_POST,
-    })
+    return _report_pet(request, 'lost')
 
 
-# ---- ลงประกาศสัตว์ที่พบ (ต้องล็อกอิน) ----
 @login_required
 def report_found(request):
-    if request.method == 'POST':
-        if _is_rate_limited(request, 'report_found', limit=5, window_seconds=600):
-            messages.error(request, 'ส่งประกาศถี่เกินไป กรุณารอสักครู่แล้วลองใหม่')
-            return redirect('report_found')
-        try:
-            post = _build_post_from_form(request, 'found')
-            images = request.FILES.getlist('images') or request.FILES.getlist('image')
-            if images:
-                _attach_images_to_post(post, images)
-            _audit(request, 'post_create', post, {'post_type': 'found'})
-            messages.success(request, '✅ ลงประกาศสัตว์ที่พบสำเร็จแล้ว! AI ช่วยจำแนกประเภทสัตว์ให้แล้ว')
-            return redirect('pet_detail', pet_id=post.id)
-        except ValidationError as e:
-            messages.error(request, '; '.join(e.messages))
-        except Exception:
-            logger.exception("Error saving found post")
-            messages.error(request, GENERIC_SAVE_ERROR)
-    return render(request, 'pet_core/create_found_post.html', {
-        'max_images': MAX_IMAGES_PER_POST,
-    })
+    return _report_pet(request, 'found')
 
 
 # ---- ค้นหาด้วย AI (+ filter ประเภทสัตว์) ----
@@ -483,6 +519,13 @@ def search_pet(request):
             selected_post_type = 'found'
 
     if request.method == 'POST' and 'search_image' in request.FILES:
+        if _is_rate_limited(request, 'image_search', limit=10, window_seconds=60):
+            messages.error(request, 'ค้นหาถี่เกินไป กรุณารอสักครู่แล้วลองใหม่')
+            return render(request, 'pet_core/search.html', {
+                'results': [], 'searched': False, 'ai_detection': None,
+                'auto_detected': False, 'selected_pet_type': selected_pet_type,
+                'selected_post_type': selected_post_type,
+            })
         searched = True
         search_img = request.FILES['search_image']
 
@@ -677,7 +720,8 @@ def edit_post(request, pet_id):
             pet.save()
 
             # 🟢 ลบรูปย่อยที่ผู้ใช้เลือกก่อนนับ slot ใหม่
-            delete_ids = request.POST.getlist('delete_image_ids')
+            raw_ids = request.POST.getlist('delete_image_ids')
+            delete_ids = [int(x) for x in raw_ids if str(x).isdigit()]
             if delete_ids:
                 pet.images.filter(id__in=delete_ids).delete()
 
@@ -718,7 +762,6 @@ def mark_as_resolved(request, pet_id):
         messages.info(request, 'ประกาศนี้ถูกปิดไปแล้ว')
         return redirect('pet_detail', pet_id=pet.id)
 
-    from django.utils import timezone
     pet.status = 'resolved'
     pet.resolved_at = timezone.now()
     pet.resolved_note = (request.POST.get('resolved_note') or '').strip()[:1000]
@@ -785,7 +828,6 @@ def product_go(request, product_id):
     — Shopee: แปลง → canonical /product/{shop}/{item} (ไม่มีภาษาไทย/tracking)
     — อื่นๆ: decode percent-encoded path + ตัด tracking params
     """
-    import re
     from urllib.parse import urlparse, urlencode, parse_qsl, unquote
 
     product = get_object_or_404(Product, id=product_id, is_active=True)
@@ -817,20 +859,11 @@ def product_go(request, product_id):
         else:
             # ── ขั้น 3b: ไม่เจอ ID — ใช้ decoded path + ตัด tracking ───
             # สร้าง URL ใหม่แบบ manual (ไม่ผ่าน geturl() เพราะจะ re-encode Thai)
-            _STRIP = {
-                'sp_atk', 'xptdk', 'extraParams', 'sp_ref', 'from',
-                'sp_ref_sec', 'sp_ref_mkt', 'sp_ref_prefix',
-                'spm', 'scm', 'abbucket', 'clickTrackInfo', 'pos',
-                'algArgs', 'acm', 'recoSign',
-                'utm_source', 'utm_medium', 'utm_campaign', 'utm_term',
-                'utm_content', 'fbclid', 'gclid', 'gclsrc', 'msclkid', '_ga',
-            }
             try:
                 parsed = urlparse(decoded)
                 clean_qs = urlencode(
-                    [(k, v) for k, v in parse_qsl(parsed.query) if k not in _STRIP]
+                    [(k, v) for k, v in parse_qsl(parsed.query) if k not in _TRACKING_PARAMS]
                 )
-                # ต่อ URL แบบ manual — path เป็น Thai (decoded) ไม่ถูก encode ซ้ำ
                 base = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
                 url = f"{base}?{clean_qs}" if clean_qs else base
             except Exception:
@@ -838,14 +871,10 @@ def product_go(request, product_id):
 
     else:
         # ── platform อื่น: ตัด tracking params ────────────────────────────
-        _STRIP = {
-            'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
-            'fbclid', 'gclid', 'gclsrc', 'msclkid', '_ga',
-        }
         try:
             parsed = urlparse(url)
             clean_qs = urlencode(
-                [(k, v) for k, v in parse_qsl(parsed.query) if k not in _STRIP]
+                [(k, v) for k, v in parse_qsl(parsed.query) if k not in _TRACKING_PARAMS]
             )
             url = parsed._replace(query=clean_qs).geturl()
         except Exception:
@@ -871,8 +900,10 @@ def product_detail(request, product_id):
 
 # ---- บทความ ----
 def blog_list(request):
-    posts = BlogPost.objects.filter(is_published=True)
-    return render(request, 'pet_core/blog_list.html', {'posts': posts})
+    qs = BlogPost.objects.filter(is_published=True)
+    paginator = Paginator(qs, BLOGS_PER_PAGE)
+    page_obj = paginator.get_page(request.GET.get('page'))
+    return render(request, 'pet_core/blog_list.html', {'posts': page_obj, 'page_obj': page_obj})
 
 
 def blog_detail(request, post_id):
@@ -958,21 +989,16 @@ def post_comment(request, pet_id):
 @require_GET
 def og_image(request, pet_id):
     """Generate 1200x630 PNG with pet name/photo/branding for social sharing."""
-    from django.http import HttpResponse
-    from PIL import Image as PImage, ImageDraw, ImageFont
-    import io as _io
-    import urllib.request
-
     pet = get_object_or_404(PetPost, id=pet_id)
     W, H = 1200, 630
 
     # Background
-    img = PImage.new('RGB', (W, H), (252, 238, 213))
+    img = PILImage.new('RGB', (W, H), (252, 238, 213))
     draw = ImageDraw.Draw(img)
 
     # Decorative blob
     for r, c in [(420, (117, 110, 245, 100)), (320, (215, 92, 167, 90))]:
-        blob = PImage.new('RGBA', (W, H), (0, 0, 0, 0))
+        blob = PILImage.new('RGBA', (W, H), (0, 0, 0, 0))
         bd = ImageDraw.Draw(blob)
         bd.ellipse((W - r * 2, -r // 2, W + r // 2, r), fill=c)
         img.paste(blob, (0, 0), blob)
@@ -983,10 +1009,10 @@ def og_image(request, pet_id):
             url = pet.thumb_url(width=520, quality=80)
             req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
             with urllib.request.urlopen(req, timeout=4) as resp:
-                pet_img = PImage.open(_io.BytesIO(resp.read())).convert('RGB')
+                pet_img = PILImage.open(_io.BytesIO(resp.read())).convert('RGB')
             pet_img.thumbnail((460, 460))
             # circular mask
-            mask = PImage.new('L', pet_img.size, 0)
+            mask = PILImage.new('L', pet_img.size, 0)
             ImageDraw.Draw(mask).ellipse((0, 0, *pet_img.size), fill=255)
             img.paste(pet_img, (60, (H - pet_img.height) // 2), mask)
         except Exception:
@@ -1042,9 +1068,7 @@ def admin_stats_api(request):
     """Stats JSON สำหรับ admin dashboard — เฉพาะ staff เท่านั้น"""
     if not request.user.is_staff:
         return JsonResponse({'error': 'forbidden'}, status=403)
-    from django.contrib.auth import get_user_model
     User = get_user_model()
-    from django.db.models import Count, Q
     agg = PetPost.objects.aggregate(
         posts=Count('id'),
         active=Count('id', filter=Q(status='active')),
