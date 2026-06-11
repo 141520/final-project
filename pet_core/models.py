@@ -57,16 +57,23 @@ def validate_product_external_link(url: str):
         allowed = ', '.join(ALLOWED_PRODUCT_LINK_DOMAINS)
         raise ValidationError(f'รองรับเฉพาะลิงก์ร้านค้าที่อนุญาต: {allowed}')
 
+# Named constants — ใช้แทน magic strings ทั่วทั้ง codebase
+POST_TYPE_LOST = 'lost'
+POST_TYPE_FOUND = 'found'
+STATUS_ACTIVE = 'active'
+STATUS_RESOLVED = 'resolved'
+
+
 # 1. คลาส PetPost
 class PetPost(models.Model):
     POST_TYPE_CHOICES = (
-        ('lost', 'หาย'), 
-        ('found', 'พบ')
+        (POST_TYPE_LOST, 'หาย'),
+        (POST_TYPE_FOUND, 'พบ'),
     )
-    
+
     STATUS_CHOICES = (
-        ('active', 'กำลังตามหา/กำลังหาเจ้าของ'),
-        ('resolved', 'เจอแล้ว/ส่งคืนแล้ว'),
+        (STATUS_ACTIVE, 'กำลังตามหา/กำลังหาเจ้าของ'),
+        (STATUS_RESOLVED, 'เจอแล้ว/ส่งคืนแล้ว'),
     )
 
     GENDER_CHOICES = (
@@ -93,8 +100,8 @@ class PetPost(models.Model):
     )
 
     # --- ข้อมูลสถานะ ---
-    post_type = models.CharField(max_length=10, choices=POST_TYPE_CHOICES, default='lost', verbose_name="ประเภทประกาศ")
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='active', verbose_name="สถานะ")
+    post_type = models.CharField(max_length=10, choices=POST_TYPE_CHOICES, default=POST_TYPE_LOST, verbose_name="ประเภทประกาศ")
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_ACTIVE, verbose_name="สถานะ")
     
     # --- ข้อมูลทั่วไป ---
     name = models.CharField(max_length=100, verbose_name="ชื่อสัตว์เลี้ยง/ลักษณะเด่น")

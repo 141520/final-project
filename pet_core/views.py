@@ -26,30 +26,32 @@ from PIL import Image as PILImage, ImageDraw, ImageFont
 
 from pgvector.django import CosineDistance
 
-from .models import PetPost, PetImage, Product, BlogPost, Comment, AuditLog, normalize_external_link
+from .models import (
+    PetPost, PetImage, Product, BlogPost, Comment, AuditLog,
+    normalize_external_link,
+    POST_TYPE_LOST, POST_TYPE_FOUND, STATUS_ACTIVE, STATUS_RESOLVED,
+)
 from .utils import extract_feature_vector, classify_pet_type, compress_image, analyze_image
+from ._helpers import (
+    MAX_IMAGES_PER_POST,
+    MAX_IMAGE_UPLOAD_BYTES,
+    ALLOWED_IMAGE_CONTENT_TYPES,
+    ALLOWED_SOCIAL_DOMAINS,
+    client_ip as _client_ip,
+    is_rate_limited as _is_rate_limited,
+    validate_image_files as _validate_image_files,
+    clean_social_link as _clean_social_link,
+    audit as _audit_impl,
+)
 
 # ─────────────────────────────────────────────
-# Constants
+# View-only constants
 # ─────────────────────────────────────────────
-MAX_IMAGES_PER_POST = 5
-MAX_IMAGE_UPLOAD_BYTES = 8 * 1024 * 1024
 PRODUCTS_PER_PAGE = 24
 BLOGS_PER_PAGE = 12
 LIST_QUERY_LIMIT = 240
 LIST_DISPLAY_LIMIT = 120
-ALLOWED_IMAGE_CONTENT_TYPES = {'image/jpeg', 'image/png', 'image/webp'}
 GENERIC_SAVE_ERROR = 'เกิดข้อผิดพลาดระหว่างบันทึกข้อมูล กรุณาตรวจสอบข้อมูลแล้วลองใหม่อีกครั้ง'
-
-# โดเมนที่อนุญาตสำหรับ social_link (ป้องกัน malicious URL)
-ALLOWED_SOCIAL_DOMAINS = (
-    'facebook.com', 'fb.com', 'fb.watch',
-    'instagram.com', 'instagr.am',
-    'twitter.com', 'x.com',
-    'tiktok.com', 'vm.tiktok.com',
-    'youtube.com', 'youtu.be',
-    'line.me', 'lin.ee',
-)
 
 # Tracking params ที่ตัดออกก่อน redirect ร้านค้า
 _TRACKING_PARAMS = frozenset({
@@ -64,62 +66,13 @@ _TRACKING_PARAMS = frozenset({
 logger = logging.getLogger(__name__)
 
 
-def _client_ip(request):
-    # Render.com prepends the real client IP as the LAST entry in X-Forwarded-For.
-    # Taking the first entry is spoofable — attackers can inject arbitrary IPs.
-    # Taking the last entry gives the actual client as seen by the edge proxy.
-    forwarded = request.META.get('HTTP_X_FORWARDED_FOR', '')
-    if forwarded:
-        return forwarded.split(',')[-1].strip()
-    return request.META.get('REMOTE_ADDR') or 'unknown'
-
-
 def _audit(request, action, obj=None, metadata=None):
-    try:
-        AuditLog.objects.create(
-            user=request.user if getattr(request, 'user', None) and request.user.is_authenticated else None,
-            action=action,
-            object_type=obj.__class__.__name__ if obj is not None else '',
-            object_id=str(getattr(obj, 'pk', '') or ''),
-            ip_address=_client_ip(request),
-            user_agent=(request.META.get('HTTP_USER_AGENT') or '')[:1000],
-            metadata=metadata or {},
-        )
-    except Exception:
-        logger.exception("Audit log write failed: action=%s", action)
+    """Wrapper เพื่อให้ส่ง logger เข้าไปได้ — view code ยังเรียก _audit() เหมือนเดิม"""
+    return _audit_impl(request, action, obj=obj, metadata=metadata, logger=logger)
 
 
-def _is_rate_limited(request, action, limit, window_seconds):
-    if request.method != 'POST':
-        return False
-    key = f"rl:{action}:{getattr(request.user, 'id', None) or _client_ip(request)}"
-    count = cache.get(key, 0)
-    if count >= limit:
-        return True
-    cache.set(key, count + 1, window_seconds)
-    return False
-
-
-def _validate_image_files(image_files):
-    for uploaded_file in image_files[:MAX_IMAGES_PER_POST]:
-        if getattr(uploaded_file, 'size', 0) > MAX_IMAGE_UPLOAD_BYTES:
-            raise ValidationError('รูปภาพต้องมีขนาดไม่เกิน 8MB ต่อไฟล์')
-
-        content_type = getattr(uploaded_file, 'content_type', '')
-        if content_type and content_type not in ALLOWED_IMAGE_CONTENT_TYPES:
-            raise ValidationError('รองรับเฉพาะไฟล์รูป JPG, PNG หรือ WebP')
-
-        try:
-            uploaded_file.seek(0)
-            with PILImage.open(uploaded_file) as img:
-                img.verify()
-        except Exception as exc:
-            raise ValidationError('ไฟล์ที่อัปโหลดไม่ใช่รูปภาพที่ถูกต้อง') from exc
-        finally:
-            try:
-                uploaded_file.seek(0)
-            except Exception:
-                pass
+# Inline _clean_social_link wrapper ที่ลบไปแล้ว (ตอนนี้ดึงจาก _helpers)
+# Inline _validate_image_files wrapper ที่ลบไปแล้ว (ตอนนี้ดึงจาก _helpers)
 
 # ---- หน้าหลัก ----
 def home(request):
@@ -367,21 +320,6 @@ def _attach_images_to_post(post, image_files):
             post.pet_type = top
             post.save(update_fields=['pet_type'])
     return ai_predictions
-
-
-def _clean_social_link(url: str) -> str:
-    """ตรวจว่า URL อยู่ใน ALLOWED_SOCIAL_DOMAINS — ถ้าไม่ผ่านคืน ''"""
-    if not url:
-        return ''
-    from urllib.parse import urlparse as _urlparse
-    try:
-        parsed = _urlparse(url if url.startswith(('http://', 'https://')) else f'https://{url}')
-        host = parsed.netloc.lower().lstrip('www.')
-        if any(host == d or host.endswith(f'.{d}') for d in ALLOWED_SOCIAL_DOMAINS):
-            return url
-    except Exception:
-        pass
-    return ''
 
 
 # ---- helper: สร้างโพสต์จาก form ----
@@ -947,8 +885,9 @@ def logout_view(request):
 # 🆕 PRO FEATURES: Comments, Stories, Leaderboard, OG image
 # =========================================================
 
-# ---- POST: comment / reaction บนโพสต์ ----
+# ---- POST: comment / reaction บนโพสต์ (ต้องล็อกอิน) ----
 @require_POST
+@login_required
 def post_comment(request, pet_id):
     if _is_rate_limited(request, 'comment', limit=20, window_seconds=600):
         return JsonResponse({'ok': False, 'error': 'rate_limited'}, status=429)
@@ -960,10 +899,8 @@ def post_comment(request, pet_id):
     if not text and not reaction:
         return JsonResponse({'ok': False, 'error': 'empty'}, status=400)
 
-    user = request.user if request.user.is_authenticated else None
-    author = (request.POST.get('author_name') or '').strip()[:80]
-    if user and not author:
-        author = user.first_name or user.username or ''
+    user = request.user
+    author = user.first_name or user.username or ''
 
     c = Comment.objects.create(
         pet_post=pet, user=user,

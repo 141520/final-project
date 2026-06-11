@@ -8,8 +8,15 @@ from django.test import SimpleTestCase, override_settings
 from .middleware import SecurityHeadersMiddleware, SupabaseAuthMiddleware
 from django.core.exceptions import ValidationError
 
-from .models import normalize_external_link, validate_product_external_link
-from .views import _validate_image_files
+from .models import (
+    normalize_external_link,
+    validate_product_external_link,
+    POST_TYPE_LOST,
+    POST_TYPE_FOUND,
+    STATUS_ACTIVE,
+    STATUS_RESOLVED,
+)
+from .views import _validate_image_files, _client_ip, _clean_social_link
 
 
 class NormalizeExternalLinkTests(SimpleTestCase):
@@ -127,3 +134,59 @@ class SecurityHeadersMiddlewareTests(SimpleTestCase):
 
         self.assertIn('Content-Security-Policy', response)
         self.assertIn("default-src 'self'", response['Content-Security-Policy'])
+
+
+class ClientIPTests(SimpleTestCase):
+    """Test anti-spoof IP resolution"""
+
+    def _req(self, xff='', remote=''):
+        r = Mock()
+        r.META = {'HTTP_X_FORWARDED_FOR': xff, 'REMOTE_ADDR': remote}
+        return r
+
+    def test_uses_last_xff_entry_not_first(self):
+        # Spoofed: client sent X-Forwarded-For: 1.1.1.1, but proxy appended real IP 9.9.9.9
+        self.assertEqual(_client_ip(self._req(xff='1.1.1.1, 9.9.9.9')), '9.9.9.9')
+
+    def test_falls_back_to_remote_addr(self):
+        self.assertEqual(_client_ip(self._req(remote='10.0.0.1')), '10.0.0.1')
+
+    def test_unknown_when_no_data(self):
+        self.assertEqual(_client_ip(self._req()), 'unknown')
+
+
+class SocialLinkValidationTests(SimpleTestCase):
+    """Test social_link whitelist"""
+
+    def test_accepts_facebook(self):
+        self.assertEqual(
+            _clean_social_link('https://facebook.com/user/post/123'),
+            'https://facebook.com/user/post/123',
+        )
+
+    def test_accepts_instagram_subdomain(self):
+        self.assertEqual(
+            _clean_social_link('https://www.instagram.com/p/abc'),
+            'https://www.instagram.com/p/abc',
+        )
+
+    def test_rejects_malicious_url(self):
+        self.assertEqual(_clean_social_link('https://evil.example.com/phish'), '')
+
+    def test_rejects_lookalike_domain(self):
+        self.assertEqual(_clean_social_link('https://facebook.com.evil.com/'), '')
+
+    def test_empty_string_passes_through(self):
+        self.assertEqual(_clean_social_link(''), '')
+
+
+class ConstantsTests(SimpleTestCase):
+    """Sanity check that named constants match the strings used in DB"""
+
+    def test_post_type_values(self):
+        self.assertEqual(POST_TYPE_LOST, 'lost')
+        self.assertEqual(POST_TYPE_FOUND, 'found')
+
+    def test_status_values(self):
+        self.assertEqual(STATUS_ACTIVE, 'active')
+        self.assertEqual(STATUS_RESOLVED, 'resolved')
