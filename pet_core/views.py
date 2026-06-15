@@ -593,8 +593,7 @@ def search_pet(request):
 # ---- รายละเอียดโพสต์ ----
 def pet_detail(request, pet_id):
     pet = get_object_or_404(PetPost, id=pet_id)
-    images = list(pet.images.all().order_by('id'))  # ทั้งหมดของโพสต์นี้
-    # ถ้าไม่มี PetImage แต่มี main image → ใช้ main image เป็นรูปเดียว
+    images = list(pet.images.all().order_by('id'))
     image_urls = [img.supabase_image_url for img in images if img.supabase_image_url]
     if not image_urls and pet.image:
         image_urls = [pet.supabase_image_url]
@@ -606,6 +605,38 @@ def pet_detail(request, pet_id):
     )
     comments = list(pet.comments.select_related('user').all()[:50])
 
+    # ── Similar pets via pgvector ──────────────────────────────
+    similar_posts = []
+    ref_vec = next(
+        (img.feature_vector for img in images if img.feature_vector is not None),
+        None,
+    )
+    if ref_vec is not None:
+        try:
+            sim_qs = (
+                PetImage.objects
+                .filter(
+                    feature_vector__isnull=False,
+                    pet_post__status=STATUS_ACTIVE,
+                    pet_post__post_type=pet.post_type,
+                )
+                .exclude(pet_post_id=pet.id)
+                .annotate(distance=CosineDistance('feature_vector', ref_vec))
+                .order_by('distance')
+                .select_related('pet_post')[:12]
+            )
+            seen = set()
+            for pi in sim_qs:
+                if pi.pet_post_id not in seen and len(similar_posts) < 6:
+                    seen.add(pi.pet_post_id)
+                    similar_posts.append({
+                        'post': pi.pet_post,
+                        'thumb_url': pi.supabase_image_url,
+                        'similarity_pct': round((1 - pi.distance) * 100, 0),
+                    })
+        except Exception as e:
+            logger.warning("similar_pets query failed: %s", e)
+
     return render(request, 'pet_core/pet_detail.html', {
         'pet': pet,
         'is_owner': is_owner,
@@ -613,6 +644,7 @@ def pet_detail(request, pet_id):
         'image_count': len(image_urls),
         'comments': comments,
         'comments_count': len(comments),
+        'similar_posts': similar_posts,
     })
 
 

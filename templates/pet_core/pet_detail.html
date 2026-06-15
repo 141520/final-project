@@ -452,6 +452,37 @@
     </button>
   </div>
 
+  <!-- ===== Similar pets ===== -->
+  {% if similar_posts %}
+  <div style="max-width:900px;margin:0 auto 24px;">
+    <h2 style="font-family:'Noto Sans Thai Looped',sans-serif;font-size:18px;font-weight:700;color:var(--navy);margin-bottom:14px;padding:0 4px;">
+      🐾 ประกาศที่คล้ายกัน
+    </h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;">
+      {% for item in similar_posts %}
+      <a href="{% url 'pet_detail' item.post.id %}" style="background:white;border-radius:14px;box-shadow:0 2px 12px rgba(0,0,0,.07);overflow:hidden;text-decoration:none;color:inherit;display:block;transition:transform .2s,box-shadow .2s;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,.12)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 12px rgba(0,0,0,.07)'">
+        <div style="width:100%;aspect-ratio:1/1;overflow:hidden;background:#eef0f3;position:relative;">
+          {% if item.thumb_url %}
+            <img src="{{ item.thumb_url }}" alt="{{ item.post.name }}" loading="lazy"
+                 style="width:100%;height:100%;object-fit:cover;"
+                 onerror="this.parentElement.innerHTML='<span style=&quot;display:flex;align-items:center;justify-content:center;height:100%;font-size:36px;&quot;>🐾</span>'">
+          {% else %}
+            <span style="display:flex;align-items:center;justify-content:center;height:100%;font-size:36px;">🐾</span>
+          {% endif %}
+          <span style="position:absolute;bottom:6px;right:6px;background:rgba(0,0,0,.55);color:white;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;font-family:'Plus Jakarta Sans',sans-serif;">{{ item.similarity_pct|floatformat:0 }}%</span>
+        </div>
+        <div style="padding:8px 10px 10px;">
+          <div style="font-size:13px;font-weight:700;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ item.post.name|default:"ไม่ระบุ" }}</div>
+          {% if item.post.location_name %}
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">📍 {{ item.post.location_name }}</div>
+          {% endif %}
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
   <!-- ===== Comments ===== -->
   <div class="pf-glass" id="comments" style="max-width:900px;margin:24px auto;padding:24px;">
     <h2 style="font-size:20px;color:var(--pf-text);margin-bottom:14px;">
