@@ -112,48 +112,45 @@
   </div>
   <div class="hero-bg-navy"></div>
   <div class="hero-content">
-    <div class="hero-title" data-i18n="list.hero_lost">ประกาศสัตว์เลี้ยงหาย</div>
-    <div class="hero-subtitle" data-i18n="list.hero_sub">ด้านล่างนี้</div>
+    <div class="hero-title">ประกาศสัตว์เลี้ยงหาย</div>
+    <div class="hero-subtitle">ด้านล่างนี้</div>
     <div class="hero-actions">
-      <a href="{% url 'report_lost' %}" class="btn-lost" data-i18n="list.btn_report_lost">+ ลงประกาศสัตว์หาย</a>
-      <a href="{% url 'report_found' %}" class="btn-found" data-i18n="list.btn_view_found">ดูสัตว์ที่พบ</a>
-      <a href="javascript:history.back()" style="border-radius:50px;padding:10px 20px;font-size:14px;font-weight:700;text-decoration:none;background:transparent;border:1px solid rgba(255,255,255,.5);color:rgba(255,255,255,.85);" data-i18n="common.back">← ย้อนกลับ</a>
+      <a href="{% url 'report_lost' %}" class="btn-lost">+ ลงประกาศสัตว์หาย</a>
+      <a href="{% url 'report_found' %}" class="btn-found">ดูสัตว์ที่พบ</a>
+      <a href="javascript:history.back()" style="border-radius:50px;padding:10px 20px;font-size:14px;font-weight:700;text-decoration:none;background:transparent;border:1px solid rgba(255,255,255,.5);color:rgba(255,255,255,.85);">← ย้อนกลับ</a>
     </div>
   </div>
 </div>
 
 <div class="search-panel">
   <div class="search-card">
-    <h3><span class="ico">🔤</span> <span data-i18n="list.search_text">ค้นหาด้วยคำ (ชื่อ, สายพันธุ์, สถานที่)</span></h3>
+    <h3><span class="ico">🔤</span> ค้นหาด้วยคำ (ชื่อ, สายพันธุ์, สถานที่)</h3>
     <form method="get" action="{% url 'lost_pet_list' %}">
-      <input type="text" name="q" value="{{ q|default:'' }}"
-             placeholder="เช่น 'โกลเด้น' หรือ 'สีน้ำตาล' หรือ 'บางนา'"
-             data-i18n-placeholder="list.search_text">
-      <button type="submit" data-i18n="list.search_btn">ค้นหา</button>
+      <input type="text" name="q" value="{{ q|default:'' }}" placeholder="เช่น 'โกลเด้น' หรือ 'สีน้ำตาล' หรือ 'บางนา'">
+      <button type="submit">ค้นหา</button>
     </form>
-    <div class="hint" data-i18n="list.hint_text_lost">กรองจากประกาศสัตว์หายโดยตรง</div>
+    <div class="hint">กรองจากประกาศสัตว์หายโดยตรง</div>
   </div>
 
   <div class="search-card">
-    <h3><span class="ico">📷</span> <span data-i18n="list.search_ai">ค้นหาด้วยรูปภาพ (AI)</span></h3>
+    <h3><span class="ico">📷</span> ค้นหาด้วยรูปภาพ (AI)</h3>
     <form method="post" action="{% url 'search_pet' %}" enctype="multipart/form-data">
       {% csrf_token %}
       <input type="hidden" name="post_type" value="lost">
       <input type="file" name="search_image" accept="image/*" required>
-      <button type="submit" data-i18n="list.search_btn">ส่งรูป</button>
+      <button type="submit">ส่งรูป</button>
     </form>
-    <div class="hint" data-i18n="list.hint_ai">อัปโหลดรูปสัตว์เลี้ยงเพื่อให้ AI หาใบที่ใกล้เคียงที่สุด</div>
+    <div class="hint">อัปโหลดรูปสัตว์เลี้ยงเพื่อให้ AI หาใบที่ใกล้เคียงที่สุด</div>
   </div>
 </div>
 
 <div class="toolbar" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
   {% if q %}
-    <span class="result-count">
-      <span data-i18n="list.search_label">ผลการค้นหา</span> "<span>{{ q }}</span>" <span data-i18n="list.found_dash">— พบ</span> <span>{{ posts.count }}</span> <span data-i18n="list.result_unit">รายการ</span>
-      <a href="{% url 'lost_pet_list' %}" style="margin-left:10px;font-size:13px;color:var(--text-muted);font-weight:500;text-decoration:underline;" data-i18n="list.clear">ล้างการค้นหา</a>
+    <span class="result-count">ผลการค้นหา "<span>{{ q }}</span>" — พบ <span>{{ posts.count }}</span> รายการ
+      <a href="{% url 'lost_pet_list' %}" style="margin-left:10px;font-size:13px;color:var(--text-muted);font-weight:500;text-decoration:underline;">ล้างการค้นหา</a>
     </span>
   {% else %}
-    <span class="result-count"><span data-i18n="list.count_pre">มีประกาศอยู่</span> <span>{{ posts.count }}</span> <span data-i18n="list.result_unit">รายการ</span></span>
+    <span class="result-count">มีประกาศอยู่ <span>{{ posts.count }}</span> รายการ</span>
   {% endif %}
   <button type="button" id="btnNearby" class="pf-ripple"
     style="background:linear-gradient(135deg,#4E73F6,#021F74);color:white;border:none;
@@ -193,7 +190,7 @@
          {% if post.latitude and post.longitude %}data-lat="{{ post.latitude }}" data-lng="{{ post.longitude }}"{% endif %}
          style="animation-delay: {{ forloop.counter0|add:0 }}0ms">
         {% if post.status == 'resolved' %}
-          <div class="resolved-ribbon" data-i18n="list.resolved">✅ เจอแล้ว!</div>
+          <div class="resolved-ribbon">✅ เจอแล้ว!</div>
         {% else %}
           <div class="urgent-dot"></div>
         {% endif %}
@@ -210,14 +207,14 @@
 
         <div class="card-body">
           <div class="card-badge">
-            {% if post.pet_type %}{{ post.pet_type }}{% else %}<span data-i18n="list.badge_pet">สัตว์เลี้ยง</span>{% endif %} • <span data-i18n="list.badge_lost">หาย</span>
+            {% if post.pet_type %}{{ post.pet_type }}{% else %}สัตว์เลี้ยง{% endif %} • หาย
           </div>
           <div class="card-name">{{ post.name }}</div>
           <div class="card-meta">
-            <span class="meta-label"><span data-i18n="list.label_gender">เพศ</span>:</span>
+            <span class="meta-label">เพศ:</span>
             <span class="meta-val">{{ post.get_gender_display|default:"ไม่ระบุ" }}</span>
             &nbsp;
-            <span class="meta-label"><span data-i18n="list.label_age">อายุ</span>:</span>
+            <span class="meta-label">อายุ:</span>
             <span class="meta-val">{{ post.age|default:"ไม่ระบุ" }}</span>
           </div>
           {% if post.reward and post.reward > 0 %}
@@ -234,8 +231,8 @@
     {% empty %}
       <div class="state-box">
         <div class="state-ico">🔍</div>
-        <p data-i18n="list.empty_lost">ยังไม่มีประกาศสัตว์เลี้ยงหาย</p>
-        <a href="{% url 'report_lost' %}" style="display:inline-block;margin-top:16px;padding:10px 24px;background:var(--navy);color:white;border-radius:30px;text-decoration:none;font-weight:700" data-i18n="list.empty_btn_lost">
+        <p>ยังไม่มีประกาศสัตว์เลี้ยงหาย</p>
+        <a href="{% url 'report_lost' %}" style="display:inline-block;margin-top:16px;padding:10px 24px;background:var(--navy);color:white;border-radius:30px;text-decoration:none;font-weight:700">
           แจ้งสัตว์เลี้ยงหายเป็นคนแรก
         </a>
       </div>

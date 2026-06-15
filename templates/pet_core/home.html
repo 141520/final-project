@@ -219,20 +219,20 @@
 <section class="hero">
     <div class="hero-inner">
         <div class="hero-text">
-            <h1><span data-i18n="home.hero_h1a">น้องหายไปเหรอ?</span><br><span data-i18n="home.hero_h1b">เราจะช่วยคุณหาเอง! 🐾</span></h1>
-            <p data-i18n="home.hero_p">
+            <h1>น้องหายไปเหรอ?<br>เราจะช่วยคุณหาเอง! 🐾</h1>
+            <p>
                 เข้าใจเลยว่าการสูญหายของสัตว์เลี้ยงที่เป็นเหมือนครอบครัวเป็นยังไง
                 TarmRoy ถูกสร้างขึ้นมาเพื่อลดความกังวลนั้น
                 คุณสามารถโพสต์ประกาศได้ง่ายๆ หรือจะช่วยคนอื่นตามหาสัตว์เลี้ยงก็ได้เช่นกัน
             </p>
             <div class="hero-btns">
-                <a href="{% url 'lost_pet_list' %}" class="btn-outline" data-i18n="home.btn_view_lost">ดูประกาศสัตว์หาย</a>
-                <a href="{% url 'found_pet_list' %}" class="btn-solid" data-i18n="home.btn_view_found">ดูประกาศสัตว์ที่พบ</a>
-                <a href="{% url 'search_pet' %}" class="btn-outline" data-i18n="home.btn_ai">🤖 ค้นหาด้วย AI</a>
+                <a href="{% url 'lost_pet_list' %}" class="btn-outline">ดูประกาศสัตว์หาย</a>
+                <a href="{% url 'found_pet_list' %}" class="btn-solid">ดูประกาศสัตว์ที่พบ</a>
+                <a href="{% url 'search_pet' %}" class="btn-outline">🤖 ค้นหาด้วย AI</a>
             </div>
             <div class="hero-btns" style="margin-top:10px;">
-                <a href="{% url 'report_lost' %}" class="btn-solid" style="background:#E74C3C;border-color:#E74C3C;" data-i18n="home.btn_post_lost">🐾 ลงประกาศสัตว์หาย</a>
-                <a href="{% url 'report_found' %}" class="btn-solid" style="background:#27AE60;border-color:#27AE60;" data-i18n="home.btn_post_found">🐾 ลงประกาศสัตว์ที่พบ</a>
+                <a href="{% url 'report_lost' %}" class="btn-solid" style="background:#E74C3C;border-color:#E74C3C;">🐾 ลงประกาศสัตว์หาย</a>
+                <a href="{% url 'report_found' %}" class="btn-solid" style="background:#27AE60;border-color:#27AE60;">🐾 ลงประกาศสัตว์ที่พบ</a>
             </div>
         </div>
         <div class="hero-img">
@@ -243,20 +243,20 @@
 </section>
 
 <section class="block">
-    <h2 class="title-center" data-i18n="home.latest_title">ประกาศล่าสุดที่ต้องการคนช่วย</h2>
+    <h2 class="title-center">ประกาศล่าสุดที่ต้องการคนช่วย</h2>
 
     <div class="section-header">
         <div>
-            <h3 class="section-title-md" data-i18n="home.lost_sec">🚨 สัตว์เลี้ยงหาย</h3>
-            <p class="section-label" data-i18n="home.lost_sub">ช่วยพาน้องกลับบ้านที</p>
+            <h3 class="section-title-md">🚨 สัตว์เลี้ยงหาย</h3>
+            <p class="section-label">ช่วยพาน้องกลับบ้านที</p>
         </div>
-        <a href="{% url 'lost_pet_list' %}" class="link-more" data-i18n="home.view_all">ดูทั้งหมด</a>
+        <a href="{% url 'lost_pet_list' %}" class="link-more">ดูทั้งหมด</a>
     </div>
 
     <div class="pet-grid">
         {% for pet in recent_lost_pets %}
         <div class="pet-card">
-            <div class="card-badge badge-lost-sm" data-i18n="home.badge_lost">หาย</div>
+            <div class="card-badge badge-lost-sm">หาย</div>
             {% if pet.image %}
                 <img src="{{ pet.supabase_image_url }}" alt="{{ pet.name }}"
                      onerror="this.onerror=null;this.src='https://placehold.co/264x264?text=No+Image';">
@@ -266,13 +266,13 @@
             <div class="pet-card-body">
                 <div class="pet-card-name">{{ pet.name }}</div>
                 <div class="pet-card-breed">{{ pet.pet_type }}{% if pet.breed %} ({{ pet.breed }}){% endif %}</div>
-                <div class="pet-card-location">📍 {{ pet.location_name|default:"" }}<span style="{% if pet.location_name %}display:none{% endif %}" data-i18n="home.unknown_loc">ไม่ระบุสถานที่</span></div>
-                <div class="pet-card-date"><span data-i18n="home.lost_on">หายเมื่อ</span> {% if pet.lost_date %}{{ pet.lost_date|date:"d M Y" }}{% else %}<span data-i18n="home.unknown_date">ไม่ระบุ</span>{% endif %}</div>
-                <a href="{% url 'pet_detail' pet.id %}" class="pet-card-btn" data-i18n="home.view_detail">ดูรายละเอียด</a>
+                <div class="pet-card-location">📍 {{ pet.location_name|default:"ไม่ระบุสถานที่" }}</div>
+                <div class="pet-card-date">หายเมื่อ {% if pet.lost_date %}{{ pet.lost_date|date:"d M Y" }}{% else %}ไม่ระบุ{% endif %}</div>
+                <a href="{% url 'pet_detail' pet.id %}" class="pet-card-btn">ดูรายละเอียด</a>
             </div>
         </div>
         {% empty %}
-        <div class="empty-message" data-i18n="home.empty_lost">ยังไม่มีประกาศสัตว์หายในขณะนี้</div>
+        <div class="empty-message">ยังไม่มีประกาศสัตว์หายในขณะนี้</div>
         {% endfor %}
     </div>
 
@@ -280,16 +280,16 @@
 
     <div class="section-header">
         <div>
-            <h3 class="section-title-md" data-i18n="home.found_sec">💚 สัตว์เลี้ยงที่พบ</h3>
-            <p class="section-label" data-i18n="home.found_sub">เจอน้องหลงมา ตามหาเจ้าของ</p>
+            <h3 class="section-title-md">💚 สัตว์เลี้ยงที่พบ</h3>
+            <p class="section-label">เจอน้องหลงมา ตามหาเจ้าของ</p>
         </div>
-        <a href="{% url 'found_pet_list' %}" class="link-more" data-i18n="home.view_all">ดูทั้งหมด</a>
+        <a href="{% url 'found_pet_list' %}" class="link-more">ดูทั้งหมด</a>
     </div>
 
     <div class="pet-grid">
         {% for pet in recent_found_pets %}
         <div class="pet-card">
-            <div class="card-badge badge-found-sm" data-i18n="home.badge_found">เจอแล้ว</div>
+            <div class="card-badge badge-found-sm">เจอแล้ว</div>
             {% if pet.image %}
                 <img src="{{ pet.supabase_image_url }}" alt="{{ pet.name }}"
                      onerror="this.onerror=null;this.src='https://placehold.co/264x264?text=No+Image';">
@@ -299,13 +299,13 @@
             <div class="pet-card-body">
                 <div class="pet-card-name">{{ pet.name }}</div>
                 <div class="pet-card-breed">{{ pet.pet_type }}{% if pet.breed %} ({{ pet.breed }}){% endif %}</div>
-                <div class="pet-card-location">📍 {{ pet.location_name|default:"" }}<span style="{% if pet.location_name %}display:none{% endif %}" data-i18n="home.unknown_loc">ไม่ระบุสถานที่</span></div>
-                <div class="pet-card-date"><span data-i18n="home.found_on">พบเมื่อ</span> {% if pet.found_date %}{{ pet.found_date|date:"d M Y" }}{% else %}<span data-i18n="home.unknown_date">ไม่ระบุ</span>{% endif %}</div>
-                <a href="{% url 'pet_detail' pet.id %}" class="pet-card-btn" data-i18n="home.view_detail">ดูรายละเอียด</a>
+                <div class="pet-card-location">📍 {{ pet.location_name|default:"ไม่ระบุสถานที่" }}</div>
+                <div class="pet-card-date">พบเมื่อ {% if pet.found_date %}{{ pet.found_date|date:"d M Y" }}{% else %}ไม่ระบุ{% endif %}</div>
+                <a href="{% url 'pet_detail' pet.id %}" class="pet-card-btn">ดูรายละเอียด</a>
             </div>
         </div>
         {% empty %}
-        <div class="empty-message" data-i18n="home.empty_found">ยังไม่มีประกาศสัตว์ที่พบในขณะนี้</div>
+        <div class="empty-message">ยังไม่มีประกาศสัตว์ที่พบในขณะนี้</div>
         {% endfor %}
     </div>
 </section>
@@ -313,19 +313,19 @@
 <div class="stats-bar">
     <div class="stat-cell">
         <div class="stat-num">{{ total_posts|default:0 }}</div>
-        <div class="stat-cap" data-i18n="home.stat_total">ประกาศทั้งหมด</div>
+        <div class="stat-cap">ประกาศทั้งหมด</div>
     </div>
     <div class="stat-cell">
         <div class="stat-num">{{ total_users|default:0 }}</div>
-        <div class="stat-cap" data-i18n="home.stat_users">ผู้ใช้งาน</div>
+        <div class="stat-cap">ผู้ใช้งาน</div>
     </div>
     <div class="stat-cell">
         <div class="stat-num red">{{ active_posts|default:0 }}</div>
-        <div class="stat-cap" data-i18n="home.stat_active">กำลังตามหา</div>
+        <div class="stat-cap">กำลังตามหา</div>
     </div>
     <div class="stat-cell">
         <div class="stat-num green">{{ resolved_posts|default:0 }}</div>
-        <div class="stat-cap" data-i18n="home.stat_resolved">ช่วยเหลือสำเร็จ</div>
+        <div class="stat-cap">ช่วยเหลือสำเร็จ</div>
     </div>
 </div>
 
@@ -334,9 +334,9 @@
         <img src="{% static 'images/kissing-cute-puppy.png' %}" alt="เคล็ดลับดูแลเพื่อนซี้"
              onerror="this.style.display='none';">
         <div class="knowledge-banner-text">
-            <h2 data-i18n="home.kb_h2">เรื่องราวดีๆ</h2>
-            <h3 data-i18n="home.kb_h3">เคล็ดลับดูแลเพื่อนซี้</h3>
-            <a href="{% url 'blog_list' %}" class="knowledge-banner-btn" data-i18n="home.kb_btn">บทความและเคล็ดลับ →</a>
+            <h2>เรื่องราวดีๆ</h2>
+            <h3>เคล็ดลับดูแลเพื่อนซี้</h3>
+            <a href="{% url 'blog_list' %}" class="knowledge-banner-btn">บทความและเคล็ดลับ →</a>
         </div>
     </div>
 </section>
@@ -345,10 +345,10 @@
 <section class="block">
     <div class="section-header">
         <div>
-            <h2 class="section-title-lg" data-i18n="home.prod_title">🛍️ สินค้าสำหรับสัตว์เลี้ยง</h2>
-            <p class="section-label" data-i18n="home.prod_sub">สินค้าแนะนำสำหรับน้องๆ</p>
+            <h2 class="section-title-lg">🛍️ สินค้าสำหรับสัตว์เลี้ยง</h2>
+            <p class="section-label">สินค้าแนะนำสำหรับน้องๆ</p>
         </div>
-        <a href="{% url 'product_list' %}" class="link-more" data-i18n="home.view_all_arrow">ดูทั้งหมด →</a>
+        <a href="{% url 'product_list' %}" class="link-more">ดูทั้งหมด →</a>
     </div>
     <div class="product-grid">
         {% for product in home_products %}
@@ -361,7 +361,7 @@
                 {% if product.price and product.price > 0 %}
                   <div style="font-size:15px;font-weight:700;color:#021F74;">฿{{ product.price|floatformat:0 }}</div>
                 {% endif %}
-                <span class="buy-btn" data-i18n="home.prod_btn">🛍️ ดูสินค้า</span>
+                <span class="buy-btn">🛍️ ดูสินค้า</span>
             </div>
         </a>
         {% endfor %}
@@ -373,10 +373,10 @@
 <section class="block">
     <div class="section-header">
         <div>
-            <h2 class="section-title-lg" data-i18n="home.blog_title">📖 เคล็ดลับสำหรับสัตว์เลี้ยง</h2>
-            <p class="section-label" data-i18n="home.blog_sub">รู้หรือไม่?</p>
+            <h2 class="section-title-lg">📖 เคล็ดลับสำหรับสัตว์เลี้ยง</h2>
+            <p class="section-label">รู้หรือไม่?</p>
         </div>
-        <a href="{% url 'blog_list' %}" class="link-more" data-i18n="home.blog_all">ดูบทความทั้งหมด →</a>
+        <a href="{% url 'blog_list' %}" class="link-more">ดูบทความทั้งหมด →</a>
     </div>
     <div class="article-grid">
         {% for blog in home_blogs %}
