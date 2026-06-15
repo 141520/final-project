@@ -234,7 +234,7 @@
 
 {% block content %}
 <div class="pd-wrap">
-  <a href="javascript:history.back()" class="btn-back">← ย้อนกลับ</a>
+  <a href="javascript:history.back()" class="btn-back" data-i18n="common.back">← ย้อนกลับ</a>
 
   {% if pet.status == 'resolved' %}
     <div style="background:linear-gradient(135deg,#e8f5ee 0%,#d4f1de 100%);border:2px solid #1a7a4a;border-radius:16px;padding:18px 22px;margin-bottom:18px;color:#0f5132;">
@@ -303,11 +303,11 @@
 
       <div class="pd-status-row">
         {% if pet.status == 'resolved' %}
-          <span class="pd-badge badge-resolved">✅ ปิดประกาศแล้ว</span>
+          <span class="pd-badge badge-resolved" data-i18n="detail.badge_resolved">✅ ปิดประกาศแล้ว</span>
         {% elif pet.post_type == 'lost' %}
-          <span class="pd-badge badge-lost">🚨 สัตว์เลี้ยงหาย</span>
+          <span class="pd-badge badge-lost" data-i18n="detail.badge_lost">🚨 สัตว์เลี้ยงหาย</span>
         {% else %}
-          <span class="pd-badge badge-found">💚 พบสัตว์เลี้ยง</span>
+          <span class="pd-badge badge-found" data-i18n="detail.badge_found">💚 พบสัตว์เลี้ยง</span>
         {% endif %}
         <span style="font-size:13px;color:var(--text-muted);">{{ pet.created_at|timesince }} ที่แล้ว</span>
       </div>
@@ -316,38 +316,38 @@
 
       <div class="info-grid">
         <div class="info-item">
-          <span class="info-label">ชนิด</span>
+          <span class="info-label" data-i18n="detail.label_type">ชนิด</span>
           <span class="info-value">{{ pet.pet_type|default:"—" }}</span>
         </div>
         <div class="info-item">
-          <span class="info-label">สายพันธุ์</span>
+          <span class="info-label" data-i18n="detail.label_breed">สายพันธุ์</span>
           <span class="info-value">{{ pet.breed|default:"—" }}</span>
         </div>
         <div class="info-item">
-          <span class="info-label">เพศ</span>
+          <span class="info-label" data-i18n="detail.label_gender">เพศ</span>
           <span class="info-value">{{ pet.get_gender_display|default:"—" }}</span>
         </div>
         <div class="info-item">
-          <span class="info-label">อายุ</span>
+          <span class="info-label" data-i18n="detail.label_age">อายุ</span>
           <span class="info-value">{{ pet.age|default:"—" }}</span>
         </div>
         <div class="info-item">
-          <span class="info-label">สี / ลักษณะ</span>
+          <span class="info-label" data-i18n="detail.label_color">สี / ลักษณะ</span>
           <span class="info-value">{{ pet.color|default:"—" }}</span>
         </div>
         <div class="info-item">
-          <span class="info-label">สถานที่{% if pet.post_type == 'lost' %}หาย{% else %}พบ{% endif %}</span>
+          <span class="info-label" data-i18n="detail.label_loc_{{ pet.post_type }}">สถานที่{% if pet.post_type == 'lost' %}หาย{% else %}พบ{% endif %}</span>
           <span class="info-value">{{ pet.location_name|default:"—" }}</span>
         </div>
         {% if pet.post_type == 'lost' and pet.lost_date %}
         <div class="info-item">
-          <span class="info-label">วันที่หาย</span>
+          <span class="info-label" data-i18n="detail.label_lost_date">วันที่หาย</span>
           <span class="info-value">{{ pet.lost_date|date:"j M Y" }}</span>
         </div>
         {% endif %}
         {% if pet.post_type == 'found' and pet.found_date %}
         <div class="info-item">
-          <span class="info-label">วันที่พบ</span>
+          <span class="info-label" data-i18n="detail.label_found_date">วันที่พบ</span>
           <span class="info-value">{{ pet.found_date|date:"j M Y" }}</span>
         </div>
         {% endif %}
@@ -362,10 +362,10 @@
 
       {% if request.user.is_authenticated %}
         {# ── ล็อกอินแล้ว: แสดงข้อมูลเต็ม ── #}
-        <div class="contact-warning">⚠️ ใช้ข้อมูลติดต่อเพื่อช่วยเหลือเคสนี้เท่านั้น กรุณาอย่าเผยแพร่ต่อ</div>
+        <div class="contact-warning" data-i18n="detail.contact_warning">⚠️ ใช้ข้อมูลติดต่อเพื่อช่วยเหลือเคสนี้เท่านั้น กรุณาอย่าเผยแพร่ต่อ</div>
         <div class="contact-row">
           <div class="contact-info">
-            ติดต่อ: <strong>{{ pet.contact_name|default:"ไม่ระบุ" }}</strong>
+            <span data-i18n="detail.contact">ติดต่อ</span>: <strong>{{ pet.contact_name|default:"ไม่ระบุ" }}</strong>
             {% if pet.contact_email %}<br><span style="font-size:13px;">{{ pet.contact_email }}</span>{% endif %}
           </div>
           {% if pet.contact_phone %}
@@ -374,7 +374,7 @@
         </div>
         {% if pet.social_link %}
           <div style="margin-bottom:16px;font-size:14px;">
-            🔗 <a href="{{ pet.social_link }}" target="_blank" rel="noopener" style="color:var(--navy);font-weight:700;">ดูโพสต์โซเชียล ↗</a>
+            🔗 <a href="{{ pet.social_link }}" target="_blank" rel="noopener" style="color:var(--navy);font-weight:700;" data-i18n="detail.social_link">ดูโพสต์โซเชียล ↗</a>
           </div>
         {% endif %}
       {% else %}
@@ -382,7 +382,7 @@
         <div class="contact-gate">
           <div class="contact-gate-row">
             <div>
-              <div class="contact-gate-hint">ติดต่อผู้โพส</div>
+              <div class="contact-gate-hint" data-i18n="detail.gate_hint">ติดต่อผู้โพส</div>
               <div class="contact-gate-name">
                 {% if pet.contact_name %}
                   {% with parts=pet.contact_name.split %}
@@ -398,11 +398,11 @@
             {% endif %}
           </div>
           {% if pet.social_link %}
-            <div class="contact-gate-hint">🔗 มีลิงก์โซเชียล (ล็อกอินเพื่อดู)</div>
+            <div class="contact-gate-hint" data-i18n="detail.gate_social">🔗 มีลิงก์โซเชียล (ล็อกอินเพื่อดู)</div>
           {% endif %}
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-            <span class="contact-gate-hint">🔒 ล็อกอินเพื่อดูข้อมูลติดต่อเต็ม</span>
-            <a href="{% url 'login' %}?next={{ request.path }}" class="btn-login-gate">เข้าสู่ระบบ →</a>
+            <span class="contact-gate-hint" data-i18n="detail.gate_lock">🔒 ล็อกอินเพื่อดูข้อมูลติดต่อเต็ม</span>
+            <a href="{% url 'login' %}?next={{ request.path }}" class="btn-login-gate" data-i18n="detail.gate_login_btn">เข้าสู่ระบบ →</a>
           </div>
         </div>
       {% endif %}
@@ -414,21 +414,25 @@
       <div class="pd-actions">
         {% if pet.latitude and pet.longitude %}
           <a href="https://maps.google.com/?q={{ pet.latitude }},{{ pet.longitude }}"
-             target="_blank" rel="noopener" class="btn-action btn-map">
+             target="_blank" rel="noopener" class="btn-action btn-map"
+             data-i18n="detail.btn_gmap">
             📍 ดูแผนที่ใน Google Maps ↗
           </a>
         {% endif %}
 
         {% if is_owner %}
           {% if pet.status != 'resolved' %}
-            <button type="button" class="btn-action btn-resolve" onclick="document.getElementById('resolveModal').style.display='flex'">
+            <button type="button" class="btn-action btn-resolve"
+                    data-i18n="detail.btn_resolve_{{ pet.post_type }}"
+                    onclick="document.getElementById('resolveModal').style.display='flex'">
               ✅ {% if pet.post_type == 'lost' %}พบน้องแล้ว{% else %}ส่งคืนเจ้าของแล้ว{% endif %} — ปิดประกาศ
             </button>
           {% endif %}
-          <a href="{% url 'edit_post' pet.id %}" class="btn-action btn-edit-post">✏️ แก้ไขประกาศ</a>
+          <a href="{% url 'edit_post' pet.id %}" class="btn-action btn-edit-post" data-i18n="detail.btn_edit">✏️ แก้ไขประกาศ</a>
           <form method="post" action="{% url 'delete_post' pet.id %}" style="margin:0;">
             {% csrf_token %}
-            <button type="submit" class="btn-action btn-del-post" data-loading-text="กำลังลบ..." onclick="return confirm('ลบประกาศนี้?')">
+            <button type="submit" class="btn-action btn-del-post" data-loading-text="กำลังลบ..."
+                    data-i18n="detail.btn_delete" onclick="return confirm('ลบประกาศนี้?')">
               🗑️ ลบประกาศ
             </button>
           </form>
@@ -443,11 +447,13 @@
     <button class="pf-share-btn pf-ripple"
       data-share-url="{{ request.build_absolute_uri }}"
       data-share-title="{{ pet.name }} — TarmRoy"
-      data-share-text="{% if pet.post_type == 'lost' %}ช่วยกันตามหา{% else %}ช่วยตามหาเจ้าของ{% endif %} {{ pet.name }} 🐾">
+      data-share-text="{% if pet.post_type == 'lost' %}ช่วยกันตามหา{% else %}ช่วยตามหาเจ้าของ{% endif %} {{ pet.name }} 🐾"
+      data-i18n="detail.btn_share">
       ↗ แชร์
     </button>
     <button class="pf-share-btn pf-ripple" type="button" onclick="window.PF&&PF.copyToClipboard(location.href)"
-      style="background:linear-gradient(135deg,#4E73F6,#021F74);">
+      style="background:linear-gradient(135deg,#4E73F6,#021F74);"
+      data-i18n="detail.btn_copy">
       🔗 คัดลอก
     </button>
   </div>
@@ -455,7 +461,7 @@
   <!-- ===== Similar pets ===== -->
   {% if similar_posts %}
   <div style="max-width:900px;margin:0 auto 24px;">
-    <h2 style="font-family:'Noto Sans Thai Looped',sans-serif;font-size:18px;font-weight:700;color:var(--navy);margin-bottom:14px;padding:0 4px;">
+    <h2 style="font-family:'Noto Sans Thai Looped',sans-serif;font-size:18px;font-weight:700;color:var(--navy);margin-bottom:14px;padding:0 4px;" data-i18n="detail.similar">
       🐾 ประกาศที่คล้ายกัน
     </h2>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;">
@@ -486,7 +492,7 @@
   <!-- ===== Comments ===== -->
   <div class="pf-glass" id="comments" style="max-width:900px;margin:24px auto;padding:24px;">
     <h2 style="font-size:20px;color:var(--pf-text);margin-bottom:14px;">
-      💬 ความเห็น <span style="color:var(--pf-text-muted);font-weight:500;font-size:14px;">({{ comments_count }})</span>
+      <span data-i18n="detail.comments_title">💬 ความเห็น</span> <span style="color:var(--pf-text-muted);font-weight:500;font-size:14px;">({{ comments_count }})</span>
     </h2>
 
     <form id="cmtForm" method="post" action="{% url 'post_comment' pet.id %}"
@@ -496,10 +502,13 @@
         <input type="text" name="author_name" placeholder="ชื่อของคุณ (ไม่บังคับ)" maxlength="80"
           style="padding:10px 14px;border-radius:10px;border:1.5px solid var(--pf-border);background:var(--pf-surface);color:var(--pf-text);font-family:inherit;">
       {% endif %}
-      <textarea name="text" rows="2" maxlength="1000" placeholder="ฝากข้อความช่วยเหลือ ให้กำลังใจ หรือเบาะแส..."
+      <textarea name="text" rows="2" maxlength="1000"
+        placeholder="ฝากข้อความช่วยเหลือ ให้กำลังใจ หรือเบาะแส..."
+        data-i18n-placeholder="detail.comment_placeholder"
         style="padding:12px 14px;border-radius:12px;border:1.5px solid var(--pf-border);background:var(--pf-surface);color:var(--pf-text);font-family:inherit;font-size:14px;resize:vertical;"></textarea>
       <div style="display:flex;justify-content:flex-end;">
         <button type="submit" class="pf-ripple" data-loading-text="กำลังส่ง..."
+          data-i18n="detail.comment_submit"
           style="background:#021F74;color:white;border:none;padding:10px 22px;border-radius:100px;font-weight:700;cursor:pointer;font-family:inherit;">
           ส่งความเห็น
         </button>
@@ -520,7 +529,7 @@
           </div>
         </div>
       {% empty %}
-        <div style="color:var(--pf-text-muted);padding:14px 0;text-align:center;font-size:14px;">
+        <div style="color:var(--pf-text-muted);padding:14px 0;text-align:center;font-size:14px;" data-i18n="detail.comment_empty">
           ยังไม่มีความเห็น เป็นคนแรกได้เลย!
         </div>
       {% endfor %}

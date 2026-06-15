@@ -339,34 +339,40 @@
         </button>
 
         <nav class="nav-links" id="navLinks">
-            <a href="{% url 'home' %}" class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}">หน้าแรก</a>
-            <a href="{% url 'lost_pet_list' %}" class="nav-link {% if request.resolver_match.url_name == 'lost_pet_list' %}active{% endif %}">ประกาศสัตว์หาย</a>
-            <a href="{% url 'found_pet_list' %}" class="nav-link {% if request.resolver_match.url_name == 'found_pet_list' %}active{% endif %}">ประกาศสัตว์พบ</a>
-            <a href="{% url 'map_view' %}" class="nav-link {% if request.resolver_match.url_name == 'map_view' %}active{% endif %}">🗺️ แผนที่</a>
-            <a href="{% url 'search_pet' %}" class="nav-link {% if request.resolver_match.url_name == 'search_pet' %}active{% endif %}">🔍 AI ค้นหา</a>
-            <a href="{% url 'product_list' %}" class="nav-link {% if request.resolver_match.url_name == 'product_list' %}active{% endif %}">สินค้า</a>
-            <a href="{% url 'blog_list' %}" class="nav-link {% if request.resolver_match.url_name == 'blog_list' %}active{% endif %}">บทความ</a>
+            <a href="{% url 'home' %}" class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}" data-i18n="nav.home">หน้าแรก</a>
+            <a href="{% url 'lost_pet_list' %}" class="nav-link {% if request.resolver_match.url_name == 'lost_pet_list' %}active{% endif %}" data-i18n="nav.lost">ประกาศสัตว์หาย</a>
+            <a href="{% url 'found_pet_list' %}" class="nav-link {% if request.resolver_match.url_name == 'found_pet_list' %}active{% endif %}" data-i18n="nav.found">ประกาศสัตว์พบ</a>
+            <a href="{% url 'map_view' %}" class="nav-link {% if request.resolver_match.url_name == 'map_view' %}active{% endif %}" data-i18n="nav.map">🗺️ แผนที่</a>
+            <a href="{% url 'search_pet' %}" class="nav-link {% if request.resolver_match.url_name == 'search_pet' %}active{% endif %}" data-i18n="nav.ai_search">🔍 AI ค้นหา</a>
+            <a href="{% url 'product_list' %}" class="nav-link {% if request.resolver_match.url_name == 'product_list' %}active{% endif %}" data-i18n="nav.products">สินค้า</a>
+            <a href="{% url 'blog_list' %}" class="nav-link {% if request.resolver_match.url_name == 'blog_list' %}active{% endif %}" data-i18n="nav.blog">บทความ</a>
 
             <button class="pf-theme-toggle pf-ripple" aria-label="สลับธีม" title="สลับ Light/Dark">
                 <span class="sun">☀️</span><span class="moon">🌙</span>
             </button>
 
+            <button class="pf-lang-toggle" id="langToggle" title="Switch language / เปลี่ยนภาษา" type="button">
+                <span class="lang-opt active" data-lang="th">ไทย</span>
+                <span class="lang-sep">|</span>
+                <span class="lang-opt" data-lang="en">EN</span>
+            </button>
+
             {% if user.is_authenticated %}
                 <div class="nav-profile-wrap">
-                    <a href="{% url 'profile' %}" class="nav-profile-btn" id="profileBtn" aria-haspopup="true">
+                    <a href="{% url 'profile' %}" class="nav-profile-btn" id="profileBtn" aria-haspopup="true" data-i18n="nav.profile">
                         👤 โปรไฟล์ ▾
                     </a>
                     <div class="nav-dropdown" id="profileDropdown">
-                        <a href="{% url 'profile' %}">⚙️ โปรไฟล์ของฉัน</a>
-                        <a href="{% url 'my_posts' %}">📢 ประกาศของฉัน</a>
-                        <a href="{% url 'report_lost' %}">➕ แจ้งสัตว์หาย</a>
-                        <a href="{% url 'report_found' %}">🐾 แจ้งสัตว์ที่พบ</a>
+                        <a href="{% url 'profile' %}" data-i18n="nav.my_profile">⚙️ โปรไฟล์ของฉัน</a>
+                        <a href="{% url 'my_posts' %}" data-i18n="nav.my_posts">📢 ประกาศของฉัน</a>
+                        <a href="{% url 'report_lost' %}" data-i18n="nav.report_lost">➕ แจ้งสัตว์หาย</a>
+                        <a href="{% url 'report_found' %}" data-i18n="nav.report_found">🐾 แจ้งสัตว์ที่พบ</a>
                         <div class="divider"></div>
-                        <button class="logout-item" id="navLogoutBtn">🚪 ออกจากระบบ</button>
+                        <button class="logout-item" id="navLogoutBtn" data-i18n="nav.logout">🚪 ออกจากระบบ</button>
                     </div>
                 </div>
             {% else %}
-                <a href="{% url 'login' %}" class="nav-link btn-auth">เข้าสู่ระบบ</a>
+                <a href="{% url 'login' %}" class="nav-link btn-auth" data-i18n="nav.login">เข้าสู่ระบบ</a>
             {% endif %}
         </nav>
     </header>
@@ -394,25 +400,25 @@
         <div class="ft-grid">
             <div class="ft-brand ft-col">
                 <a href="{% url 'home' %}" class="logo">TarmRoy</a>
-                <p class="ft-tagline">เว็บไซต์ช่วยตามหาสัตว์เลี้ยงหาย ใช้ AI จับคู่รูปภาพ พาน้องกลับบ้านอย่างปลอดภัย</p>
+                <p class="ft-tagline" data-i18n="ft.tagline">เว็บไซต์ช่วยตามหาสัตว์เลี้ยงหาย ใช้ AI จับคู่รูปภาพ พาน้องกลับบ้านอย่างปลอดภัย</p>
             </div>
             <div class="ft-col">
-                <h4>ค้นหา</h4>
-                <a href="{% url 'lost_pet_list' %}">ประกาศสัตว์หาย</a>
-                <a href="{% url 'found_pet_list' %}">ประกาศสัตว์พบ</a>
-                <a href="{% url 'map_view' %}">แผนที่</a>
-                <a href="{% url 'search_pet' %}">ค้นหาด้วย AI</a>
+                <h4 data-i18n="ft.browse">ค้นหา</h4>
+                <a href="{% url 'lost_pet_list' %}" data-i18n="ft.lost">ประกาศสัตว์หาย</a>
+                <a href="{% url 'found_pet_list' %}" data-i18n="ft.found">ประกาศสัตว์พบ</a>
+                <a href="{% url 'map_view' %}" data-i18n="ft.map">แผนที่</a>
+                <a href="{% url 'search_pet' %}" data-i18n="ft.ai_search">ค้นหาด้วย AI</a>
             </div>
             <div class="ft-col">
-                <h4>ชุมชน</h4>
-                <a href="{% url 'blog_list' %}">บทความ</a>
-                <a href="{% url 'product_list' %}">สินค้าแนะนำ</a>
+                <h4 data-i18n="ft.community">ชุมชน</h4>
+                <a href="{% url 'blog_list' %}" data-i18n="ft.blog">บทความ</a>
+                <a href="{% url 'product_list' %}" data-i18n="ft.products">สินค้าแนะนำ</a>
                 {% if user.is_authenticated %}
-                    <a href="{% url 'report_lost' %}">แจ้งสัตว์หาย</a>
-                    <a href="{% url 'report_found' %}">แจ้งสัตว์ที่พบ</a>
+                    <a href="{% url 'report_lost' %}" data-i18n="ft.report_lost">แจ้งสัตว์หาย</a>
+                    <a href="{% url 'report_found' %}" data-i18n="ft.report_found">แจ้งสัตว์ที่พบ</a>
                 {% else %}
-                    <a href="{% url 'login' %}">เข้าสู่ระบบ</a>
-                    <a href="{% url 'signup' %}">สมัครสมาชิก</a>
+                    <a href="{% url 'login' %}" data-i18n="ft.login">เข้าสู่ระบบ</a>
+                    <a href="{% url 'signup' %}" data-i18n="ft.signup">สมัครสมาชิก</a>
                 {% endif %}
             </div>
         </div>
@@ -507,6 +513,7 @@
 <script src="{% static 'js/app.js' %}" defer></script>
 <script src="{% static 'js/pro.js' %}" defer></script>
 <script src="{% static 'js/ux.js' %}" defer></script>
+<script src="{% static 'js/i18n.js' %}" defer></script>
 {% block extra_js %}{% endblock %}
 </body>
 </html>

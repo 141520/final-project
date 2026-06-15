@@ -151,7 +151,24 @@ img[loading="lazy"][src]:not([src=""]) {
 }
 
 /* ─────────────────────────────────────────────
-   5. TYPOGRAPHY FINE-TUNE สำหรับ Noto Sans Thai Looped
+   5. LANGUAGE TOGGLE (TH | EN)
+   ───────────────────────────────────────────── */
+.pf-lang-toggle {
+  display: inline-flex; align-items: center; gap: 3px;
+  background: transparent; border: 1.5px solid rgba(2,31,116,.25);
+  border-radius: 20px; padding: 5px 12px;
+  font-size: 13px; font-weight: 700; color: #021F74;
+  cursor: pointer; transition: border-color .15s;
+  white-space: nowrap; flex-shrink: 0;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+.pf-lang-toggle:hover { border-color: #021F74; }
+.pf-lang-toggle .lang-sep { opacity: .35; margin: 0 2px; }
+.lang-opt { opacity: .4; transition: opacity .15s; cursor: pointer; }
+.lang-opt.active { opacity: 1; }
+
+/* ─────────────────────────────────────────────
+   6. TYPOGRAPHY FINE-TUNE สำหรับ Noto Sans Thai Looped
    ───────────────────────────────────────────── */
 body {
   letter-spacing: 0.005em;
