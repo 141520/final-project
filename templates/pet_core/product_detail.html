@@ -157,7 +157,7 @@
 </div>
 
 {% if image_urls|length > 1 %}
-<script>
+<script nonce="{{ csp_nonce }}">
 (function(){
   var imgs   = document.querySelectorAll('#galleryMain .gal-img');
   var dots   = document.querySelectorAll('#galleryMain .dot');

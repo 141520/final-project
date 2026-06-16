@@ -187,7 +187,7 @@
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 {{ posts_json|json_script:"posts-data" }}
-<script>
+<script nonce="{{ csp_nonce }}">
 const POSTS = JSON.parse(document.getElementById('posts-data').textContent);
 
 // ── Bounding box ของประเทศไทย (กัน fitBounds กระโดดออกนอกประเทศ) ──

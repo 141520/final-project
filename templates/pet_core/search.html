@@ -345,7 +345,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce }}">
 (function(){
   const fileInput = document.getElementById('search_image');
   const dropzone  = document.getElementById('dropzone');

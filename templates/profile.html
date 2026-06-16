@@ -288,7 +288,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce }}">
     // ดึง email จาก Supabase session (กรณี Django ไม่มี email)
     (async function fillEmail() {
         try {

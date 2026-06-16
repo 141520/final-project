@@ -10,7 +10,9 @@ SupabaseAuthMiddleware
 ทำให้ `@login_required` และ `request.user.is_authenticated` ใช้ได้ตามปกติ
 พร้อมตรวจ ownership โพสต์ได้
 """
+import base64
 import logging
+import secrets
 import jwt
 import requests
 from django.conf import settings
@@ -25,18 +27,22 @@ UserModel = get_user_model()
 class SecurityHeadersMiddleware(MiddlewareMixin):
     """Add lightweight security headers without an extra dependency."""
 
+    def process_request(self, request):
+        request.csp_nonce = base64.b64encode(secrets.token_bytes(16)).decode('ascii')
+
     def process_response(self, request, response):
+        nonce = getattr(request, 'csp_nonce', '')
         response.setdefault(
             'Content-Security-Policy',
-            "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; "
-            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://unpkg.com; "
-            "font-src 'self' https://fonts.gstatic.com data:; "
-            "img-src 'self' data: https:; "
-            "connect-src 'self' https:; "
-            "frame-ancestors 'self'; "
-            "base-uri 'self'; "
-            "form-action 'self';"
+            f"default-src 'self'; "
+            f"script-src 'self' 'nonce-{nonce}' https://cdn.jsdelivr.net https://unpkg.com; "
+            f"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://unpkg.com; "
+            f"font-src 'self' https://fonts.gstatic.com data:; "
+            f"img-src 'self' data: https:; "
+            f"connect-src 'self' https:; "
+            f"frame-ancestors 'self'; "
+            f"base-uri 'self'; "
+            f"form-action 'self';"
         )
         response.setdefault('Permissions-Policy', 'geolocation=(self), camera=(), microphone=()')
         return response

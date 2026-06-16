@@ -322,7 +322,7 @@ input[type=file] {
 
 {% block extra_js %}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
+<script nonce="{{ csp_nonce }}">
 (function() {
   const latInput = document.getElementById('edit-lat');
   const lngInput = document.getElementById('edit-lng');

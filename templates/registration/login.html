@@ -168,7 +168,7 @@
         </div>
     </div>
 
-    <script>
+    <script nonce="{{ csp_nonce }}">
     function togglePassword() {
         var inp = document.getElementById('password');
         var on  = document.getElementById('iconEyeOn');
@@ -184,7 +184,7 @@
         }
     }
     </script>
-    <script>
+    <script nonce="{{ csp_nonce }}">
     (function(){
         const SUPABASE_URL = '{{ SUPABASE_URL }}';
         const SUPABASE_KEY = '{{ SUPABASE_ANON_KEY }}';

@@ -157,7 +157,7 @@
     </div>
     {% endfor %}
   </div>
-  <script>setTimeout(function(){var s=document.getElementById('pfSkel');if(s)s.style.display='none'},400)</script>
+  <script nonce="{{ csp_nonce }}">setTimeout(function(){var s=document.getElementById('pfSkel');if(s)s.style.display='none'},400)</script>
 
   <div class="cards-grid">
     {% for post in posts %}

@@ -57,7 +57,7 @@
     <link rel="stylesheet" href="{% static 'css/ux.css' %}">
 
     {# No-flash dark mode init — runs before paint #}
-    <script>
+    <script nonce="{{ csp_nonce }}">
     (function(){try{var t=localStorage.getItem('pf-theme');
       if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
       document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
@@ -425,7 +425,7 @@
 
 </div>
 
-<script>
+<script nonce="{{ csp_nonce }}">
     var SUPABASE_URL = '{{ SUPABASE_URL }}';
     var SUPABASE_KEY = '{{ SUPABASE_ANON_KEY }}';
     if (typeof window.mySupabaseClient === 'undefined' && window.supabase) {

@@ -56,7 +56,7 @@
   <div class="hint">ถ้ากดแล้วไม่เปิด ให้คัดลอก URL แล้ววางใน browser ใหม่</div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce }}">
 var SHOP_URL = "{{ shop_url|escapejs }}";
 
 function copyUrl() {

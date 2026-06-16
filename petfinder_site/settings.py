@@ -92,6 +92,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 # 🟢 inject SUPABASE_URL / SUPABASE_ANON_KEY ลงทุก template
                 'pet_core.context_processors.supabase_settings',
+                'pet_core.context_processors.csp_nonce',
             ],
         },
     },
