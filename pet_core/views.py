@@ -661,8 +661,7 @@ def edit_post(request, pet_id):
             # อัปเดตฟิลด์ข้อความ
             for field in ['name', 'pet_type', 'breed', 'age', 'gender', 'color',
                           'microchip', 'description', 'contact_name', 'contact_email',
-                          'contact_phone', 'social_link', 'location_name', 'situation',
-                          'status']:
+                          'contact_phone', 'social_link', 'location_name', 'situation']:
                 val = request.POST.get(field)
                 if val is not None:
                     setattr(pet, field, val.strip())
